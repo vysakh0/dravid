@@ -4,13 +4,10 @@ from datetime import datetime
 
 
 class ProjectMetadataManager:
-    def __init__(self, project_dir=None):
-        self.project_dir = project_dir or os.getcwd()
-        self.metadata_file = self._find_or_create_metadata_file()
-
-    def _find_or_create_metadata_file(self):
-        # Always use drd.json in the project directory
-        return os.path.join(self.project_dir, 'drd.json')
+    def __init__(self, project_dir):
+        self.project_dir = project_dir
+        self.metadata_file = os.path.join(self.project_dir, 'drd.json')
+        self.metadata = self.load_metadata()
 
     def load_metadata(self):
         if os.path.exists(self.metadata_file):
@@ -18,20 +15,19 @@ class ProjectMetadataManager:
                 return json.load(f)
         return {"project_name": os.path.basename(self.project_dir), "last_updated": "", "files": []}
 
-    def save_metadata(self, metadata):
+    def save_metadata(self):
         with open(self.metadata_file, 'w') as f:
-            json.dump(metadata, f, indent=2)
+            json.dump(self.metadata, f, indent=2)
 
     def update_file_metadata(self, filename, file_type, content, description=None):
-        metadata = self.load_metadata()
-        metadata['last_updated'] = datetime.now().isoformat()
+        self.metadata['last_updated'] = datetime.now().isoformat()
 
         # Create or update file entry
         file_entry = next(
-            (f for f in metadata['files'] if f['filename'] == filename), None)
+            (f for f in self.metadata['files'] if f['filename'] == filename), None)
         if file_entry is None:
             file_entry = {'filename': filename}
-            metadata['files'].append(file_entry)
+            self.metadata['files'].append(file_entry)
 
         file_entry.update({
             'type': file_type,
@@ -40,17 +36,10 @@ class ProjectMetadataManager:
             'description': description or file_entry.get('description', '')
         })
 
-        self.save_metadata(metadata)
+        self.save_metadata()
 
     def get_file_metadata(self, filename):
-        metadata = self.load_metadata()
-        return next((f for f in metadata['files'] if f['filename'] == filename), None)
+        return next((f for f in self.metadata['files'] if f['filename'] == filename), None)
 
     def get_project_context(self):
-        metadata = self.load_metadata()
-        return json.dumps(metadata, indent=2)
-
-
-def get_project_context():
-    # This function is kept for backwards compatibility
-    return ProjectMetadataManager().get_project_context()
+        return json.dumps(self.metadata, indent=2)
