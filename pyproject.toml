@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "drd"
+version = "0.1.0"
+description = "A CLI tool for project setup using Claude API"
+authors = ["Vysakh Sreenivasan <srvysakh@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "drd", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+click = "^8.0.0"
+requests = "^2.25.0"
+python-dotenv = "^0.19.0"
+colorama = "^0.4.4"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.0"
+black = "^21.5b0"
+flake8 = "^3.9.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+drd = "drd.main:claude_cli"

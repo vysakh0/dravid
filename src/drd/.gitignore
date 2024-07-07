@@ -1,0 +1,5 @@
+venv/
+.env
+index.html
+my-nextjs-app
+my_elixir_app
