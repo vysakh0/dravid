@@ -6,14 +6,17 @@ from datetime import datetime
 class ProjectMetadataManager:
     def __init__(self, project_dir=None):
         self.project_dir = project_dir or os.getcwd()
-        self.metadata_file = os.path.join(
-            self.project_dir, 'project_metadata.json')
+        self.metadata_file = self._find_or_create_metadata_file()
+
+    def _find_or_create_metadata_file(self):
+        # Always use drd.json in the project directory
+        return os.path.join(self.project_dir, 'drd.json')
 
     def load_metadata(self):
         if os.path.exists(self.metadata_file):
             with open(self.metadata_file, 'r') as f:
                 return json.load(f)
-        return {"project_name": "", "last_updated": "", "files": []}
+        return {"project_name": os.path.basename(self.project_dir), "last_updated": "", "files": []}
 
     def save_metadata(self, metadata):
         with open(self.metadata_file, 'w') as f:

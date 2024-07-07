@@ -6,6 +6,7 @@ from .claude_api import call_claude_api, identify_file, generate_description
 from .claude_parser import parse_claude_response, pretty_print_commands
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
+from .prompts.error_handling import get_error_analysis_prompt
 from colorama import init, Fore, Style
 
 # Initialize colorama
@@ -37,6 +38,21 @@ def get_file_content(filename):
         with open(filename, 'r') as f:
             return f.read()
     return None
+
+
+def create_drd_json_if_needed(directory):
+    drd_json_path = os.path.join(directory, 'drd.json')
+    if not os.path.exists(drd_json_path):
+        if click.confirm("No drd.json found. Do you want to create one?"):
+            metadata_manager = ProjectMetadataManager(directory)
+            metadata_manager.save_metadata({
+                "project_name": os.path.basename(directory),
+                "last_updated": "",
+                "files": []
+            })
+            print_success(f"Created drd.json in {directory}")
+            return metadata_manager
+    return ProjectMetadataManager(directory)
 
 
 def apply_fix_commands(fix_commands, executor):
@@ -104,36 +120,14 @@ def handle_error_with_claude(error, cmd, executor, depth=0, previous_context="")
     print_error(f"Error executing command: {error}")
     error_trace = traceback.format_exc()
 
-    error_query = f"""
-    Previous context:
-    {previous_context}
-
-    An error occurred while executing the following command:
-    {cmd['type']}: {cmd.get('command') or cmd.get('filename')}
-    
-    Error details:
-    {error_trace}
-    
-    Please analyze this error and provide a JSON response with the following structure:
-    {{
-        "explanation": "Brief explanation of the error and proposed fix",
-        "steps": [
-            {{
-                "type": "shell" or "file",
-                "command" or "filename": "command to execute or file to modify",
-                "content": "file content if type is file"
-            }}
-        ]
-    }}
-    Ensure the steps are executable and will resolve the issue. Strictly only respond with json, no extra words before or after.
-    """
+    error_query = get_error_analysis_prompt(
+        cmd, error, error_trace, previous_context)
 
     print_info("Sending error information to Claude for analysis...")
     response = call_claude_api(error_query)
     fix_commands = parse_claude_response(response)
 
     print_info("Claude's suggested fix:")
-
     print_info("Applying Claude's suggested fix...")
     print(fix_commands, "----")
     fix_applied, step_completed, error_message, all_outputs = apply_fix_commands(
@@ -151,93 +145,12 @@ def handle_error_with_claude(error, cmd, executor, depth=0, previous_context="")
         click.echo(all_outputs)
 
         # Prepare a new error query with the failed fix attempt information
-        new_error_query = f"""
-        Previous context:
-        {previous_context}
-
-        An error occurred while attempting to apply the fix:
-        
-        Fix attempt details:
-        {all_outputs}
-        
-        Error at step {step_completed}: {error_message}
-        
-        Please analyze this error and provide a new set of fix commands to resolve this issue.
-        """
-
-        # Recursively try to fix the error in applying the fix
-        return handle_error_with_claude(Exception(new_error_query),
-                                        {"type": "fix",
-                                            "command": f"apply fix step {step_completed}"},
-                                        executor, depth + 1, new_error_query)
-    if depth > 3:  # Limit recursion depth
-        print_error(
-            "Max error handling depth reached. Unable to resolve the issue.")
-        return False
-
-    print_error(f"Error executing command: {error}")
-    error_trace = traceback.format_exc()
-
-    error_query = f"""
-    Previous context:
-    {previous_context}
-
-    An error occurred while executing the following command:
-    {cmd['type']}: {cmd.get('command') or cmd.get('filename')}
-    
-    Error details:
-    {error_trace}
-    
-    Please analyze this error and provide a JSON response with the following structure:
-    {{
-        "explanation": "Brief explanation of the error and proposed fix",
-        "steps": [
-            {{
-                "type": "shell" or "file",
-                "command" or "filename": "command to execute or file to modify",
-                "content": "file content if type is file"
-            }}
-        ]
-    }}
-    Ensure the fix_commands are executable and will resolve the issue.
-    """
-
-    print_info("Sending error information to Claude for analysis...")
-    response = call_claude_api(error_query)
-    fix_commands = parse_claude_response(response)
-
-    print_info("Claude's suggested fix:")
-    pretty_print_commands(fix_commands)
-
-    print_info("Applying Claude's suggested fix...")
-    fix_applied, step_completed, error_message, all_outputs = apply_fix_commands(
-        fix_commands, executor)
-
-    if fix_applied:
-        print_success("All fix steps successfully applied.")
-        print_info("Fix application details:")
-        click.echo(all_outputs)
-        return True
-    else:
-        print_error(f"Failed to apply the fix at step {step_completed}.")
-        print_error(f"Error message: {error_message}")
-        print_info("Fix application details:")
-        click.echo(all_outputs)
-
-        # Prepare a new error query with the failed fix attempt information
-        new_error_query = f"""
-        Previous context:
-        {previous_context}
-
-        An error occurred while attempting to apply the fix:
-        
-        Fix attempt details:
-        {all_outputs}
-        
-        Error at step {step_completed}: {error_message}
-        
-        Please analyze this error and provide a new set of fix commands to resolve this issue.
-        """
+        new_error_query = get_error_analysis_prompt(
+            {"type": "fix", "command": f"apply fix step {step_completed}"},
+            Exception(error_message),
+            all_outputs,
+            previous_context + "\n\n" + error_query
+        )
 
         # Recursively try to fix the error in applying the fix
         return handle_error_with_claude(Exception(new_error_query),
@@ -252,13 +165,11 @@ def handle_error_with_claude(error, cmd, executor, depth=0, previous_context="")
 def claude_cli(query, debug):
     print_info("Starting Claude CLI tool...")
 
+    current_dir = os.getcwd()
     executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-
-    project_context = metadata_manager.get_project_context()
 
     print_info("Sending query to Claude API...")
-    response = call_claude_api(f"{project_context}\n\n{query}")
+    response = call_claude_api(query, include_context=False)
     if debug:
         print_info("Raw response from Claude API:")
         print(response)
@@ -302,8 +213,6 @@ def claude_cli(query, debug):
                     if operation_performed:
                         description = generate_description(
                             cmd['filename'], cmd.get('content', ''))
-                        metadata_manager.update_file_metadata(cmd['filename'], cmd['filename'].split(
-                            '.')[-1], cmd.get('content', ''), description)
                         print_success(
                             f"Performed {cmd['operation']} operation on file: {cmd['filename']}")
                         print_info(f"Generated description: {description}")
@@ -329,6 +238,9 @@ def claude_cli(query, debug):
                 f"Failed to execute command after {max_retries} attempts. Skipping and moving to the next command.")
 
     print_success("Claude CLI tool execution completed.")
+
+    # Create drd.json after project setup if it doesn't exist
+    create_drd_json_if_needed(current_dir)
 
 
 if __name__ == '__main__':
