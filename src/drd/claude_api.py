@@ -1,9 +1,10 @@
-import json
 import os
 import requests
 from .utils import get_project_context
 from .prompts.claude_instructions import get_instruction_prompt
 from .prompts.file_operations import get_file_identification_prompt, get_file_description_prompt
+from .claude_parser import extract_and_parse_xml
+import xml.etree.ElementTree as ET
 
 
 def call_claude_api(query, include_context=False):
@@ -38,7 +39,14 @@ def call_claude_api(query, include_context=False):
 
     resp = response.json()['content'][0]['text']
     print(resp, "resp")
-    return resp
+
+    # Attempt to parse the XML response
+    try:
+        root = extract_and_parse_xml(resp)
+        return ET.tostring(root, encoding='unicode')
+    except Exception as e:
+        print(f"Error parsing XML response: {e}")
+        return resp
 
 
 def identify_file(query):

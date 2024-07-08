@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "drd"
+name = "dravid"
 version = "0.1.0"
 description = "A CLI tool for project setup using Claude API"
 authors = ["Vysakh Sreenivasan <srvysakh@gmail.com>"]
