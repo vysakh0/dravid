@@ -2,7 +2,7 @@ import click
 import os
 import traceback
 from dotenv import load_dotenv
-from typing import List, Dict, Any  # Add this line
+from typing import List, Dict, Any
 from .claude_api import call_claude_api, generate_description
 from .claude_parser import parse_claude_response, pretty_print_commands, extract_and_parse_xml
 from .executor import Executor
@@ -14,7 +14,6 @@ import xml.etree.ElementTree as ET
 import threading
 from queue import Queue, Empty
 import subprocess
-import time
 import re
 
 # Initialize colorama
@@ -162,40 +161,6 @@ def handle_command(cmd, executor, metadata_manager):
         return False, e
 
 
-@click.command()
-@click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
-@click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
-@click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
-def claude_cli(query, debug, monitor_fix):
-    if monitor_fix:
-        run_dev_server_with_monitoring()
-    else:
-        execute_claude_command(query, debug)
-
-
-def run_dev_server_with_monitoring():
-    print_info("Starting dev server monitor...")
-
-    error_handlers = {
-        r"Cannot find module": handle_module_not_found,
-        r"SyntaxError": handle_syntax_error,
-        # Add more error patterns and handlers as needed
-    }
-
-    current_dir = os.getcwd()
-    monitor = DevServerMonitor(current_dir, error_handlers)
-
-    try:
-        monitor.start()
-        click.echo("Dev server monitor started. Press Ctrl+C to stop.")
-        while True:
-            time.sleep(1)  # Keep the main thread alive
-    except KeyboardInterrupt:
-        click.echo("Stopping development server...")
-    finally:
-        monitor.stop()
-
-
 def execute_claude_command(query, debug):
     print_info("Starting Claude CLI tool...")
 
@@ -206,7 +171,6 @@ def execute_claude_command(query, debug):
         project_context = metadata_manager.get_project_context()
 
         if project_context:
-            # Step 1: Ask Claude which files need to be modified
             files_to_modify = get_files_to_modify(query, project_context)
 
             if debug:
@@ -214,14 +178,12 @@ def execute_claude_command(query, debug):
                 for file in files_to_modify:
                     print(file)
 
-            # Step 2: Fetch current content of files to be modified
             file_contents = {}
             for file in files_to_modify:
                 content = get_file_content(file)
                 if content:
                     file_contents[file] = content
 
-            # Step 3: Include file contents in the query to Claude
             file_context = "\n".join(
                 [f"Current content of {file}:\n{content}" for file, content in file_contents.items()])
             full_query = f"{project_context}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
@@ -307,6 +269,147 @@ def execute_claude_command(query, debug):
         print_error(f"An unexpected error occurred: {str(e)}")
         if debug:
             traceback.print_exc()
+
+
+def update_metadata(files_to_update):
+    print_info("Updating metadata for specified files...")
+    executor = Executor()
+    metadata_manager = ProjectMetadataManager(executor.current_dir)
+
+    for file in files_to_update:
+        if metadata_manager.update_metadata_from_file(file):
+            print_success(f"Updated metadata for file: {file}")
+        else:
+            print_error(f"Failed to update metadata for file: {file}")
+
+
+def update_metadata_with_claude(meta_description):
+    print_info("Updating metadata based on the provided description...")
+    executor = Executor()
+    metadata_manager = ProjectMetadataManager(executor.current_dir)
+    project_context = metadata_manager.get_project_context()
+
+    # Step 1: Identify files to update
+    files_query = f"""
+{project_context}
+
+User update description: {meta_description}
+
+Based on the user's description and the project context, please identify which files need to have their metadata updated.
+Respond with an XML structure containing the files to update:
+
+<response>
+  <files>
+    <file>path/to/file1.ext</file>
+    <file>path/to/file2.ext</file>
+    <!-- Add more file elements as needed -->
+  </files>
+</response>
+
+Only include files that need to be updated based on the user's description.
+"""
+
+    files_response = call_claude_api(files_query, include_context=True)
+
+    try:
+        root = extract_and_parse_xml(files_response)
+        files_to_update = [file.text.strip()
+                           for file in root.findall('.//file')]
+
+        if not files_to_update:
+            print_info("No files identified for metadata update.")
+            return
+
+        print_info(
+            f"Files identified for update: {', '.join(files_to_update)}")
+
+        # Step 2: Read file contents and generate metadata
+        for filename in files_to_update:
+            if not os.path.exists(filename):
+                print_error(f"File not found: {filename}")
+                continue
+
+            with open(filename, 'r') as f:
+                content = f.read()
+
+            metadata_query = f"""
+{project_context}
+
+File: {filename}
+Content:
+{content}
+
+Based on the file content and the project context, please generate appropriate metadata for this file.
+Respond with an XML structure containing the metadata:
+
+<response>
+  <metadata>
+    <type>file_type</type>
+    <description>Description of the file's contents or purpose</description>
+  </metadata>
+</response>
+"""
+
+            metadata_response = call_claude_api(
+                metadata_query, include_context=True)
+
+            try:
+                metadata_root = extract_and_parse_xml(metadata_response)
+                file_type = metadata_root.find('.//type').text.strip()
+                description = metadata_root.find('.//description').text.strip()
+
+                metadata_manager.update_file_metadata(
+                    filename,
+                    file_type,
+                    content,
+                    description
+                )
+                print_success(f"Updated metadata for file: {filename}")
+            except Exception as e:
+                print_error(f"Error parsing metadata for {filename}: {str(e)}")
+
+        print_success("Metadata update completed.")
+    except Exception as e:
+        print_error(f"Error parsing Claude's response: {str(e)}")
+
+
+@click.command()
+@click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
+@click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
+@click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
+@click.option('--meta-add', help='Update metadata based on the provided description')
+def claude_cli(query, debug, monitor_fix, meta_add):
+    if monitor_fix:
+        run_dev_server_with_monitoring()
+    elif meta_add:
+        update_metadata_with_claude(meta_add)
+    elif query:
+        execute_claude_command(query, debug)
+    else:
+        click.echo("Please provide a query or use --meta-add to update metadata.")
+
+
+def run_dev_server_with_monitoring():
+    print_info("Starting dev server monitor...")
+
+    error_handlers = {
+        r"Cannot find module": handle_module_not_found,
+        r"SyntaxError": handle_syntax_error,
+        # Add more error patterns and handlers as needed
+    }
+
+    current_dir = os.getcwd()
+    monitor = DevServerMonitor(current_dir, error_handlers)
+
+    try:
+        monitor.start()
+        click.echo("Dev server monitor started. Press Ctrl+C to stop.")
+        while True:
+            time.sleep(1)  # Keep the main thread alive
+    except KeyboardInterrupt:
+        click.echo("Stopping development server...")
+    finally:
+        monitor.stop()
 
 
 if __name__ == '__main__':
