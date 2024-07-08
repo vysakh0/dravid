@@ -94,8 +94,6 @@ def parse_file_list_response(response: str) -> List[str]:
         return [file.text.strip() for file in files if file.text]
     except Exception as e:
         print_error(f"Error parsing file list response: {e}")
-        print("Original response:")
-        print(response)
         return []
 
 
@@ -283,6 +281,47 @@ def update_metadata(files_to_update):
             print_error(f"Failed to update metadata for file: {file}")
 
 
+def find_file_with_claude(filename, project_context, max_retries=2, current_retry=0):
+    print("filename", filename)
+    if os.path.exists(filename):
+        print("filename exists", filename)
+        return filename
+
+    if current_retry >= max_retries:
+        print_error(f"File not found after {max_retries} retries: {filename}")
+        return None
+
+    query = f"""
+{project_context}
+
+The file "{filename}" was not found. Based on the project context and the filename, can you suggest the correct path or an alternative file that might contain the updated content?
+
+Respond with an XML structure containing the suggested file path:
+
+<response>
+  <file>suggested/path/to/file.ext</file>
+</response>
+
+If you can't suggest an alternative, respond with an empty <file> tag.
+"""
+
+    response = call_claude_api(query, include_context=True)
+
+    try:
+        root = extract_and_parse_xml(response)
+        suggested_file = root.find('.//file').text.strip()
+        if suggested_file:
+            print_info(
+                f"Claude suggested an alternative file: {suggested_file}")
+            return find_file_with_claude(suggested_file, project_context, max_retries, current_retry + 1)
+        else:
+            print_error("Claude couldn't suggest an alternative file.")
+            return None
+    except Exception as e:
+        print_error(f"Error parsing Claude's response: {str(e)}")
+        return None
+
+
 def update_metadata_with_claude(meta_description):
     print_info("Updating metadata based on the provided description...")
     executor = Executor()
@@ -324,18 +363,19 @@ Only include files that need to be updated based on the user's description.
             f"Files identified for update: {', '.join(files_to_update)}")
 
         # Step 2: Read file contents and generate metadata
+        print("files to update", files_to_update)
         for filename in files_to_update:
-            if not os.path.exists(filename):
-                print_error(f"File not found: {filename}")
+            found_filename = find_file_with_claude(filename, project_context)
+            if not found_filename:
                 continue
 
-            with open(filename, 'r') as f:
+            with open(found_filename, 'r') as f:
                 content = f.read()
 
             metadata_query = f"""
 {project_context}
 
-File: {filename}
+File: {found_filename}
 Content:
 {content}
 
@@ -359,14 +399,15 @@ Respond with an XML structure containing the metadata:
                 description = metadata_root.find('.//description').text.strip()
 
                 metadata_manager.update_file_metadata(
-                    filename,
+                    found_filename,
                     file_type,
                     content,
                     description
                 )
-                print_success(f"Updated metadata for file: {filename}")
+                print_success(f"Updated metadata for file: {found_filename}")
             except Exception as e:
-                print_error(f"Error parsing metadata for {filename}: {str(e)}")
+                print_error(
+                    f"Error parsing metadata for {found_filename}: {str(e)}")
 
         print_success("Metadata update completed.")
     except Exception as e:
