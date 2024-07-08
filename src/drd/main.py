@@ -8,15 +8,77 @@ from .claude_parser import parse_claude_response, pretty_print_commands, extract
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
 from .prompts.error_handling import handle_error_with_claude
-from .utils import print_error, print_success, print_info, print_step
+from .utils import print_error, print_success, print_info, print_step, handle_module_not_found, handle_syntax_error
 from colorama import init
 import xml.etree.ElementTree as ET
+import threading
+from queue import Queue, Empty
+import subprocess
+import time
+import re
 
 # Initialize colorama
 init(autoreset=True)
 
 # Load environment variables
 load_dotenv()
+
+
+class DevServerMonitor:
+    def __init__(self, project_dir: str, error_handlers: dict):
+        self.project_dir = project_dir
+        self.metadata_manager = ProjectMetadataManager(project_dir)
+        self.error_handlers = error_handlers
+        self.process = None
+        self.output_queue = Queue()
+        self.should_stop = threading.Event()
+
+    def start(self):
+        dev_server_info = self.metadata_manager.get_dev_server_info()
+        start_command = dev_server_info.get('start_command')
+
+        if not start_command:
+            raise ValueError("Dev server start command not found in drd.json")
+
+        click.echo(
+            f"Starting dev server with command: {' '.join(start_command)}")
+        self.process = subprocess.Popen(
+            start_command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True,
+            cwd=self.project_dir
+        )
+
+        threading.Thread(target=self._enqueue_output, args=(
+            self.process.stdout, self.output_queue), daemon=True).start()
+        threading.Thread(target=self._monitor_output, daemon=True).start()
+
+    def _enqueue_output(self, out, queue):
+        for line in iter(out.readline, ''):
+            queue.put(line)
+        out.close()
+
+    def _monitor_output(self):
+        while not self.should_stop.is_set():
+            try:
+                line = self.output_queue.get(timeout=0.1)
+                click.echo(line, nl=False)  # Print server output in real-time
+
+                for error_pattern, handler in self.error_handlers.items():
+                    if re.search(error_pattern, line):
+                        handler(line)
+
+            except Empty:
+                continue
+
+    def stop(self):
+        self.should_stop.set()
+        if self.process:
+            self.process.terminate()
+            self.process.wait()
 
 
 def get_file_content(filename):
@@ -101,10 +163,40 @@ def handle_command(cmd, executor, metadata_manager):
 
 
 @click.command()
-@click.option('--query', prompt='I\'m your coding assistant, what do you want me to generate or execute',
-              help='Coding assistant will execute your instruction to generate and run code')
+@click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
 @click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
-def claude_cli(query, debug):
+@click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
+def claude_cli(query, debug, monitor_fix):
+    if monitor_fix:
+        run_dev_server_with_monitoring()
+    else:
+        execute_claude_command(query, debug)
+
+
+def run_dev_server_with_monitoring():
+    print_info("Starting dev server monitor...")
+
+    error_handlers = {
+        r"Cannot find module": handle_module_not_found,
+        r"SyntaxError": handle_syntax_error,
+        # Add more error patterns and handlers as needed
+    }
+
+    current_dir = os.getcwd()
+    monitor = DevServerMonitor(current_dir, error_handlers)
+
+    try:
+        monitor.start()
+        click.echo("Dev server monitor started. Press Ctrl+C to stop.")
+        while True:
+            time.sleep(1)  # Keep the main thread alive
+    except KeyboardInterrupt:
+        click.echo("Stopping development server...")
+    finally:
+        monitor.stop()
+
+
+def execute_claude_command(query, debug):
     print_info("Starting Claude CLI tool...")
 
     executor = Executor()
@@ -170,23 +262,42 @@ def claude_cli(query, debug):
 
             max_retries = 3
             for attempt in range(max_retries):
-                result = handle_command(cmd, executor, metadata_manager)
-                if isinstance(result, tuple) and not result[0]:
-                    error = result[1]
-                    print_info(
-                        f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
-                    if handle_error_with_claude(error, cmd, executor, metadata_manager):
-                        print_info(
-                            "Fix applied successfully. Retrying the original command.")
-                    else:
-                        print_error(
-                            f"Unable to fix the error after attempt {attempt+1}.")
-                        if attempt == max_retries - 1:
-                            print_info(
-                                "Max retries reached. Skipping this command.")
-                            break
+                if cmd['type'] == 'metadata':
+                    if cmd['operation'] == 'UPDATE_DEV_SERVER':
+                        metadata_manager.update_dev_server_info(
+                            cmd['start_command'],
+                            cmd['framework'],
+                            cmd['language']
+                        )
+                        print_success(
+                            "Updated dev server info in project metadata.")
+                        break
+                    elif cmd['operation'] == 'UPDATE_FILE':
+                        if metadata_manager.update_metadata_from_file(cmd['filename']):
+                            print_success(
+                                f"Updated metadata for file: {cmd['filename']}")
+                        else:
+                            print_error(
+                                f"Failed to update metadata for file: {cmd['filename']}")
+                        break
                 else:
-                    break  # Command executed successfully
+                    result = handle_command(cmd, executor, metadata_manager)
+                    if isinstance(result, tuple) and not result[0]:
+                        error = result[1]
+                        print_info(
+                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
+                        if handle_error_with_claude(error, cmd, executor, metadata_manager):
+                            print_info(
+                                "Fix applied successfully. Retrying the original command.")
+                        else:
+                            print_error(
+                                f"Unable to fix the error after attempt {attempt+1}.")
+                            if attempt == max_retries - 1:
+                                print_info(
+                                    "Max retries reached. Skipping this command.")
+                                break
+                    else:
+                        break  # Command executed successfully
             else:
                 print_error(
                     f"Failed to execute command after {max_retries} attempts. Skipping and moving to the next command.")
