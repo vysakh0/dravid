@@ -1,4 +1,6 @@
 import click
+from datetime import datetime  # Add this import
+import time
 import json
 import os
 import traceback
@@ -432,12 +434,84 @@ Respond with an XML structure containing the metadata:
         print_error(f"Error parsing Claude's response: {str(e)}")
 
 
+def parse_gitignore(gitignore_path):
+    ignore_patterns = []
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    # Convert .gitignore pattern to regex
+                    pattern = line.replace('.', r'\.')  # Escape dots
+                    pattern = pattern.replace('*', '.*')  # Convert * to .*
+                    pattern = pattern.replace('?', '.')   # Convert ? to .
+                    if pattern.startswith('/'):
+                        # Anchor at start if begins with /
+                        pattern = '^' + pattern[1:]
+                    elif pattern.endswith('/'):
+                        pattern += '.*'  # Match any file in directory if ends with /
+                    else:
+                        pattern = '.*' + pattern  # Otherwise, match anywhere in path
+                    ignore_patterns.append(re.compile(pattern))
+    return ignore_patterns
+
+
+def should_ignore(path, ignore_patterns):
+    for pattern in ignore_patterns:
+        if pattern.search(path):
+            return True
+    return False
+
+
+def get_folder_structure(start_path, ignore_patterns):
+    structure = []
+
+    for root, dirs, files in os.walk(start_path):
+        level = root.replace(start_path, '').count(os.sep)
+        indent = ' ' * 4 * level
+        folder_name = os.path.basename(root)
+
+        rel_path = os.path.relpath(root, start_path)
+        if rel_path == '.':
+            rel_path = ''
+
+        if not should_ignore(rel_path, ignore_patterns):
+            structure.append(f"{indent}{folder_name}/")
+
+            sub_indent = ' ' * 4 * (level + 1)
+            for file in files:
+                file_path = os.path.join(rel_path, file)
+                if not should_ignore(file_path, ignore_patterns):
+                    structure.append(f"{sub_indent}{file}")
+
+        # Modify dirs in-place to exclude ignored directories
+        dirs[:] = [d for d in dirs if not should_ignore(
+            os.path.join(rel_path, d), ignore_patterns)]
+
+    return '\n'.join(structure)
+
+
 def initialize_project_metadata():
     print_info("Initializing project metadata...")
     executor = Executor()
     current_dir = executor.current_dir
-    folder_structure = get_folder_structure(current_dir)
+
+    # Parse .gitignore or use default ignore patterns
+    gitignore_path = os.path.join(current_dir, '.gitignore')
+    if os.path.exists(gitignore_path):
+        ignore_patterns = parse_gitignore(gitignore_path)
+        print_info("Using .gitignore patterns for file exclusion.")
+    else:
+        # Convert default patterns to regex
+        default_patterns = ['node_modules', 'dist',
+                            'build', 'venv', '.git', '__pycache__']
+        ignore_patterns = [re.compile(f'.*{pattern}.*')
+                           for pattern in default_patterns]
+        print_info("No .gitignore found. Using default ignore patterns.")
+
+    folder_structure = get_folder_structure(current_dir, ignore_patterns)
     print(folder_structure, "--")
+
     query = f"""
 Current folder structure:
 {folder_structure}
@@ -490,7 +564,7 @@ Respond with an XML structure containing this information:
 
         metadata = {
             "project_name": project_info.find('project_name').text.strip(),
-            "last_updated": project_info.find('last_updated').text.strip(),
+            "last_updated": datetime.now().isoformat(),
             "files": [],
             "dev_server": {
                 "start_command": project_info.find('.//dev_server/start_command').text.strip().split(),
@@ -499,15 +573,37 @@ Respond with an XML structure containing this information:
             }
         }
 
-        for file_elem in project_info.findall('.//files/file'):
-            file_metadata = {
-                "filename": file_elem.find('filename').text.strip(),
-                "type": file_elem.find('type').text.strip(),
-                "last_modified": file_elem.find('last_modified').text.strip(),
-                "content_preview": file_elem.find('content_preview').text.strip(),
-                "description": file_elem.find('description').text.strip()
-            }
-            metadata["files"].append(file_metadata)
+        # Gather file information
+        for root, dirs, files in os.walk(current_dir):
+            # Modify dirs in-place to exclude ignored directories
+            dirs[:] = [d for d in dirs if not should_ignore(
+                os.path.join(root, d), ignore_patterns)]
+
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, current_dir)
+
+                if should_ignore(relative_path, ignore_patterns):
+                    continue  # Skip this file if it matches an ignore pattern
+
+                # Get file extension without dot
+                file_type = os.path.splitext(file)[1][1:] or 'unknown'
+
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        # Read first 100 characters for preview
+                        content = f.read(100)
+                except Exception as e:
+                    content = f"Error reading file: {str(e)}"
+
+                file_metadata = {
+                    "filename": relative_path,
+                    "type": file_type,
+                    "last_modified": datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
+                    "content_preview": content.replace('\n', ' '),
+                    "description": generate_description(relative_path, content)
+                }
+                metadata["files"].append(file_metadata)
 
         metadata_manager = ProjectMetadataManager(current_dir)
         metadata_manager.metadata = metadata
