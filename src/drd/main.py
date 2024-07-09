@@ -11,7 +11,7 @@ from .claude_parser import parse_claude_response, pretty_print_commands, extract
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
 from .prompts.error_handling import handle_error_with_claude
-from .utils import print_error, print_success, print_info, print_step, handle_module_not_found, handle_syntax_error
+from .utils import print_error, print_success, print_info, print_step, handle_module_not_found, handle_syntax_error, handle_port_in_use
 from colorama import init
 import xml.etree.ElementTree as ET
 import threading
@@ -38,14 +38,12 @@ class DevServerMonitor:
     def start(self):
         dev_server_info = self.metadata_manager.get_dev_server_info()
         start_command = dev_server_info.get('start_command')
-
         if not start_command:
-            raise ValueError("Dev server start command not found in drd.json")
+            raise ValueError("Dev server start command not found in metadata")
 
-        click.echo(
-            f"Starting dev server with command: {' '.join(start_command)}")
+        click.echo(f"Starting dev server with command: {start_command}")
         self.process = subprocess.Popen(
-            start_command,
+            start_command.split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -53,7 +51,6 @@ class DevServerMonitor:
             universal_newlines=True,
             cwd=self.project_dir
         )
-
         threading.Thread(target=self._enqueue_output, args=(
             self.process.stdout, self.output_queue), daemon=True).start()
         threading.Thread(target=self._monitor_output, daemon=True).start()
@@ -68,11 +65,9 @@ class DevServerMonitor:
             try:
                 line = self.output_queue.get(timeout=0.1)
                 click.echo(line, nl=False)  # Print server output in real-time
-
                 for error_pattern, handler in self.error_handlers.items():
-                    if re.search(error_pattern, line):
-                        handler(line)
-
+                    if re.search(error_pattern, line, re.IGNORECASE):
+                        handler(line, self)
             except Empty:
                 continue
 
@@ -81,6 +76,10 @@ class DevServerMonitor:
         if self.process:
             self.process.terminate()
             self.process.wait()
+
+    def restart(self):
+        self.stop()
+        self.start()
 
 
 def get_folder_structure(start_path):
@@ -567,7 +566,7 @@ Respond with an XML structure containing this information:
             "last_updated": datetime.now().isoformat(),
             "files": [],
             "dev_server": {
-                "start_command": project_info.find('.//dev_server/start_command').text.strip().split(),
+                "start_command": project_info.find('.//dev_server/start_command').text.strip(),
                 "framework": project_info.find('.//dev_server/framework').text.strip(),
                 "language": project_info.find('.//dev_server/language').text.strip()
             }
@@ -640,17 +639,15 @@ def claude_cli(query, debug, monitor_fix, meta_add, meta_init):
 
 
 def run_dev_server_with_monitoring():
-    print_info("Starting dev server monitor...")
-
+    click.echo("Starting dev server monitor...")
     error_handlers = {
-        r"Cannot find module": handle_module_not_found,
+        r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
         r"SyntaxError": handle_syntax_error,
+        r"(?:EADDRINUSE|address already in use)": handle_port_in_use,
         # Add more error patterns and handlers as needed
     }
-
     current_dir = os.getcwd()
     monitor = DevServerMonitor(current_dir, error_handlers)
-
     try:
         monitor.start()
         click.echo("Dev server monitor started. Press Ctrl+C to stop.")

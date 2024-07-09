@@ -33,28 +33,26 @@ def print_step(step_number, total_steps, message):
         f"{Fore.CYAN}[{step_number}/{total_steps}] {message}{Style.RESET_ALL}")
 
 
-def handle_module_not_found(error_line: str):
-    match = re.search(r"Cannot find module '(.+?)'", error_line)
+def handle_module_not_found(line, monitor):
+    match = re.search(
+        r"(?:Cannot find module|Module not found|ImportError|No module named).*['\"](.*?)['\"]", line, re.IGNORECASE)
     if match:
         module_name = match.group(1)
-        if click.confirm(f"Module '{module_name}' not found. Do you want to install it?"):
-            try:
-                subprocess.run(['npm', 'install', module_name], check=True)
-                click.echo(f"Successfully installed {module_name}")
-                return True
-            except subprocess.CalledProcessError:
-                click.echo(f"Failed to install {module_name}")
-    return False
-
-
-def handle_syntax_error(error_line: str):
-    match = re.search(r"SyntaxError: (.+?) in (.+?) at line (\d+)", error_line)
-    if match:
-        error_msg, file_path, line_number = match.groups()
+        click.echo(f"Error: Module '{module_name}' not found.")
         click.echo(
-            f"Syntax error in {file_path} at line {line_number}: {error_msg}")
-        if click.confirm("Do you want to try to fix this error?"):
-            # Here you could call Claude API to suggest a fix
-            click.echo("Calling Claude API to suggest a fix...")
-            return True
-    return False
+            "Please install the missing module manually and restart the server.")
+        # You could potentially add auto-installation logic here if desired
+
+
+def handle_syntax_error(line, monitor):
+    click.echo("Syntax error detected. Please check your code and fix the error.")
+    # You could add more sophisticated error reporting here
+
+
+def handle_port_in_use(line, monitor):
+    match = re.search(
+        r"(?:EADDRINUSE|address already in use).*:(\d+)", line, re.IGNORECASE)
+    if match:
+        port = match.group(1)
+        click.echo(
+            f"Error: Port {port} is already in use. Please free up this port or use a different one.")
