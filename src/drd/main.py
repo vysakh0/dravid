@@ -1,4 +1,5 @@
 import click
+import json
 import os
 import traceback
 from dotenv import load_dotenv
@@ -78,6 +79,23 @@ class DevServerMonitor:
         if self.process:
             self.process.terminate()
             self.process.wait()
+
+
+def get_folder_structure(start_path):
+    ignore_dirs = {'node_modules', 'dist',
+                   'build', 'venv', '.git', '__pycache__'}
+    structure = []
+
+    for root, dirs, files in os.walk(start_path):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        level = root.replace(start_path, '').count(os.sep)
+        indent = ' ' * 4 * level
+        structure.append(f"{indent}{os.path.basename(root)}/")
+        sub_indent = ' ' * 4 * (level + 1)
+        for file in files:
+            structure.append(f"{sub_indent}{file}")
+
+    return '\n'.join(structure)
 
 
 def get_file_content(filename):
@@ -414,20 +432,115 @@ Respond with an XML structure containing the metadata:
         print_error(f"Error parsing Claude's response: {str(e)}")
 
 
+def initialize_project_metadata():
+    print_info("Initializing project metadata...")
+    executor = Executor()
+    current_dir = executor.current_dir
+    folder_structure = get_folder_structure(current_dir)
+    print(folder_structure, "--")
+    query = f"""
+Current folder structure:
+{folder_structure}
+
+Based on the folder structure, please analyze the project and provide the following information:
+1. Project name
+2. Main programming language(s) used
+3. Framework(s) used (if any)
+4. Recommended dev server start command (if applicable)
+5. A brief description of the project
+
+Respond with an XML structure containing this information:
+
+<response>
+  <project_info>
+  <project_name>project</project_name>
+  <last_updated>2024-07-09T11:08:35.368477</last_updated>
+  <files>
+    <file>
+      <filename>src/app/page.tsx</filename>
+      <type>tsx</type>
+      <last_modified>2024-07-09T11:08:35.363820</last_modified>
+      <content_preview>import React from 'react';</content_preview>
+      <description>React component for a minimal homepage displaying a centered</description>
+    </file>
+    <file>
+      <filename>drd.json</filename>
+      <type>json</type>
+      <last_modified>2024-07-09T11:08:35.368514</last_modified>
+      <content_preview></content_preview>
+      <description></description>
+    </file>
+  </files>
+  <dev_server>
+    <start_command>npm run dev</start_command>
+    <framework>Next.js</framework>
+    <language>TypeScript</language>
+  </dev_server>
+  </project_info>
+</response>
+"""
+    try:
+        response = call_claude_api(query, include_context=True)
+        root = extract_and_parse_xml(response)
+        project_info = root.find('.//project_info')
+
+        if project_info is None:
+            raise ValueError(
+                "Failed to extract project information from Claude's response")
+
+        metadata = {
+            "project_name": project_info.find('project_name').text.strip(),
+            "last_updated": project_info.find('last_updated').text.strip(),
+            "files": [],
+            "dev_server": {
+                "start_command": project_info.find('.//dev_server/start_command').text.strip().split(),
+                "framework": project_info.find('.//dev_server/framework').text.strip(),
+                "language": project_info.find('.//dev_server/language').text.strip()
+            }
+        }
+
+        for file_elem in project_info.findall('.//files/file'):
+            file_metadata = {
+                "filename": file_elem.find('filename').text.strip(),
+                "type": file_elem.find('type').text.strip(),
+                "last_modified": file_elem.find('last_modified').text.strip(),
+                "content_preview": file_elem.find('content_preview').text.strip(),
+                "description": file_elem.find('description').text.strip()
+            }
+            metadata["files"].append(file_metadata)
+
+        metadata_manager = ProjectMetadataManager(current_dir)
+        metadata_manager.metadata = metadata
+        metadata_manager.save_metadata()
+
+        print_success("Project metadata initialized successfully.")
+        print_info("Generated metadata:")
+        print(json.dumps(metadata, indent=2))
+
+    except Exception as e:
+        print_error(f"Error initializing project metadata: {str(e)}")
+        print_error("Stack trace:")
+        traceback.print_exc()
+
+
 @click.command()
 @click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
 @click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
 @click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
 @click.option('--meta-add', help='Update metadata based on the provided description')
-def claude_cli(query, debug, monitor_fix, meta_add):
+@click.option('--meta-init', is_flag=True, help='Initialize project metadata')
+def claude_cli(query, debug, monitor_fix, meta_add, meta_init):
     if monitor_fix:
         run_dev_server_with_monitoring()
     elif meta_add:
         update_metadata_with_claude(meta_add)
+    elif meta_init:
+        initialize_project_metadata()
     elif query:
         execute_claude_command(query, debug)
     else:
-        click.echo("Please provide a query or use --meta-add to update metadata.")
+        click.echo(
+            "Please provide a query, use --meta-add to update metadata, or use --meta-init to initialize project metadata.")
 
 
 def run_dev_server_with_monitoring():
