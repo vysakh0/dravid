@@ -26,86 +26,6 @@ init(autoreset=True)
 load_dotenv()
 
 
-class DevServerMonitor:
-    def __init__(self, project_dir: str, error_handlers: dict):
-        self.project_dir = project_dir
-        self.metadata_manager = ProjectMetadataManager(project_dir)
-        self.error_handlers = error_handlers
-        self.process = None
-        self.output_queue = Queue()
-        self.should_stop = threading.Event()
-
-    def start(self):
-        dev_server_info = self.metadata_manager.get_dev_server_info()
-        start_command = dev_server_info.get('start_command')
-        if not start_command:
-            raise ValueError("Dev server start command not found in metadata")
-
-        click.echo(f"Starting dev server with command: {start_command}")
-        self.process = subprocess.Popen(
-            start_command.split(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            cwd=self.project_dir
-        )
-        threading.Thread(target=self._enqueue_output, args=(
-            self.process.stdout, self.output_queue), daemon=True).start()
-        threading.Thread(target=self._monitor_output, daemon=True).start()
-
-    def _enqueue_output(self, out, queue):
-        for line in iter(out.readline, ''):
-            queue.put(line)
-        out.close()
-
-    def _monitor_output(self):
-        while not self.should_stop.is_set():
-            try:
-                line = self.output_queue.get(timeout=0.1)
-                click.echo(line, nl=False)  # Print server output in real-time
-                for error_pattern, handler in self.error_handlers.items():
-                    if re.search(error_pattern, line, re.IGNORECASE):
-                        handler(line, self)
-            except Empty:
-                continue
-
-    def stop(self):
-        self.should_stop.set()
-        if self.process:
-            self.process.terminate()
-            self.process.wait()
-
-    def restart(self):
-        self.stop()
-        self.start()
-
-
-def get_folder_structure(start_path):
-    ignore_dirs = {'node_modules', 'dist',
-                   'build', 'venv', '.git', '__pycache__'}
-    structure = []
-
-    for root, dirs, files in os.walk(start_path):
-        dirs[:] = [d for d in dirs if d not in ignore_dirs]
-        level = root.replace(start_path, '').count(os.sep)
-        indent = ' ' * 4 * level
-        structure.append(f"{indent}{os.path.basename(root)}/")
-        sub_indent = ' ' * 4 * (level + 1)
-        for file in files:
-            structure.append(f"{sub_indent}{file}")
-
-    return '\n'.join(structure)
-
-
-def get_file_content(filename):
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            return f.read()
-    return None
-
-
 def parse_file_list_response(response: str) -> List[str]:
     try:
         root = extract_and_parse_xml(response)
@@ -623,37 +543,6 @@ Respond with an XML structure containing this information:
         traceback.print_exc()
 
 
-def run_dev_server_with_monitoring():
-    click.echo("Starting dev server monitor...")
-    error_handlers = {
-        r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
-        r"SyntaxError": handle_syntax_error,
-        r"(?:EADDRINUSE|address already in use)": handle_port_in_use,
-        # Add more error patterns and handlers as needed
-    }
-    current_dir = os.getcwd()
-    monitor = DevServerMonitor(current_dir, error_handlers)
-    try:
-        monitor.start()
-        click.echo("Dev server monitor started. Press Ctrl+C to stop.")
-        while True:
-            time.sleep(1)  # Keep the main thread alive
-    except KeyboardInterrupt:
-        click.echo("Stopping development server...")
-    finally:
-        monitor.stop()
-
-
-if __name__ == '__main__':
-    claude_cli()
-
-# Initialize colorama
-init(autoreset=True)
-
-# Load environment variables
-load_dotenv()
-
-
 class DevServerMonitor:
     def __init__(self, project_dir: str, error_handlers: dict):
         self.project_dir = project_dir
@@ -730,23 +619,6 @@ class DevServerMonitor:
                 "Timeout waiting for server startup message. It may still be starting...")
 
         print_info("Continuing to monitor server output. Press Ctrl+C to stop.")
-
-
-def get_folder_structure(start_path):
-    ignore_dirs = {'node_modules', 'dist',
-                   'build', 'venv', '.git', '__pycache__'}
-    structure = []
-
-    for root, dirs, files in os.walk(start_path):
-        dirs[:] = [d for d in dirs if d not in ignore_dirs]
-        level = root.replace(start_path, '').count(os.sep)
-        indent = ' ' * 4 * level
-        structure.append(f"{indent}{os.path.basename(root)}/")
-        sub_indent = ' ' * 4 * (level + 1)
-        for file in files:
-            structure.append(f"{sub_indent}{file}")
-
-    return '\n'.join(structure)
 
 
 def get_file_content(filename):
