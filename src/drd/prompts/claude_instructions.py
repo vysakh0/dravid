@@ -71,4 +71,10 @@ Important guidelines:
 11. When initializing a project, include a step to update the dev server info in the project metadata.
 12. If a file is created or updated, include a step to update the file metadata in the project metadata.
 Ensure all steps are executable and maintain a logical flow of operations.
+13. When provided with an image, analyze its content and incorporate relevant information into your project setup instructions. This may include:
+   - Identifying the programming language or framework shown in the image
+   - Recognizing file structures or code snippets that need to be implemented
+   - Detecting any specific libraries or dependencies that should be included
+   - Inferring project requirements or features based on visual elements in the image
+
 """

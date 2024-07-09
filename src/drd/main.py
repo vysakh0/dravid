@@ -6,7 +6,7 @@ import os
 import traceback
 from dotenv import load_dotenv
 from typing import List, Dict, Any
-from .claude_api import call_claude_api, generate_description
+from .claude_api import call_claude_api, call_claude_vision_api, generate_description
 from .claude_parser import parse_claude_response, pretty_print_commands, extract_and_parse_xml
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
@@ -178,7 +178,7 @@ def handle_command(cmd, executor, metadata_manager):
         return False, e
 
 
-def execute_claude_command(query, debug):
+def execute_claude_command(query, image_path, debug):
     print_info("Starting Claude CLI tool...")
 
     executor = Executor()
@@ -211,7 +211,12 @@ def execute_claude_command(query, debug):
                 """)
             full_query = f"User query: {query}"
 
-        response = call_claude_api(full_query, include_context=True)
+        if image_path:
+            response = call_claude_vision_api(
+                full_query, image_path, include_context=True)
+        else:
+            response = call_claude_api(full_query, include_context=True)
+
         if debug:
             print_info("Raw response from Claude API:")
             print(response)
@@ -618,26 +623,6 @@ Respond with an XML structure containing this information:
         traceback.print_exc()
 
 
-@click.command()
-@click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
-@click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
-@click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
-@click.option('--meta-add', help='Update metadata based on the provided description')
-@click.option('--meta-init', is_flag=True, help='Initialize project metadata')
-def claude_cli(query, debug, monitor_fix, meta_add, meta_init):
-    if monitor_fix:
-        run_dev_server_with_monitoring()
-    elif meta_add:
-        update_metadata_with_claude(meta_add)
-    elif meta_init:
-        initialize_project_metadata()
-    elif query:
-        execute_claude_command(query, debug)
-    else:
-        click.echo(
-            "Please provide a query, use --meta-add to update metadata, or use --meta-init to initialize project metadata.")
-
-
 def run_dev_server_with_monitoring():
     click.echo("Starting dev server monitor...")
     error_handlers = {
@@ -843,116 +828,6 @@ def handle_command(cmd, executor, metadata_manager):
         return False, e
 
 
-def execute_claude_command(query, debug):
-    print_info("Starting Claude CLI tool...")
-
-    executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-
-    try:
-        project_context = metadata_manager.get_project_context()
-
-        if project_context:
-            files_to_modify = get_files_to_modify(query, project_context)
-
-            if debug:
-                print_info("Files to be modified:")
-                for file in files_to_modify:
-                    print(file)
-
-            file_contents = {}
-            for file in files_to_modify:
-                content = get_file_content(file)
-                if content:
-                    file_contents[file] = content
-
-            file_context = "\n".join(
-                [f"Current content of {file}:\n{content}" for file, content in file_contents.items()])
-            full_query = f"{project_context}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
-        else:
-            print_info(
-                """No current project context found. Will create a new project in the current directory.
-                Please exit with ctrl+c if you have not created a fresh directory
-                """)
-            full_query = f"User query: {query}"
-
-        response = call_claude_api(full_query, include_context=True)
-        if debug:
-            print_info("Raw response from Claude API:")
-            print(response)
-        print_success("Received response from Claude API.")
-
-        commands = parse_claude_response(response)
-        if not commands:
-            print_error(
-                "Failed to parse Claude's response or no commands to execute.")
-            if debug:
-                print_info("Claude's raw response:")
-                print(response)
-            return
-
-        if debug:
-            print_info("Parsed commands:")
-            pretty_print_commands(commands)
-        print_info(f"Parsed {len(commands)} commands from Claude's response.")
-
-        for i, cmd in enumerate(commands):
-            if cmd['type'] == 'explanation':
-                print_info(f"Explanation: {cmd['content']}")
-                continue
-
-            print_step(i+1, len(commands),
-                       f"Processing {cmd['type']} command...")
-
-            max_retries = 3
-            for attempt in range(max_retries):
-                if cmd['type'] == 'metadata':
-                    if cmd['operation'] == 'UPDATE_DEV_SERVER':
-                        metadata_manager.update_dev_server_info(
-                            cmd['start_command'],
-                            cmd['framework'],
-                            cmd['language']
-                        )
-                        print_success(
-                            "Updated dev server info in project metadata.")
-                        break
-                    elif cmd['operation'] == 'UPDATE_FILE':
-                        if metadata_manager.update_metadata_from_file(cmd['filename']):
-                            print_success(
-                                f"Updated metadata for file: {cmd['filename']}")
-                        else:
-                            print_error(
-                                f"Failed to update metadata for file: {cmd['filename']}")
-                        break
-                else:
-                    result = handle_command(cmd, executor, metadata_manager)
-                    if isinstance(result, tuple) and not result[0]:
-                        error = result[1]
-                        print_info(
-                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
-                        if handle_error_with_claude(error, cmd, executor, metadata_manager):
-                            print_info(
-                                "Fix applied successfully. Retrying the original command.")
-                        else:
-                            print_error(
-                                f"Unable to fix the error after attempt {attempt+1}.")
-                            if attempt == max_retries - 1:
-                                print_info(
-                                    "Max retries reached. Skipping this command.")
-                                break
-                    else:
-                        break  # Command executed successfully
-            else:
-                print_error(
-                    f"Failed to execute command after {max_retries} attempts. Skipping and moving to the next command.")
-
-        print_success("Claude CLI tool execution completed.")
-    except Exception as e:
-        print_error(f"An unexpected error occurred: {str(e)}")
-        if debug:
-            traceback.print_exc()
-
-
 def monitoring_handle_error_with_claude(error, line, monitor):
     print_error(f"Error detected: {error}")
 
@@ -995,14 +870,14 @@ Additional context:
 
 # Instructions for Claude: Error Resolution Assistant
 Analyze the error above and provide steps to fix it.
-This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev. 
+This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
 If there is a module not found error, don't immediately try to install that module alone. See the larger context,
 it could be that it is a dependency of a larger dependency or main library which in itself wouldn't have been installed.
-Identify the pattern, nobody would use a certain dependency if not for the main project, so don't suggest installing direct dependencies in such 
+Identify the pattern, nobody would use a certain dependency if not for the main project, so don't suggest installing direct dependencies in such
 a situation, you can assume the user deleted or didnt install the parent library. Of course there could be situation where
 the specific library itself is the fix. Use the information about the project, the framework, library etc to come to a fix.
 Think in step by step like what framework what project, what error, look at all available context.
-Remember human error of deleting, typo, is very common. 
+Remember human error of deleting, typo, is very common.
 Don't just fix the given error, fix any relevant and related mistakes or errors. Even importing modules or need to install new packages.
 Just because you see contents in drd.json doesn't mean the file has to exist, probably the user could have deleted it as well.
 
@@ -1156,7 +1031,7 @@ Project context:
 # Instructions for Claude: Error Resolution Assistant
 Analyze the error above and provide steps to fix it.
  This is being run in a monitoring thread, so don't
-suggest server starting commands like npm run dev. 
+suggest server starting commands like npm run dev.
 If there is module not found error, dont immediately try to install that module alone. See the larger context,
 it could be that it is a dependecy of a larger dependency or main library which in itself wouldn't have been installed.
 Just coz you see contents in drd.json doesnt mean the file has to exists, probably the user could have deleted it as well.
@@ -1585,11 +1460,12 @@ Respond with an XML structure containing this information:
 
 @click.command()
 @click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
+@click.option('--image', type=click.Path(exists=True), help='Path to an image file to include with the query')
 @click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
 @click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
 @click.option('--meta-add', help='Update metadata based on the provided description')
 @click.option('--meta-init', is_flag=True, help='Initialize project metadata')
-def claude_cli(query, debug, monitor_fix, meta_add, meta_init):
+def claude_cli(query, image, debug, monitor_fix, meta_add, meta_init):
     if monitor_fix:
         run_dev_server_with_monitoring()
     elif meta_add:
@@ -1597,7 +1473,7 @@ def claude_cli(query, debug, monitor_fix, meta_add, meta_init):
     elif meta_init:
         initialize_project_metadata()
     elif query:
-        execute_claude_command(query, debug)
+        execute_claude_command(query, image, debug)
     else:
         click.echo(
             "Please provide a query, use --meta-add to update metadata, or use --meta-init to initialize project metadata.")
