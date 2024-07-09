@@ -721,8 +721,30 @@ class DevServerMonitor:
             self.process.wait()
 
     def restart(self):
+        print_info("Restarting development server...")
         self.stop()
+        print_info("Server stopped. Starting again...")
         self.start()
+        print_success("Server restarted successfully.")
+        print_info("Waiting for server output...")
+
+        # Wait for some initial output after restart
+        timeout = 10  # seconds
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                line = self.output_queue.get(timeout=0.5)
+                print(line, end='')
+                if "started" in line.lower() or "listening" in line.lower():
+                    print_success("Server is up and running!")
+                    break
+            except Empty:
+                pass
+        else:
+            print_success(
+                "Timeout waiting for server startup message. It may still be starting...")
+
+        print_info("Continuing to monitor server output. Press Ctrl+C to stop.")
 
 
 def get_folder_structure(start_path):
@@ -932,6 +954,179 @@ def execute_claude_command(query, debug):
 
 
 def monitoring_handle_error_with_claude(error, line, monitor):
+    print_error(f"Error detected: {error}")
+
+    error_message = str(error)
+    error_type = type(error).__name__
+    error_trace = ''.join(traceback.format_exception(
+        type(error), error, error.__traceback__))
+
+    project_context = monitor.metadata_manager.get_project_context()
+
+    print("error_trace", error_trace)
+    print("error_message", error_message)
+
+    # First, ask Claude which files it needs to examine
+    files_to_examine = get_relevant_files_from_claude(
+        error_message, error_type, project_context, monitor.project_dir)
+
+    # Gather the content of the files Claude requested
+    additional_context = gather_file_contents(
+        files_to_examine, monitor.project_dir)
+
+    error_query = f"""
+# Error Context
+An error occurred while running the dev server:
+
+Error type: {error_type}
+Error message: {error_message}
+
+Error trace:
+{error_trace}
+
+Relevant output line:
+{line}
+
+Project context:
+{project_context}
+
+Additional context:
+{additional_context}
+
+# Instructions for Claude: Error Resolution Assistant
+Analyze the error above and provide steps to fix it.
+This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev. 
+If there is a module not found error, don't immediately try to install that module alone. See the larger context,
+it could be that it is a dependency of a larger dependency or main library which in itself wouldn't have been installed.
+Identify the pattern, nobody would use a certain dependency if not for the main project, so don't suggest installing direct dependencies in such 
+a situation, you can assume the user deleted or didnt install the parent library. Of course there could be situation where
+the specific library itself is the fix. Use the information about the project, the framework, library etc to come to a fix.
+Think in step by step like what framework what project, what error, look at all available context.
+Remember human error of deleting, typo, is very common. 
+Don't just fix the given error, fix any relevant and related mistakes or errors. Even importing modules or need to install new packages.
+Just because you see contents in drd.json doesn't mean the file has to exist, probably the user could have deleted it as well.
+
+Based on the additional context provided, suggest a comprehensive fix that addresses the root cause of the issue.
+If you need more information to provide an accurate fix, specify what additional files or information you need to examine.
+
+Your response should be in strictly XML format with no other extra messages. Use the following format:
+<response>
+<explanation>A brief explanation of the steps, if necessary</explanation>
+<steps>
+    <step>
+    <type>shell</type>
+    <command>command to execute</command>
+    </step>
+    <step>
+    <type>file</type>
+    <operation>CREATE</operation>
+    <filename>path/to/file.ext</filename>
+    <content>
+        <![CDATA[
+        file content here
+        ]]>
+    </content>
+    </step>
+    <step>
+    <type>file</type>
+    <operation>UPDATE</operation>
+    <filename>path/to/existing/file.ext</filename>
+    <content>
+        <![CDATA[
+        content to append or replace
+        ]]>
+    </content>
+    </step>
+    <step>
+    <type>file</type>
+    <operation>DELETE</operation>
+    <filename>path/to/file/to/delete.ext</filename>
+    </step>
+</steps>
+</response>
+"""
+
+    print_info("Sending error information to Claude for analysis...")
+    response = call_claude_api(error_query, include_context=True)
+
+    try:
+        fix_commands = parse_claude_response(response)
+    except ValueError as e:
+        print_error(f"Error parsing Claude's response: {str(e)}")
+        return False
+
+    print_info("Claude's suggested fix:")
+    pretty_print_commands(fix_commands)
+
+    if click.confirm("Do you want to apply this fix?"):
+        print_info("Applying Claude's suggested fix...")
+        executor = Executor()
+        for cmd in fix_commands:
+            if cmd['type'] == 'shell':
+                print_info(f"Executing: {cmd['command']}")
+                executor.execute_shell_command(cmd['command'])
+            elif cmd['type'] == 'file':
+                print_info(
+                    f"Performing file operation: {cmd['operation']} on {cmd['filename']}")
+                executor.perform_file_operation(
+                    cmd['operation'], cmd['filename'], cmd.get('content'))
+        print_success("Fix applied. Restarting server...")
+        monitor.restart()
+        return True
+    else:
+        print_info("Fix not applied. Continuing with current state.")
+        return False
+
+
+def get_relevant_files_from_claude(error_message, error_type, project_context, project_dir):
+    query = f"""
+Given the following error and project context, what files should I examine to diagnose and fix the issue?
+
+Error type: {error_type}
+Error message: {error_message}
+
+Project context:
+{project_context}
+
+Please list the files you think are most relevant to this error, in order of importance.
+Respond with an XML structure containing the file paths:
+
+<response>
+  <files>
+    <file>path/to/file1.ext</file>
+    <file>path/to/file2.ext</file>
+    <!-- Add more file elements as needed -->
+  </files>
+</response>
+"""
+
+    response = call_claude_api(query, include_context=True)
+
+    try:
+        root = extract_and_parse_xml(response)
+        files = root.findall('.//file')
+        return [file.text.strip() for file in files if file.text]
+    except Exception as e:
+        print_error(
+            f"Error parsing Claude's response for relevant files: {str(e)}")
+        return []
+
+
+def gather_file_contents(files_to_examine, project_dir):
+    context = []
+
+    for file_path in files_to_examine:
+        full_path = os.path.join(project_dir, file_path)
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as f:
+                content = f.read()
+            context.append(f"Contents of {file_path}:")
+            context.append(content)
+        else:
+            context.append(f"File not found: {file_path}")
+
+    return "\n\n".join(context)
+# def monitoring_handle_error_with_claude(error, line, monitor):
     print_error(f"Error detected: {error}")
 
     # Capture the full error message and traceback
