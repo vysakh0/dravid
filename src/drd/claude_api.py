@@ -139,7 +139,6 @@ def call_claude_vision_api(query, image_path, include_context=False):
     print("image path", image_path)
     with open(image_path, "rb") as image_file:
         image_data = base64.b64encode(image_file.read()).decode('utf-8')
-        print("image_data", image_data)
 
     data = {
         'model': 'claude-3-5-sonnet-20240620',

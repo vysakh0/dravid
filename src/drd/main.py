@@ -1,5 +1,5 @@
 import click
-from datetime import datetime  # Add this import
+from datetime import datetime
 import time
 import json
 import os

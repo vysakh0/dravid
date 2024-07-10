@@ -1,3 +1,7 @@
 .venv
 .env
 dist
+build
+my-app
+myapp
+gui-test
