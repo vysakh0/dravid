@@ -53,7 +53,6 @@ class ChatBubbleWidget(QFrame):
         self.setStyleSheet(f"""
             background-color: {'#DCF8C6' if is_user else '#FFFFFF'};
             border-radius: 10px;
-            margin: {'5px 50px 5px 10px' if is_user else '5px 10px 5px 50px'};
         """)
         self.setSizePolicy(QSizePolicy.Policy.Expanding,
                            QSizePolicy.Policy.Minimum)
@@ -92,11 +91,7 @@ class DravidGUI(QMainWindow):
                 background-color: #ffffff;
                 border: 1px solid #ccc;
                 border-radius: 5px;
-            }
-            QListWidget::item {
-                border-bottom: 1px solid #eee;
-                padding: 5px;
-            }
+             }
         """)
         main_layout.addWidget(self.chat_list, stretch=1)
 
