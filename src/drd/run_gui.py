@@ -26,22 +26,21 @@ class WorkerThread(QThread):
         self.finished_signal.emit()
 
 
-class ChatBubbleWidget(QWidget):
+class ChatBubbleWidget(QFrame):
     def __init__(self, text, is_user, image_path=None):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
         layout.setSpacing(5)
 
-        text_label = QLabel(text)
-        text_label.setWordWrap(True)
-        print("textlabel", text_label)
-        text_label.setStyleSheet("""
+        self.text_label = QLabel(text)
+        self.text_label.setWordWrap(True)
+        self.text_label.setStyleSheet("""
             background-color: transparent;
             border: none;
             padding: 5px;
         """)
-        layout.addWidget(text_label)
+        layout.addWidget(self.text_label)
 
         if image_path:
             image_label = QLabel()
@@ -58,31 +57,6 @@ class ChatBubbleWidget(QWidget):
         """)
         self.setSizePolicy(QSizePolicy.Policy.Expanding,
                            QSizePolicy.Policy.Minimum)
-
-
-class ChatBubbleDelegate(QStyledItemDelegate):
-    def __init__(self, list_widget):
-        super().__init__()
-        self.list_widget = list_widget
-
-    def paint(self, painter, option, index):
-        widget = self.list_widget.itemWidget(
-            self.list_widget.item(index.row()))
-        if widget:
-            painter.save()
-            painter.translate(option.rect.topLeft())
-            widget.render(painter, QPoint(), QRegion(
-                0, 0, option.rect.width(), option.rect.height()))
-            painter.restore()
-        else:
-            super().paint(painter, option, index)
-
-    def sizeHint(self, option, index):
-        widget = self.list_widget.itemWidget(
-            self.list_widget.item(index.row()))
-        if widget:
-            return widget.sizeHint()
-        return super().sizeHint(option, index)
 
 
 class DravidGUI(QMainWindow):
@@ -113,8 +87,6 @@ class DravidGUI(QMainWindow):
 
         # Chat area
         self.chat_list = QListWidget()
-        self.chat_delegate = ChatBubbleDelegate(self.chat_list)
-        self.chat_list.setItemDelegate(self.chat_delegate)
         self.chat_list.setStyleSheet("""
             QListWidget {
                 background-color: #ffffff;
@@ -123,11 +95,10 @@ class DravidGUI(QMainWindow):
             }
             QListWidget::item {
                 border-bottom: 1px solid #eee;
-                padding: 10px;
+                padding: 5px;
             }
         """)
-        main_layout.addWidget(
-            self.chat_list, stretch=1)  # Give it more vertical space
+        main_layout.addWidget(self.chat_list, stretch=1)
 
         # Query input area
         query_widget = QWidget()
@@ -268,8 +239,8 @@ class DravidGUI(QMainWindow):
         item = QListWidgetItem(self.chat_list)
         custom_widget = ChatBubbleWidget(
             message, is_user, self.image_path if is_user and self.image_path else None)
-        print(custom_widget, "---- custom_widget")
         item.setSizeHint(custom_widget.sizeHint())
+        self.chat_list.addItem(item)
         self.chat_list.setItemWidget(item, custom_widget)
         self.chat_list.scrollToBottom()
         self.last_message = message
@@ -289,6 +260,7 @@ class DravidGUI(QMainWindow):
         self.submit_button.clicked.connect(self.stop_execution)
         self.add_image_button.setDisabled(True)
 
+        self.add_chat_message("sample response", is_user=None)
         # Clear the image preview
         self.clear_image()
 
@@ -298,27 +270,6 @@ class DravidGUI(QMainWindow):
         # self.worker.update_signal.connect(self.update_chat)
         # self.worker.finished_signal.connect(self.on_execution_finished)
         # self.worker.start()
-
-    # def submit_query(self):
-    #     query = self.query_input.toPlainText()
-    #     if not query:
-    #         return
-
-    #     self.add_chat_message(query, is_user=True)
-    #     self.query_input.setDisabled(True)
-    #     self.submit_button.setText('Stop')
-    #     self.submit_button.clicked.disconnect()
-    #     self.submit_button.clicked.connect(self.stop_execution)
-    #     self.add_image_button.setDisabled(True)
-
-    #     # Clear the image preview
-    #     self.clear_image()
-    #     # Uncomment and adapt this part when you're ready to implement the worker thread
-    #     self.worker = WorkerThread(
-    #         execute_claude_command, query, self.image_path, True)
-    #     self.worker.update_signal.connect(self.update_chat)
-    #     self.worker.finished_signal.connect(self.on_execution_finished)
-    #     self.worker.start()
 
     def stop_execution(self):
         if hasattr(self, 'worker') and self.worker.isRunning():

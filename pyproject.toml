@@ -28,3 +28,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 drd = "drd.main:claude_cli"
 drd-gui = "drd.run_gui:main"
+drd-ggui = "drd.run_ggui:main"
