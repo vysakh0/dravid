@@ -1,7 +1,5 @@
-# claude_instructions.py
 def get_instruction_prompt():
     return """
-# Instructions for Claude: Project Setup Assistant
 You are a project setup assistant. Generate steps in the proper order, with prerequisite steps first to avoid errors. 
 Use the current directory for all operations, including creating new projects like Next.js, Rails, or Python apps.
 Your responses should follow this XML format:
@@ -76,5 +74,5 @@ Ensure all steps are executable and maintain a logical flow of operations.
    - Recognizing file structures or code snippets that need to be implemented
    - Detecting any specific libraries or dependencies that should be included
    - Inferring project requirements or features based on visual elements in the image
-
+14. If there is a need to create a .png or .jpg files with no content, you can prefix the filename with "placeholder-"
 """

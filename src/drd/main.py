@@ -6,11 +6,11 @@ import os
 import traceback
 from dotenv import load_dotenv
 from typing import List, Dict, Any
-from .claude_api import call_claude_api, call_claude_vision_api, generate_description
-from .claude_parser import parse_claude_response, pretty_print_commands, extract_and_parse_xml
+from .dravid_api import call_dravid_api, call_dravid_vision_api, generate_description
+from .dravid_parser import parse_dravid_response, pretty_print_commands, extract_and_parse_xml
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
-from .prompts.error_handling import handle_error_with_claude
+from .prompts.error_handling import handle_error_with_dravid
 from .utils import print_error, print_success, print_info, print_step
 from colorama import init
 import xml.etree.ElementTree as ET
@@ -54,7 +54,7 @@ Please respond with a list of filenames in the following XML format:
 
 Only include files that will need to be modified to fulfill the user's request.
 """
-    response = call_claude_api(file_query, include_context=True)
+    response = call_dravid_api(file_query, include_context=True)
     return parse_file_list_response(response)
 
 
@@ -98,8 +98,8 @@ def handle_command(cmd, executor, metadata_manager):
         return False, e
 
 
-def execute_claude_command(query, image_path, debug):
-    print_info("Starting Claude CLI tool...")
+def execute_dravid_command(query, image_path, debug):
+    print_info("Starting Dravid CLI tool...")
 
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)
@@ -132,29 +132,29 @@ def execute_claude_command(query, image_path, debug):
             full_query = f"User query: {query}"
 
         if image_path:
-            response = call_claude_vision_api(
+            response = call_dravid_vision_api(
                 full_query, image_path, include_context=True)
         else:
-            response = call_claude_api(full_query, include_context=True)
+            response = call_dravid_api(full_query, include_context=True)
 
         if debug:
-            print_info("Raw response from Claude API:")
+            print_info("Raw response from Dravid API:")
             print(response)
-        print_success("Received response from Claude API.")
+        print_success("Received response from Dravid API.")
 
-        commands = parse_claude_response(response)
+        commands = parse_dravid_response(response)
         if not commands:
             print_error(
-                "Failed to parse Claude's response or no commands to execute.")
+                "Failed to parse dravid's response or no commands to execute.")
             if debug:
-                print_info("Claude's raw response:")
+                print_info("dravid's raw response:")
                 print(response)
             return
 
         if debug:
             print_info("Parsed commands:")
             pretty_print_commands(commands)
-        print_info(f"Parsed {len(commands)} commands from Claude's response.")
+        print_info(f"Parsed {len(commands)} commands from dravid's response.")
 
         for i, cmd in enumerate(commands):
             if cmd['type'] == 'explanation':
@@ -189,8 +189,8 @@ def execute_claude_command(query, image_path, debug):
                     if isinstance(result, tuple) and not result[0]:
                         error = result[1]
                         print_info(
-                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
-                        if handle_error_with_claude(error, cmd, executor, metadata_manager):
+                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with dravid's assistance.")
+                        if handle_error_with_dravid(error, cmd, executor, metadata_manager):
                             print_info(
                                 "Fix applied successfully. Retrying the original command.")
                         else:
@@ -206,7 +206,7 @@ def execute_claude_command(query, image_path, debug):
                 print_error(
                     f"Failed to execute command after {max_retries} attempts. Skipping and moving to the next command.")
 
-        print_success("Claude CLI tool execution completed.")
+        print_success("Dravid CLI tool execution completed.")
     except Exception as e:
         print_error(f"An unexpected error occurred: {str(e)}")
         if debug:
@@ -225,7 +225,7 @@ def update_metadata(files_to_update):
             print_error(f"Failed to update metadata for file: {file}")
 
 
-def find_file_with_claude(filename, project_context, max_retries=2, current_retry=0):
+def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
     print("filename", filename)
     if os.path.exists(filename):
         print("filename exists", filename)
@@ -249,24 +249,24 @@ Respond with an XML structure containing the suggested file path:
 If you can't suggest an alternative, respond with an empty <file> tag.
 """
 
-    response = call_claude_api(query, include_context=True)
+    response = call_dravid_api(query, include_context=True)
 
     try:
         root = extract_and_parse_xml(response)
         suggested_file = root.find('.//file').text.strip()
         if suggested_file:
             print_info(
-                f"Claude suggested an alternative file: {suggested_file}")
-            return find_file_with_claude(suggested_file, project_context, max_retries, current_retry + 1)
+                f"Dravid suggested an alternative file: {suggested_file}")
+            return find_file_with_dravid(suggested_file, project_context, max_retries, current_retry + 1)
         else:
-            print_error("Claude couldn't suggest an alternative file.")
+            print_error("Dravid couldn't suggest an alternative file.")
             return None
     except Exception as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
         return None
 
 
-def update_metadata_with_claude(meta_description):
+def update_metadata_with_dravid(meta_description):
     print_info("Updating metadata based on the provided description...")
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)
@@ -292,7 +292,7 @@ Respond with an XML structure containing the files to update:
 Only include files that need to be updated based on the user's description.
 """
 
-    files_response = call_claude_api(files_query, include_context=True)
+    files_response = call_dravid_api(files_query, include_context=True)
 
     try:
         root = extract_and_parse_xml(files_response)
@@ -309,7 +309,7 @@ Only include files that need to be updated based on the user's description.
         # Step 2: Read file contents and generate metadata
         print("files to update", files_to_update)
         for filename in files_to_update:
-            found_filename = find_file_with_claude(filename, project_context)
+            found_filename = find_file_with_dravid(filename, project_context)
             if not found_filename:
                 continue
 
@@ -334,7 +334,7 @@ Respond with an XML structure containing the metadata:
 </response>
 """
 
-            metadata_response = call_claude_api(
+            metadata_response = call_dravid_api(
                 metadata_query, include_context=True)
 
             try:
@@ -355,7 +355,7 @@ Respond with an XML structure containing the metadata:
 
         print_success("Metadata update completed.")
     except Exception as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
 
 
 def parse_gitignore(gitignore_path):
@@ -478,13 +478,13 @@ Respond with an XML structure containing this information:
 </response>
 """
     try:
-        response = call_claude_api(query, include_context=True)
+        response = call_dravid_api(query, include_context=True)
         root = extract_and_parse_xml(response)
         project_info = root.find('.//project_info')
 
         if project_info is None:
             raise ValueError(
-                "Failed to extract project information from Claude's response")
+                "Failed to extract project information from dravid's response")
 
         metadata = {
             "project_name": project_info.find('project_name').text.strip(),
@@ -656,7 +656,7 @@ Please respond with a list of filenames in the following XML format:
 
 Only include files that will need to be modified to fulfill the user's request.
 """
-    response = call_claude_api(file_query, include_context=True)
+    response = call_dravid_api(file_query, include_context=True)
     return parse_file_list_response(response)
 
 
@@ -700,7 +700,7 @@ def handle_command(cmd, executor, metadata_manager):
         return False, e
 
 
-def monitoring_handle_error_with_claude(error, line, monitor):
+def monitoring_handle_error_with_dravid(error, line, monitor):
     print_error(f"Error detected: {error}")
 
     error_message = str(error)
@@ -713,11 +713,11 @@ def monitoring_handle_error_with_claude(error, line, monitor):
     print("error_trace", error_trace)
     print("error_message", error_message)
 
-    # First, ask Claude which files it needs to examine
-    files_to_examine = get_relevant_files_from_claude(
+    # First, ask Dravid which files it needs to examine
+    files_to_examine = get_relevant_files_from_dravid(
         error_message, error_type, project_context, monitor.project_dir)
 
-    # Gather the content of the files Claude requested
+    # Gather the content of the files Dravid requested
     additional_context = gather_file_contents(
         files_to_examine, monitor.project_dir)
 
@@ -740,7 +740,7 @@ Project context:
 Additional context:
 {additional_context}
 
-# Instructions for Claude: Error Resolution Assistant
+# Instructions for dravid: Error Resolution Assistant
 Analyze the error above and provide steps to fix it.
 This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
 If there is a module not found error, don't immediately try to install that module alone. See the larger context,
@@ -793,20 +793,20 @@ Your response should be in strictly XML format with no other extra messages. Use
 </response>
 """
 
-    print_info("Sending error information to Claude for analysis...")
-    response = call_claude_api(error_query, include_context=True)
+    print_info("Sending error information to Dravid for analysis...")
+    response = call_dravid_api(error_query, include_context=True)
 
     try:
-        fix_commands = parse_claude_response(response)
+        fix_commands = parse_dravid_response(response)
     except ValueError as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
         return False
 
-    print_info("Claude's suggested fix:")
+    print_info("dravid's suggested fix:")
     pretty_print_commands(fix_commands)
 
     if click.confirm("Do you want to apply this fix?"):
-        print_info("Applying Claude's suggested fix...")
+        print_info("Applying dravid's suggested fix...")
         executor = Executor()
         for cmd in fix_commands:
             if cmd['type'] == 'shell':
@@ -825,7 +825,7 @@ Your response should be in strictly XML format with no other extra messages. Use
         return False
 
 
-def get_relevant_files_from_claude(error_message, error_type, project_context, project_dir):
+def get_relevant_files_from_dravid(error_message, error_type, project_context, project_dir):
     query = f"""
 Given the following error and project context, what files should I examine to diagnose and fix the issue?
 
@@ -847,7 +847,7 @@ Respond with an XML structure containing the file paths:
 </response>
 """
 
-    response = call_claude_api(query, include_context=True)
+    response = call_dravid_api(query, include_context=True)
 
     try:
         root = extract_and_parse_xml(response)
@@ -855,7 +855,7 @@ Respond with an XML structure containing the file paths:
         return [file.text.strip() for file in files if file.text]
     except Exception as e:
         print_error(
-            f"Error parsing Claude's response for relevant files: {str(e)}")
+            f"Error parsing dravid's response for relevant files: {str(e)}")
         return []
 
 
@@ -873,7 +873,7 @@ def gather_file_contents(files_to_examine, project_dir):
             context.append(f"File not found: {file_path}")
 
     return "\n\n".join(context)
-# def monitoring_handle_error_with_claude(error, line, monitor):
+# def monitoring_handle_error_with_dravid(error, line, monitor):
     print_error(f"Error detected: {error}")
 
     # Capture the full error message and traceback
@@ -900,7 +900,7 @@ Relevant output line:
 Project context:
 {project_context}
 
-# Instructions for Claude: Error Resolution Assistant
+# Instructions for dravid: Error Resolution Assistant
 Analyze the error above and provide steps to fix it.
  This is being run in a monitoring thread, so don't
 suggest server starting commands like npm run dev.
@@ -945,20 +945,20 @@ Your response should be in strictly XML format with no other extra messages. Use
 </response>
 """
 
-    print_info("Sending error information to Claude for analysis...")
-    response = call_claude_api(error_query, include_context=True)
+    print_info("Sending error information to Dravid for analysis...")
+    response = call_dravid_api(error_query, include_context=True)
 
     try:
-        fix_commands = parse_claude_response(response)
+        fix_commands = parse_dravid_response(response)
     except ValueError as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
         return False
 
-    print_info("Claude's suggested fix:")
+    print_info("dravid's suggested fix:")
     pretty_print_commands(fix_commands)
 
     if click.confirm("Do you want to apply this fix?"):
-        print_info("Applying Claude's suggested fix...")
+        print_info("Applying dravid's suggested fix...")
         executor = Executor()
         for cmd in fix_commands:
             if cmd['type'] == 'shell':
@@ -983,12 +983,12 @@ def handle_module_not_found(line, monitor):
     if match:
         module_name = match.group(1)
         error = ImportError(f"Module '{module_name}' not found")
-        monitoring_handle_error_with_claude(error, line, monitor)
+        monitoring_handle_error_with_dravid(error, line, monitor)
 
 
 def handle_syntax_error(line, monitor):
     error = SyntaxError(f"Syntax error in line: {line}")
-    monitoring_handle_error_with_claude(error, line, monitor)
+    monitoring_handle_error_with_dravid(error, line, monitor)
 
 
 def handle_port_in_use(line, monitor):
@@ -997,7 +997,7 @@ def handle_port_in_use(line, monitor):
     if match:
         port = match.group(1)
         error = OSError(f"Port {port} is already in use")
-        monitoring_handle_error_with_claude(error, line, monitor)
+        monitoring_handle_error_with_dravid(error, line, monitor)
 
 
 def update_metadata(files_to_update):
@@ -1012,7 +1012,7 @@ def update_metadata(files_to_update):
             print_error(f"Failed to update metadata for file: {file}")
 
 
-def find_file_with_claude(filename, project_context, max_retries=2, current_retry=0):
+def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
     print("filename", filename)
     if os.path.exists(filename):
         print("filename exists", filename)
@@ -1036,24 +1036,24 @@ Respond with an XML structure containing the suggested file path:
 If you can't suggest an alternative, respond with an empty <file> tag.
 """
 
-    response = call_claude_api(query, include_context=True)
+    response = call_dravid_api(query, include_context=True)
 
     try:
         root = extract_and_parse_xml(response)
         suggested_file = root.find('.//file').text.strip()
         if suggested_file:
             print_info(
-                f"Claude suggested an alternative file: {suggested_file}")
-            return find_file_with_claude(suggested_file, project_context, max_retries, current_retry + 1)
+                f"Dravid suggested an alternative file: {suggested_file}")
+            return find_file_with_dravid(suggested_file, project_context, max_retries, current_retry + 1)
         else:
-            print_error("Claude couldn't suggest an alternative file.")
+            print_error("Dravid couldn't suggest an alternative file.")
             return None
     except Exception as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
         return None
 
 
-def update_metadata_with_claude(meta_description):
+def update_metadata_with_dravid(meta_description):
     print_info("Updating metadata based on the provided description...")
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)
@@ -1079,7 +1079,7 @@ Respond with an XML structure containing the files to update:
 Only include files that need to be updated based on the user's description.
 """
 
-    files_response = call_claude_api(files_query, include_context=True)
+    files_response = call_dravid_api(files_query, include_context=True)
 
     try:
         root = extract_and_parse_xml(files_response)
@@ -1096,7 +1096,7 @@ Only include files that need to be updated based on the user's description.
         # Step 2: Read file contents and generate metadata
         print("files to update", files_to_update)
         for filename in files_to_update:
-            found_filename = find_file_with_claude(filename, project_context)
+            found_filename = find_file_with_dravid(filename, project_context)
             if not found_filename:
                 continue
 
@@ -1121,7 +1121,7 @@ Respond with an XML structure containing the metadata:
 </response>
 """
 
-            metadata_response = call_claude_api(
+            metadata_response = call_dravid_api(
                 metadata_query, include_context=True)
 
             try:
@@ -1142,7 +1142,7 @@ Respond with an XML structure containing the metadata:
 
         print_success("Metadata update completed.")
     except Exception as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
 
 
 def parse_gitignore(gitignore_path):
@@ -1265,13 +1265,13 @@ Respond with an XML structure containing this information:
 </response>
 """
     try:
-        response = call_claude_api(query, include_context=True)
+        response = call_dravid_api(query, include_context=True)
         root = extract_and_parse_xml(response)
         project_info = root.find('.//project_info')
 
         if project_info is None:
             raise ValueError(
-                "Failed to extract project information from Claude's response")
+                "Failed to extract project information from dravid's response")
 
         metadata = {
             "project_name": project_info.find('project_name').text.strip(),
@@ -1337,15 +1337,15 @@ Respond with an XML structure containing this information:
 @click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
 @click.option('--meta-add', help='Update metadata based on the provided description')
 @click.option('--meta-init', is_flag=True, help='Initialize project metadata')
-def claude_cli(query, image, debug, monitor_fix, meta_add, meta_init):
+def dravid_cli(query, image, debug, monitor_fix, meta_add, meta_init):
     if monitor_fix:
         run_dev_server_with_monitoring()
     elif meta_add:
-        update_metadata_with_claude(meta_add)
+        update_metadata_with_dravid(meta_add)
     elif meta_init:
         initialize_project_metadata()
     elif query:
-        execute_claude_command(query, image, debug)
+        execute_dravid_command(query, image, debug)
     else:
         click.echo(
             "Please provide a query, use --meta-add to update metadata, or use --meta-init to initialize project metadata.")
@@ -1372,4 +1372,4 @@ def run_dev_server_with_monitoring():
 
 
 if __name__ == '__main__':
-    claude_cli()
+    dravid_cli()

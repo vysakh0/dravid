@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QListWidgetItem, QStyledItemDelegate, QStyle)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QMimeData, QSize, QRect
 from PyQt6.QtGui import QAction, QIcon, QPainter, QColor, QPen, QBrush, QPixmap
-from drd import execute_claude_command, update_metadata_with_claude, initialize_project_metadata, run_dev_server_with_monitoring
+from drd import execute_dravid_command, update_metadata_with_dravid, initialize_project_metadata, run_dev_server_with_monitoring
 
 
 class ChatBubbleDelegate(QStyledItemDelegate):
@@ -193,7 +193,7 @@ class DravidGUI(QMainWindow):
         self.submit_button.clicked.connect(self.stop_execution)
 
         self.worker = WorkerThread(
-            execute_claude_command, query, self.image_path, True)
+            execute_dravid_command, query, self.image_path, True)
         self.worker.update_signal.connect(self.update_chat)
         self.worker.finished_signal.connect(self.on_execution_finished)
         self.worker.start()
@@ -232,7 +232,7 @@ class DravidGUI(QMainWindow):
             self, 'Update Metadata', 'Enter metadata description:')
         if ok and description:
             self.worker = WorkerThread(
-                update_metadata_with_claude, description)
+                update_metadata_with_dravid, description)
             self.worker.update_signal.connect(self.update_chat)
             self.worker.start()
 

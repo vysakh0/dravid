@@ -5,11 +5,11 @@ import base64
 from .utils import get_project_context
 from .prompts.claude_instructions import get_instruction_prompt
 from .prompts.file_operations import get_file_identification_prompt, get_file_description_prompt
-from .claude_parser import extract_and_parse_xml
+from .dravid_parser import extract_and_parse_xml
 import xml.etree.ElementTree as ET
 
 
-def call_claude_api(query, include_context=False):
+def call_dravid_api(query, include_context=False):
     api_key = os.getenv('CLAUDE_API_KEY')
     if not api_key:
         raise ValueError("CLAUDE_API_KEY not found in environment variables")
@@ -119,7 +119,7 @@ def generate_description(filename, content):
     return description[:100]  # Ensure the description is not too long
 
 
-def call_claude_vision_api(query, image_path, include_context=False):
+def call_dravid_vision_api(query, image_path, include_context=False):
     api_key = os.getenv('CLAUDE_API_KEY')
     if not api_key:
         raise ValueError("CLAUDE_API_KEY not found in environment variables")

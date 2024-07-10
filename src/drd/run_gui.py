@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QRect, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QPixmap, QRegion
 
 
-from drd import execute_claude_command, update_metadata_with_claude, initialize_project_metadata, run_dev_server_with_monitoring
+from drd import execute_dravid_command, update_metadata_with_dravid, initialize_project_metadata, run_dev_server_with_monitoring
 
 
 class WorkerThread(QThread):
@@ -261,7 +261,7 @@ class DravidGUI(QMainWindow):
 
         # # Start the worker thread
         # self.worker = WorkerThread(
-        #     execute_claude_command, query, self.image_path, True)
+        #     execute_dravid_command, query, self.image_path, True)
         # self.worker.update_signal.connect(self.update_chat)
         # self.worker.finished_signal.connect(self.on_execution_finished)
         # self.worker.start()

@@ -47,7 +47,7 @@ def extract_and_parse_xml(response: str) -> ET.Element:
         raise
 
 
-def parse_claude_response(response: str) -> List[Dict[str, Any]]:
+def parse_dravid_response(response: str) -> List[Dict[str, Any]]:
     try:
         root = extract_and_parse_xml(response)
         commands = []
@@ -68,7 +68,7 @@ def parse_claude_response(response: str) -> List[Dict[str, Any]]:
             commands.append(command)
         return commands
     except Exception as e:
-        print(f"Error parsing Claude response: {e}")
+        print(f"Error parsing dravid response: {e}")
         print("Original response:")
         print(response)
         return []

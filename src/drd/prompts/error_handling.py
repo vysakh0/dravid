@@ -1,12 +1,12 @@
 import traceback
 import click
-from ..claude_api import call_claude_api, generate_description
-from ..claude_parser import parse_claude_response, extract_and_parse_xml, pretty_print_commands
+from ..dravid_api import call_dravid_api, generate_description
+from ..dravid_parser import parse_dravid_response, extract_and_parse_xml, pretty_print_commands
 from ..utils import print_error, print_success, print_info
 import xml.etree.ElementTree as ET
 
 
-def handle_error_with_claude(error, cmd, executor, metadata_manager, depth=0, previous_context=""):
+def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, previous_context=""):
     if depth > 3:
         print_error(
             "Max error handling depth reached. Unable to resolve the issue.")
@@ -37,7 +37,7 @@ Error trace:
 Project context:
 {project_context}
 
-# Instructions for Claude: Error Resolution Assistant
+# Instructions for dravid: Error Resolution Assistant
 Analyze the error above and provide steps to fix it. 
 Your response should be in strictly XML format with no other extra messages. Use the following format:
 <response>
@@ -76,21 +76,21 @@ Your response should be in strictly XML format with no other extra messages. Use
 </response>
 """
 
-    print_info("Sending error information to Claude for analysis...")
-    response = call_claude_api(error_query, include_context=True)
+    print_info("Sending error information to dravid for analysis...")
+    response = call_dravid_api(error_query, include_context=True)
 
     try:
         # Use the existing extract_and_parse_xml function for better error handling
         root = extract_and_parse_xml(response)
-        # Use the existing parse_claude_response function
-        fix_commands = parse_claude_response(response)
+        # Use the existing parse_dravid_response function
+        fix_commands = parse_dravid_response(response)
     except ValueError as e:
-        print_error(f"Error parsing Claude's response: {str(e)}")
+        print_error(f"Error parsing dravid's response: {str(e)}")
         return False
 
-    print_info("Claude's suggested fix:")
+    print_info("dravid's suggested fix:")
     pretty_print_commands(fix_commands)
-    print_info("Applying Claude's suggested fix...")
+    print_info("Applying dravid's suggested fix...")
     fix_applied, step_completed, error_message, all_outputs = apply_fix_commands(
         fix_commands, executor, metadata_manager)
 
@@ -106,7 +106,7 @@ Your response should be in strictly XML format with no other extra messages. Use
         click.echo(all_outputs)
 
         # Recursively try to fix the error in applying the fix
-        return handle_error_with_claude(Exception(error_message),
+        return handle_error_with_dravid(Exception(error_message),
                                         {"type": "fix",
                                             "command": f"apply fix step {step_completed}"},
                                         executor, metadata_manager, depth + 1, all_outputs)
