@@ -1331,7 +1331,7 @@ Respond with an XML structure containing this information:
 
 
 @click.command()
-@click.option('--query', help='Coding assistant will execute your instruction to generate and run code')
+@click.argument('query', required=False)
 @click.option('--image', type=click.Path(exists=True), help='Path to an image file to include with the query')
 @click.option('--debug', is_flag=True, help='Print more information on how this coding assistant executes your instruction')
 @click.option('--monitor-fix', is_flag=True, help='Start the dev server monitor to automatically fix errors')
