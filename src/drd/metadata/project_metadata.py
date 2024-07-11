@@ -18,7 +18,7 @@ class ProjectMetadataManager:
             "last_updated": "",
             "files": [],
             "dev_server": {
-                "start_command": [],
+                "start_command": "",
                 "framework": "",
                 "language": ""
             }
