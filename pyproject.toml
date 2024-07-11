@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dravid"
-version = "0.3.0"
+version = "0.4.0"
 description = "A CLI coding super-framework using AI"
 authors = ["Vysakh Sreenivasan <srvysakh@gmail.com>"]
 license = "MIT"
@@ -27,7 +27,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 drd = "drd.cli.main:dravid_cli"
-drd-gui = "drd.run_gui:main"
 test = "run_tests:main"
 
 [tool.pytest.ini_options]

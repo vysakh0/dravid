@@ -7,3 +7,5 @@ myapp
 gui-test
 test-app
 testapp
+.git
+.pytest_cache

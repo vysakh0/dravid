@@ -61,6 +61,7 @@ def initialize_project_metadata(current_dir):
     gitignore_path = os.path.join(current_dir, '.gitignore')
     if os.path.exists(gitignore_path):
         ignore_patterns = parse_gitignore(gitignore_path)
+        ignore_patterns.append(re.compile('.git'))
         print_info("Using .gitignore patterns for file exclusion.")
     else:
         default_patterns = ['node_modules', 'dist',
