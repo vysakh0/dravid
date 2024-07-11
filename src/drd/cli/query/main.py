@@ -4,7 +4,7 @@ from ...api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
-from ...utils import print_error, print_success, print_info, print_step, generate_description
+from ...utils import print_error, print_success, print_info, print_step, generate_description, fetch_project_guidelines
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
 
@@ -32,9 +32,10 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 if content:
                     file_contents[file] = content
 
+            project_guidelines = fetch_project_guidelines(executor.current_dir)
             file_context = "\n".join(
                 [f"Current content of {file}:\n{content}" for file, content in file_contents.items()])
-            full_query = f"{project_context}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
+            full_query = f"{project_context}\n\nProject Guidelines:\n{project_guidelines}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
         else:
             print_info(
                 """No current project context found. Will create a new project in the current directory.

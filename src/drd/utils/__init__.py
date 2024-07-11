@@ -3,7 +3,8 @@ from .utils import (
     print_error,
     print_success,
     print_info,
-    print_step
+    print_step,
+    fetch_project_guidelines
 )
 from .api_utils import call_dravid_api, call_dravid_vision_api
 
@@ -16,5 +17,6 @@ __all__ = [
     'print_step',
     'call_dravid_api',
     'call_dravid_vision_api',
-    'generate_description'
+    'generate_description',
+    'fetch_project_guidelines'
 ]
