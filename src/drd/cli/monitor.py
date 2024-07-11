@@ -7,7 +7,7 @@ from typing import Dict, Callable
 from ..api.dravid_api import call_dravid_api
 from ..api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ..executor import Executor
-from ..utils import print_error, print_success, print_info, get_project_context
+from ..utils.utils import print_error, print_success, print_info, get_project_context
 from ..prompts.error_handling import handle_error_with_dravid
 from ..metadata.project_metadata import ProjectMetadataManager
 from queue import Queue, Empty

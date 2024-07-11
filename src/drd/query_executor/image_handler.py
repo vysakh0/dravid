@@ -1,5 +1,5 @@
-from .api.dravid_api import call_dravid_vision_api
+from ..api.dravid_api import call_dravid_vision_api
 
 
-def handle_image_query(query, image_path):
-    return call_dravid_vision_api(query, image_path, include_context=True)
+def handle_image_query(query, image_path, instruction_prompt):
+    return call_dravid_vision_api(query, image_path, include_context=True, instruction_prompt=instruction_prompt)

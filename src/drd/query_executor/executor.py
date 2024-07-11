@@ -1,15 +1,15 @@
 import click
-from ..api.dravid_api import call_dravid_api, call_dravid_vision_api, generate_description
+from ..api.dravid_api import call_dravid_api
 from ..api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ..executor import Executor
 from ..metadata.project_metadata import ProjectMetadataManager
 from ..prompts.error_handling import handle_error_with_dravid
-from ..utils import print_error, print_success, print_info, print_step
+from ..utils import print_error, print_success, print_info, print_step, generate_description
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
 
 
-def execute_dravid_command(query, image_path, debug):
+def execute_dravid_command(query, image_path, debug, instruction_prompt):
     print_info("Starting Dravid CLI tool...")
 
     executor = Executor()
@@ -43,9 +43,11 @@ def execute_dravid_command(query, image_path, debug):
             full_query = f"User query: {query}"
 
         if image_path:
-            response = handle_image_query(full_query, image_path)
+            response = handle_image_query(
+                full_query, image_path, instruction_prompt)
         else:
-            response = call_dravid_api(full_query, include_context=True)
+            response = call_dravid_api(
+                full_query, include_context=True, instruction_prompt=instruction_prompt)
 
         if debug:
             print_info("Raw response from Dravid API:")

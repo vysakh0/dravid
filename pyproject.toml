@@ -26,5 +26,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-drd = "drd.main:dravid_cli"
+drd = "drd.cli.main:dravid_cli"
 drd-gui = "drd.run_gui:main"

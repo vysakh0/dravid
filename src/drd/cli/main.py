@@ -2,6 +2,7 @@ import click
 import os
 from dotenv import load_dotenv
 from ..query_executor import execute_dravid_command
+from ..prompts.claude_instructions import get_instruction_prompt
 from .monitor import run_dev_server_with_monitoring
 from ..metadata.initializer import initialize_project_metadata
 from ..metadata.updater import update_metadata_with_dravid
@@ -29,7 +30,8 @@ def dravid_cli(query, image, debug, monitor_fix, meta_add, meta_init):
     elif meta_init:
         initialize_project_metadata(os.getcwd())
     elif query:
-        execute_dravid_command(query, image, debug)
+        instruction_prompt = get_instruction_prompt()
+        execute_dravid_command(query, image, debug, instruction_prompt)
     else:
         click.echo(
             "Please provide a query, use --meta-add to update metadata, or use --meta-init to initialize project metadata.")
