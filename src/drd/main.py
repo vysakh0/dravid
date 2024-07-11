@@ -9,6 +9,7 @@ from .dravid_api import call_dravid_api, call_dravid_vision_api, generate_descri
 from .dravid_parser import parse_dravid_response, pretty_print_commands, extract_and_parse_xml
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
+from .metadata_updater import update_metadata_with_dravid
 from .metadata_initializer import initialize_project_metadata
 from .prompts.error_handling import handle_error_with_dravid
 from .utils import print_error, print_success, print_info, print_step
@@ -210,208 +211,6 @@ def execute_dravid_command(query, image_path, debug):
         print_error(f"An unexpected error occurred: {str(e)}")
         if debug:
             traceback.print_exc()
-
-
-def update_metadata(files_to_update):
-    print_info("Updating metadata for specified files...")
-    executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-
-    for file in files_to_update:
-        if metadata_manager.update_metadata_from_file(file):
-            print_success(f"Updated metadata for file: {file}")
-        else:
-            print_error(f"Failed to update metadata for file: {file}")
-
-
-def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
-    print("filename", filename)
-    if os.path.exists(filename):
-        print("filename exists", filename)
-        return filename
-
-    if current_retry >= max_retries:
-        print_error(f"File not found after {max_retries} retries: {filename}")
-        return None
-
-    query = f"""
-{project_context}
-
-The file "{filename}" was not found. Based on the project context and the filename, can you suggest the correct path or an alternative file that might contain the updated content?
-
-Respond with an XML structure containing the suggested file path:
-
-<response>
-  <file>suggested/path/to/file.ext</file>
-</response>
-
-If you can't suggest an alternative, respond with an empty <file> tag.
-"""
-
-    response = call_dravid_api(query, include_context=True)
-
-    try:
-        root = extract_and_parse_xml(response)
-        suggested_file = root.find('.//file').text.strip()
-        if suggested_file:
-            print_info(
-                f"Dravid suggested an alternative file: {suggested_file}")
-            return find_file_with_dravid(suggested_file, project_context, max_retries, current_retry + 1)
-        else:
-            print_error("Dravid couldn't suggest an alternative file.")
-            return None
-    except Exception as e:
-        print_error(f"Error parsing dravid's response: {str(e)}")
-        return None
-
-
-def update_metadata_with_dravid(meta_description):
-    print_info("Updating metadata based on the provided description...")
-    executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-    project_context = metadata_manager.get_project_context()
-
-    # Step 1: Identify files to update
-    files_query = f"""
-{project_context}
-
-User update description: {meta_description}
-
-Based on the user's description and the project context, please identify which files need to have their metadata updated.
-Respond with an XML structure containing the files to update:
-
-<response>
-  <files>
-    <file>path/to/file1.ext</file>
-    <file>path/to/file2.ext</file>
-    <!-- Add more file elements as needed -->
-  </files>
-</response>
-
-Only include files that need to be updated based on the user's description.
-"""
-
-    files_response = call_dravid_api(files_query, include_context=True)
-
-    try:
-        root = extract_and_parse_xml(files_response)
-        files_to_update = [file.text.strip()
-                           for file in root.findall('.//file')]
-
-        if not files_to_update:
-            print_info("No files identified for metadata update.")
-            return
-
-        print_info(
-            f"Files identified for update: {', '.join(files_to_update)}")
-
-        # Step 2: Read file contents and generate metadata
-        print("files to update", files_to_update)
-        for filename in files_to_update:
-            found_filename = find_file_with_dravid(filename, project_context)
-            if not found_filename:
-                continue
-
-            with open(found_filename, 'r') as f:
-                content = f.read()
-
-            metadata_query = f"""
-{project_context}
-
-File: {found_filename}
-Content:
-{content}
-
-Based on the file content and the project context, please generate appropriate metadata for this file.
-Respond with an XML structure containing the metadata:
-
-<response>
-  <metadata>
-    <type>file_type</type>
-    <description>Description of the file's contents or purpose</description>
-  </metadata>
-</response>
-"""
-
-            metadata_response = call_dravid_api(
-                metadata_query, include_context=True)
-
-            try:
-                metadata_root = extract_and_parse_xml(metadata_response)
-                file_type = metadata_root.find('.//type').text.strip()
-                description = metadata_root.find('.//description').text.strip()
-
-                metadata_manager.update_file_metadata(
-                    found_filename,
-                    file_type,
-                    content,
-                    description
-                )
-                print_success(f"Updated metadata for file: {found_filename}")
-            except Exception as e:
-                print_error(
-                    f"Error parsing metadata for {found_filename}: {str(e)}")
-
-        print_success("Metadata update completed.")
-    except Exception as e:
-        print_error(f"Error parsing dravid's response: {str(e)}")
-
-
-def parse_gitignore(gitignore_path):
-    ignore_patterns = []
-    if os.path.exists(gitignore_path):
-        with open(gitignore_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    # Convert .gitignore pattern to regex
-                    pattern = line.replace('.', r'\.')  # Escape dots
-                    pattern = pattern.replace('*', '.*')  # Convert * to .*
-                    pattern = pattern.replace('?', '.')   # Convert ? to .
-                    if pattern.startswith('/'):
-                        # Anchor at start if begins with /
-                        pattern = '^' + pattern[1:]
-                    elif pattern.endswith('/'):
-                        pattern += '.*'  # Match any file in directory if ends with /
-                    else:
-                        pattern = '.*' + pattern  # Otherwise, match anywhere in path
-                    ignore_patterns.append(re.compile(pattern))
-    return ignore_patterns
-
-
-def should_ignore(path, ignore_patterns):
-    for pattern in ignore_patterns:
-        if pattern.search(path):
-            return True
-    return False
-
-
-def get_folder_structure(start_path, ignore_patterns):
-    structure = []
-
-    for root, dirs, files in os.walk(start_path):
-        level = root.replace(start_path, '').count(os.sep)
-        indent = ' ' * 4 * level
-        folder_name = os.path.basename(root)
-
-        rel_path = os.path.relpath(root, start_path)
-        if rel_path == '.':
-            rel_path = ''
-
-        if not should_ignore(rel_path, ignore_patterns):
-            structure.append(f"{indent}{folder_name}/")
-
-            sub_indent = ' ' * 4 * (level + 1)
-            for file in files:
-                file_path = os.path.join(rel_path, file)
-                if not should_ignore(file_path, ignore_patterns):
-                    structure.append(f"{sub_indent}{file}")
-
-        # Modify dirs in-place to exclude ignored directories
-        dirs[:] = [d for d in dirs if not should_ignore(
-            os.path.join(rel_path, d), ignore_patterns)]
-
-    return '\n'.join(structure)
 
 
 def get_file_content(filename):
@@ -668,18 +467,6 @@ def gather_file_contents(files_to_examine, project_dir):
     return "\n\n".join(context)
 
 
-def update_metadata(files_to_update):
-    print_info("Updating metadata for specified files...")
-    executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-
-    for file in files_to_update:
-        if metadata_manager.update_metadata_from_file(file):
-            print_success(f"Updated metadata for file: {file}")
-        else:
-            print_error(f"Failed to update metadata for file: {file}")
-
-
 def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
     print("filename", filename)
     if os.path.exists(filename):
@@ -721,98 +508,6 @@ If you can't suggest an alternative, respond with an empty <file> tag.
         return None
 
 
-def update_metadata_with_dravid(meta_description):
-    print_info("Updating metadata based on the provided description...")
-    executor = Executor()
-    metadata_manager = ProjectMetadataManager(executor.current_dir)
-    project_context = metadata_manager.get_project_context()
-
-    # Step 1: Identify files to update
-    files_query = f"""
-{project_context}
-
-User update description: {meta_description}
-
-Based on the user's description and the project context, please identify which files need to have their metadata updated.
-Respond with an XML structure containing the files to update:
-
-<response>
-  <files>
-    <file>path/to/file1.ext</file>
-    <file>path/to/file2.ext</file>
-    <!-- Add more file elements as needed -->
-  </files>
-</response>
-
-Only include files that need to be updated based on the user's description.
-"""
-
-    files_response = call_dravid_api(files_query, include_context=True)
-
-    try:
-        root = extract_and_parse_xml(files_response)
-        files_to_update = [file.text.strip()
-                           for file in root.findall('.//file')]
-
-        if not files_to_update:
-            print_info("No files identified for metadata update.")
-            return
-
-        print_info(
-            f"Files identified for update: {', '.join(files_to_update)}")
-
-        # Step 2: Read file contents and generate metadata
-        print("files to update", files_to_update)
-        for filename in files_to_update:
-            found_filename = find_file_with_dravid(filename, project_context)
-            if not found_filename:
-                continue
-
-            with open(found_filename, 'r') as f:
-                content = f.read()
-
-            metadata_query = f"""
-{project_context}
-
-File: {found_filename}
-Content:
-{content}
-
-Based on the file content and the project context, please generate appropriate metadata for this file.
-Respond with an XML structure containing the metadata:
-
-<response>
-  <metadata>
-    <type>file_type</type>
-    <description>Description of the file's contents or purpose</description>
-  </metadata>
-</response>
-"""
-
-            metadata_response = call_dravid_api(
-                metadata_query, include_context=True)
-
-            try:
-                metadata_root = extract_and_parse_xml(metadata_response)
-                file_type = metadata_root.find('.//type').text.strip()
-                description = metadata_root.find('.//description').text.strip()
-
-                metadata_manager.update_file_metadata(
-                    found_filename,
-                    file_type,
-                    content,
-                    description
-                )
-                print_success(f"Updated metadata for file: {found_filename}")
-            except Exception as e:
-                print_error(
-                    f"Error parsing metadata for {found_filename}: {str(e)}")
-
-        print_success("Metadata update completed.")
-    except Exception as e:
-        print_error(f"Error parsing dravid's response: {str(e)}")
-
-
 @click.command()
 @click.argument('query', required=False)
 @click.option('--image', type=click.Path(exists=True), help='Path to an image file to include with the query')
@@ -824,7 +519,7 @@ def dravid_cli(query, image, debug, monitor_fix, meta_add, meta_init):
     if monitor_fix:
         run_dev_server_with_monitoring()
     elif meta_add:
-        update_metadata_with_dravid(meta_add)
+        update_metadata_with_dravid(meta_add, os.getcwd())
     elif meta_init:
         initialize_project_metadata(os.getcwd())
     elif query:
