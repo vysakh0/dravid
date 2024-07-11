@@ -1,7 +1,6 @@
 import subprocess
 import os
 import json
-import shutil
 import click
 from colorama import Fore, Style
 import time
