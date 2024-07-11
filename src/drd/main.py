@@ -1,6 +1,5 @@
 import click
 from datetime import datetime
-import time
 import json
 import os
 import traceback
@@ -10,6 +9,7 @@ from .dravid_api import call_dravid_api, call_dravid_vision_api, generate_descri
 from .dravid_parser import parse_dravid_response, pretty_print_commands, extract_and_parse_xml
 from .executor import Executor
 from .project_metadata import ProjectMetadataManager
+from .metadata_initializer import initialize_project_metadata
 from .prompts.error_handling import handle_error_with_dravid
 from .utils import print_error, print_success, print_info, print_step
 from .monitor import run_dev_server_with_monitoring
@@ -414,134 +414,6 @@ def get_folder_structure(start_path, ignore_patterns):
     return '\n'.join(structure)
 
 
-def initialize_project_metadata():
-    print_info("Initializing project metadata...")
-    executor = Executor()
-    current_dir = executor.current_dir
-
-    # Parse .gitignore or use default ignore patterns
-    gitignore_path = os.path.join(current_dir, '.gitignore')
-    if os.path.exists(gitignore_path):
-        ignore_patterns = parse_gitignore(gitignore_path)
-        print_info("Using .gitignore patterns for file exclusion.")
-    else:
-        # Convert default patterns to regex
-        default_patterns = ['node_modules', 'dist',
-                            'build', 'venv', '.git', '__pycache__']
-        ignore_patterns = [re.compile(f'.*{pattern}.*')
-                           for pattern in default_patterns]
-        print_info("No .gitignore found. Using default ignore patterns.")
-
-    folder_structure = get_folder_structure(current_dir, ignore_patterns)
-    print(folder_structure, "--")
-
-    query = f"""
-Current folder structure:
-{folder_structure}
-
-Based on the folder structure, please analyze the project and provide the following information:
-1. Project name
-2. Main programming language(s) used
-3. Framework(s) used (if any)
-4. Recommended dev server start command (if applicable)
-5. A brief description of the project
-
-Respond with an XML structure containing this information:
-
-<response>
-  <project_info>
-  <project_name>project</project_name>
-  <last_updated>2024-07-09T11:08:35.368477</last_updated>
-  <files>
-    <file>
-      <filename>src/app/page.tsx</filename>
-      <type>tsx</type>
-      <last_modified>2024-07-09T11:08:35.363820</last_modified>
-      <content_preview>import React from 'react';</content_preview>
-      <description>React component for a minimal homepage displaying a centered</description>
-    </file>
-    <file>
-      <filename>drd.json</filename>
-      <type>json</type>
-      <last_modified>2024-07-09T11:08:35.368514</last_modified>
-      <content_preview></content_preview>
-      <description></description>
-    </file>
-  </files>
-  <dev_server>
-    <start_command>npm run dev</start_command>
-    <framework>Next.js</framework>
-    <language>TypeScript</language>
-  </dev_server>
-  </project_info>
-</response>
-"""
-    try:
-        response = call_dravid_api(query, include_context=True)
-        root = extract_and_parse_xml(response)
-        project_info = root.find('.//project_info')
-
-        if project_info is None:
-            raise ValueError(
-                "Failed to extract project information from dravid's response")
-
-        metadata = {
-            "project_name": project_info.find('project_name').text.strip(),
-            "last_updated": datetime.now().isoformat(),
-            "files": [],
-            "dev_server": {
-                "start_command": project_info.find('.//dev_server/start_command').text.strip(),
-                "framework": project_info.find('.//dev_server/framework').text.strip(),
-                "language": project_info.find('.//dev_server/language').text.strip()
-            }
-        }
-
-        # Gather file information
-        for root, dirs, files in os.walk(current_dir):
-            # Modify dirs in-place to exclude ignored directories
-            dirs[:] = [d for d in dirs if not should_ignore(
-                os.path.join(root, d), ignore_patterns)]
-
-            for file in files:
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, current_dir)
-
-                if should_ignore(relative_path, ignore_patterns):
-                    continue  # Skip this file if it matches an ignore pattern
-
-                # Get file extension without dot
-                file_type = os.path.splitext(file)[1][1:] or 'unknown'
-
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        # Read first 100 characters for preview
-                        content = f.read(100)
-                except Exception as e:
-                    content = f"Error reading file: {str(e)}"
-
-                file_metadata = {
-                    "filename": relative_path,
-                    "type": file_type,
-                    "last_modified": datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
-                    "content_preview": content.replace('\n', ' '),
-                    "description": generate_description(relative_path, content)
-                }
-                metadata["files"].append(file_metadata)
-
-        metadata_manager = ProjectMetadataManager(current_dir)
-        metadata_manager.metadata = metadata
-        metadata_manager.save_metadata()
-
-        print_success("Project metadata initialized successfully.")
-        print_info("Generated metadata:")
-        print(json.dumps(metadata, indent=2))
-
-    except Exception as e:
-        print_error(f"Error initializing project metadata: {str(e)}")
-        print_error("Stack trace:")
-        traceback.print_exc()
-
-
 def get_file_content(filename):
     if os.path.exists(filename):
         with open(filename, 'r') as f:
@@ -941,191 +813,6 @@ Respond with an XML structure containing the metadata:
         print_error(f"Error parsing dravid's response: {str(e)}")
 
 
-def parse_gitignore(gitignore_path):
-    ignore_patterns = []
-    if os.path.exists(gitignore_path):
-        with open(gitignore_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    # Convert .gitignore pattern to regex
-                    pattern = line.replace('.', r'\.')  # Escape dots
-                    pattern = pattern.replace('*', '.*')  # Convert * to .*
-                    pattern = pattern.replace('?', '.')   # Convert ? to .
-                    if pattern.startswith('/'):
-                        # Anchor at start if begins with /
-                        pattern = '^' + pattern[1:]
-                    elif pattern.endswith('/'):
-                        pattern += '.*'  # Match any file in directory if ends with /
-                    else:
-                        pattern = '.*' + pattern  # Otherwise, match anywhere in path
-                    ignore_patterns.append(re.compile(pattern))
-    return ignore_patterns
-
-
-def should_ignore(path, ignore_patterns):
-    for pattern in ignore_patterns:
-        if pattern.search(path):
-            return True
-    return False
-
-
-def get_folder_structure(start_path, ignore_patterns):
-    structure = []
-
-    for root, dirs, files in os.walk(start_path):
-        level = root.replace(start_path, '').count(os.sep)
-        indent = ' ' * 4 * level
-        folder_name = os.path.basename(root)
-
-        rel_path = os.path.relpath(root, start_path)
-        if rel_path == '.':
-            rel_path = ''
-
-        if not should_ignore(rel_path, ignore_patterns):
-            structure.append(f"{indent}{folder_name}/")
-
-            sub_indent = ' ' * 4 * (level + 1)
-            for file in files:
-                file_path = os.path.join(rel_path, file)
-                if not should_ignore(file_path, ignore_patterns):
-                    structure.append(f"{sub_indent}{file}")
-
-        # Modify dirs in-place to exclude ignored directories
-        dirs[:] = [d for d in dirs if not should_ignore(
-            os.path.join(rel_path, d), ignore_patterns)]
-
-    return '\n'.join(structure)
-
-
-def initialize_project_metadata():
-    print_info("Initializing project metadata...")
-    executor = Executor()
-    current_dir = executor.current_dir
-
-    # Parse .gitignore or use default ignore patterns
-    gitignore_path = os.path.join(current_dir, '.gitignore')
-    if os.path.exists(gitignore_path):
-        ignore_patterns = parse_gitignore(gitignore_path)
-        print_info("Using .gitignore patterns for file exclusion.")
-    else:
-        # Convert default patterns to regex
-        default_patterns = ['node_modules', 'dist',
-                            'build', 'venv', '.git', '__pycache__']
-        ignore_patterns = [re.compile(f'.*{pattern}.*')
-                           for pattern in default_patterns]
-        print_info("No .gitignore found. Using default ignore patterns.")
-
-    folder_structure = get_folder_structure(current_dir, ignore_patterns)
-    print(folder_structure, "--")
-
-    query = f"""
-Current folder structure:
-{folder_structure}
-
-Based on the folder structure, please analyze the project and provide the following information:
-1. Project name
-2. Main programming language(s) used
-3. Framework(s) used (if any)
-4. Recommended dev server start command (if applicable)
-5. A brief description of the project
-
-Respond with an XML structure containing this information:
-
-<response>
-  <project_info>
-  <project_name>project</project_name>
-  <last_updated>2024-07-09T11:08:35.368477</last_updated>
-  <files>
-    <file>
-      <filename>src/app/page.tsx</filename>
-      <type>tsx</type>
-      <last_modified>2024-07-09T11:08:35.363820</last_modified>
-      <content_preview>import React from 'react';</content_preview>
-      <description>React component for a minimal homepage displaying a centered</description>
-    </file>
-    <file>
-      <filename>drd.json</filename>
-      <type>json</type>
-      <last_modified>2024-07-09T11:08:35.368514</last_modified>
-      <content_preview></content_preview>
-      <description></description>
-    </file>
-  </files>
-  <dev_server>
-    <start_command>npm run dev</start_command>
-    <framework>Next.js</framework>
-    <language>TypeScript</language>
-  </dev_server>
-  </project_info>
-</response>
-"""
-    try:
-        response = call_dravid_api(query, include_context=True)
-        root = extract_and_parse_xml(response)
-        project_info = root.find('.//project_info')
-
-        if project_info is None:
-            raise ValueError(
-                "Failed to extract project information from dravid's response")
-
-        metadata = {
-            "project_name": project_info.find('project_name').text.strip(),
-            "last_updated": datetime.now().isoformat(),
-            "files": [],
-            "dev_server": {
-                "start_command": project_info.find('.//dev_server/start_command').text.strip(),
-                "framework": project_info.find('.//dev_server/framework').text.strip(),
-                "language": project_info.find('.//dev_server/language').text.strip()
-            }
-        }
-
-        # Gather file information
-        for root, dirs, files in os.walk(current_dir):
-            # Modify dirs in-place to exclude ignored directories
-            dirs[:] = [d for d in dirs if not should_ignore(
-                os.path.join(root, d), ignore_patterns)]
-
-            for file in files:
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, current_dir)
-
-                if should_ignore(relative_path, ignore_patterns):
-                    continue  # Skip this file if it matches an ignore pattern
-
-                # Get file extension without dot
-                file_type = os.path.splitext(file)[1][1:] or 'unknown'
-
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        # Read first 100 characters for preview
-                        content = f.read(100)
-                except Exception as e:
-                    content = f"Error reading file: {str(e)}"
-
-                file_metadata = {
-                    "filename": relative_path,
-                    "type": file_type,
-                    "last_modified": datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
-                    "content_preview": content.replace('\n', ' '),
-                    "description": generate_description(relative_path, content)
-                }
-                metadata["files"].append(file_metadata)
-
-        metadata_manager = ProjectMetadataManager(current_dir)
-        metadata_manager.metadata = metadata
-        metadata_manager.save_metadata()
-
-        print_success("Project metadata initialized successfully.")
-        print_info("Generated metadata:")
-        print(json.dumps(metadata, indent=2))
-
-    except Exception as e:
-        print_error(f"Error initializing project metadata: {str(e)}")
-        print_error("Stack trace:")
-        traceback.print_exc()
-
-
 @click.command()
 @click.argument('query', required=False)
 @click.option('--image', type=click.Path(exists=True), help='Path to an image file to include with the query')
@@ -1139,7 +826,7 @@ def dravid_cli(query, image, debug, monitor_fix, meta_add, meta_init):
     elif meta_add:
         update_metadata_with_dravid(meta_add)
     elif meta_init:
-        initialize_project_metadata()
+        initialize_project_metadata(os.getcwd())
     elif query:
         execute_dravid_command(query, image, debug)
     else:
