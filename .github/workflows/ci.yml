@@ -16,6 +16,4 @@ jobs:
           pip install poetry
           poetry install
       - name: Run tests
-        run: poetry run pytest
-      - name: Lint with flake8
-        run: poetry run flake8 .
+        run: poetry run test
