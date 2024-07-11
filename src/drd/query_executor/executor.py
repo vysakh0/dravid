@@ -1,10 +1,10 @@
 import click
-from .dravid_api import call_dravid_api, call_dravid_vision_api, generate_description
-from .dravid_parser import parse_dravid_response, pretty_print_commands
-from .executor import Executor
-from .project_metadata import ProjectMetadataManager
-from .prompts.error_handling import handle_error_with_dravid
-from .utils import print_error, print_success, print_info, print_step
+from ..api.dravid_api import call_dravid_api, call_dravid_vision_api, generate_description
+from ..api.dravid_parser import parse_dravid_response, pretty_print_commands
+from ..executor import Executor
+from ..metadata.project_metadata import ProjectMetadataManager
+from ..prompts.error_handling import handle_error_with_dravid
+from ..utils import print_error, print_success, print_info, print_step
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
 

@@ -1,8 +1,8 @@
 import os
-from .dravid_api import call_dravid_api, generate_description
-from .dravid_parser import extract_and_parse_xml
+from ..api.dravid_api import call_dravid_api, generate_description
+from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
-from .utils import print_error, print_success, print_info
+from ..utils import print_error, print_success, print_info
 
 
 def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):

@@ -1,1 +1,7 @@
-from .main import dravid_cli, execute_dravid_command, update_metadata_with_dravid, initialize_project_metadata, run_dev_server_with_monitoring
+from .cli.main import dravid_cli
+from .query_executor.executor import execute_dravid_command
+from .metadata.initializer import initialize_project_metadata
+from .metadata.updater import update_metadata_with_dravid
+
+__all__ = ['dravid_cli', 'execute_dravid_command',
+           'initialize_project_metadata', 'update_metadata_with_dravid']

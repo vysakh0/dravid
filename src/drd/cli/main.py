@@ -1,10 +1,10 @@
 import click
 import os
 from dotenv import load_dotenv
-from .query_executor import execute_dravid_command
+from ..query_executor import execute_dravid_command
 from .monitor import run_dev_server_with_monitoring
-from .metadata_initializer import initialize_project_metadata
-from .metadata_updater import update_metadata_with_dravid
+from ..metadata.initializer import initialize_project_metadata
+from ..metadata.updater import update_metadata_with_dravid
 from colorama import init
 
 # Initialize colorama

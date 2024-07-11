@@ -2,9 +2,9 @@ import json
 import os
 import requests
 import base64
-from .utils import get_project_context
-from .prompts.claude_instructions import get_instruction_prompt
-from .prompts.file_operations import get_file_identification_prompt, get_file_description_prompt
+from ..utils import get_project_context
+from ..prompts.claude_instructions import get_instruction_prompt
+from ..prompts.file_operations import get_file_identification_prompt, get_file_description_prompt
 from .dravid_parser import extract_and_parse_xml
 import xml.etree.ElementTree as ET
 

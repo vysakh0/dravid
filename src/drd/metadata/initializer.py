@@ -2,10 +2,10 @@ import os
 import re
 import json
 from datetime import datetime
-from .dravid_api import call_dravid_api, generate_description
-from .dravid_parser import extract_and_parse_xml
+from ..api.dravid_api import call_dravid_api, generate_description
+from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
-from .utils import print_error, print_success, print_info
+from ..utils import print_error, print_success, print_info
 
 
 def parse_gitignore(gitignore_path):
