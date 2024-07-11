@@ -1,6 +1,6 @@
 import os
-from ..api import call_dravid_api, extract_and_parse_xml
-from ..utils import print_error, print_info
+from ...api import call_dravid_api, extract_and_parse_xml
+from ...utils import print_error, print_info
 
 
 def get_files_to_modify(query, project_context):

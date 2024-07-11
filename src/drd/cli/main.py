@@ -1,7 +1,7 @@
 import click
 import os
 from dotenv import load_dotenv
-from ..query_executor import execute_dravid_command
+from .query import execute_dravid_command
 from ..prompts.claude_instructions import get_instruction_prompt
 from .monitor import run_dev_server_with_monitoring
 from ..metadata.initializer import initialize_project_metadata

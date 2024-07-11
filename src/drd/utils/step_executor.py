@@ -4,7 +4,7 @@ import json
 import click
 from colorama import Fore, Style
 import time
-from .utils.utils import print_error, print_success, print_info
+from .utils import print_error, print_success, print_info
 
 
 class Executor:
