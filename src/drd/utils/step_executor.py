@@ -67,6 +67,8 @@ class Executor:
     def perform_file_operation(self, operation, filename, content=None, force=False):
         full_path = os.path.join(self.current_dir, filename)
 
+        print_info(f"{filename}")
+        print_info(content)
         if operation == 'CREATE':
             if os.path.exists(full_path) and not force:
                 print_error(f"File already exists: {filename}")

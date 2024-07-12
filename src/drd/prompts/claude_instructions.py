@@ -78,4 +78,5 @@ Ensure all steps are executable and maintain a logical flow of operations.
    - Inferring project requirements or features based on visual elements in the image
 14. If there is a need to create a .png or .jpg files with no content, you can prefix the filename with "placeholder-"
 15. Create reusable functions or components as much as possible in separate files so to avoid large lined files.
+16. Always give full file response, never say code unchanged or partial responses. 
 """

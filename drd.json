@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T00:03:15.253336",
+  "last_updated": "2024-07-12T10:44:19.076312",
   "files": [
     {
       "filename": "conftest.py",
@@ -96,9 +96,9 @@
     {
       "filename": "src/drd/utils/api_utils.py",
       "type": "py",
-      "last_modified": "2024-07-12T00:03:13.986915",
+      "last_modified": "2024-07-12T10:44:19.076476",
       "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom ..api.dravid_parser import extract_and_pars...",
-      "description": "Utility functions for making API calls to Dravid, handling responses, and parsing XML data."
+      "description": "Utility functions for API calls, including Dravid API interaction and XML parsing."
     },
     {
       "filename": "src/drd/cli/monitor.py",
@@ -117,9 +117,9 @@
     {
       "filename": "src/drd/cli/main.py",
       "type": "py",
-      "last_modified": "2024-07-11T19:32:42.525171",
-      "content_preview": "import click import os from dotenv import load_dotenv from .query import execute_dravid_command from",
-      "description": "Python CLI script for executing Dravid commands, using Click and environment variables."
+      "last_modified": "2024-07-12T10:35:15.734148",
+      "content_preview": "import click\nimport sys\nimport os\nfrom dotenv import load_dotenv\nfrom .query import execute_dravid_c...",
+      "description": "CLI tool for executing Dravid commands, handling queries, and managing project metadata."
     },
     {
       "filename": "src/drd/cli/tests/test_monitor.py",
