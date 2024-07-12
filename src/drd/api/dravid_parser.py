@@ -4,7 +4,7 @@ import re
 
 
 def extract_and_parse_xml(response: str) -> ET.Element:
-    # Try to extract XML content
+    # Try to extract the outermost XML content
     xml_start = response.find('<response>')
     xml_end = response.rfind('</response>')
     if xml_start != -1 and xml_end != -1:
@@ -13,11 +13,20 @@ def extract_and_parse_xml(response: str) -> ET.Element:
     else:
         raise ValueError("No valid XML response found")
 
+    # Remove any content after the closing </response> tag
+    xml_content = re.sub(r'</response>.*$', '</response>',
+                         xml_content, flags=re.DOTALL)
+
+    # Escape any nested CDATA sections
+    xml_content = re.sub(r'<!\[CDATA\[(.*?)\]\]>', lambda m: '<![CDATA[' + m.group(
+        1).replace(']]>', ']]]]><![CDATA[>') + ']]>', xml_content, flags=re.DOTALL)
+
     # Parse the XML
     try:
         root = ET.fromstring(xml_content)
         return root
     except ET.ParseError as e:
+        print("---errroro", response)
         print(f"Error parsing XML: {e}")
         print("Original response:")
         print(response)

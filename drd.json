@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T12:05:57.810837",
+  "last_updated": "2024-07-12T14:34:36.134578",
   "files": [
     {
       "filename": "conftest.py",
@@ -75,9 +75,9 @@
     {
       "filename": "src/drd/utils/utils.py",
       "type": "py",
-      "last_modified": "2024-07-12T11:04:32.543056",
-      "content_preview": "import click\nfrom colorama import Fore, Style\nimport json\nimport os\n\nMETADATA_FILE = 'drd.json'\n\n\nde...",
-      "description": "Utility functions for project context, printing colorized messages, and fetching project guidelines."
+      "last_modified": "2024-07-12T14:34:36.132190",
+      "content_preview": "import click\nfrom colorama import Fore, Style\nimport json\nimport os\nimport time\nimport threading\n\nME...",
+      "description": "Utility functions for file operations, project context, and console output formatting."
     },
     {
       "filename": "src/drd/utils/description_generator.py",
@@ -138,7 +138,7 @@
     {
       "filename": "src/drd/cli/query/main.py",
       "type": "py",
-      "last_modified": "2024-07-12T00:03:15.253436",
+      "last_modified": "2024-07-12T14:34:36.134605",
       "content_preview": "import click\nfrom ...api.dravid_api import call_dravid_api\nfrom ...api.dravid_parser import parse_dr...",
       "description": "CLI tool for executing Dravid commands, handling queries, and managing project metadata."
     },

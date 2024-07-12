@@ -2,7 +2,7 @@ import traceback
 import click
 from ..utils.api_utils import call_dravid_api
 from ..api.dravid_parser import parse_dravid_response, extract_and_parse_xml, pretty_print_commands
-from ..utils import print_error, print_success, print_info
+from ..utils import print_error, print_success, print_info, generate_description
 import xml.etree.ElementTree as ET
 
 

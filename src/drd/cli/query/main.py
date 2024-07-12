@@ -4,7 +4,7 @@ from ...api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
-from ...utils import print_error, print_success, print_info, print_step, generate_description, fetch_project_guidelines
+from ...utils import print_error, print_success, print_info, print_step, generate_description, fetch_project_guidelines, run_with_loader
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
 
@@ -19,20 +19,25 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         project_context = metadata_manager.get_project_context()
 
         if project_context:
-            print_info(
-                "Identifying related files to the query..")
-            files_to_modify = get_files_to_modify(query, project_context)
+            print_info("Identifying related files to the query...")
+            files_to_modify = run_with_loader(
+                lambda: get_files_to_modify(query, project_context),
+                "Analyzing project files"
+            )
 
-            # if debug:
-            print_info("Possible files to be modify if exists:")
-            for file in files_to_modify:
-                print(file)
+            print_info(f"Found {len(files_to_modify)} potentially relevant files.")
+            if debug:
+                print_info("Possible files to be modified:")
+                for file in files_to_modify:
+                    print(f"  - {file}")
 
+            print_info("Reading file contents...")
             file_contents = {}
             for file in files_to_modify:
                 content = get_file_content(file)
                 if content:
                     file_contents[file] = content
+                    print_info(f"  - Read content of {file}")
 
             project_guidelines = fetch_project_guidelines(executor.current_dir)
             file_context = "\n".join(
@@ -45,31 +50,42 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 """)
             full_query = f"User query: {query}"
 
+        print_info("Preparing to send query to Claude API...")
         if image_path:
-            response = handle_image_query(
-                full_query, image_path, instruction_prompt)
+            print_info(f"Processing image: {image_path}")
+            response = run_with_loader(
+                lambda: handle_image_query(full_query, image_path, instruction_prompt),
+                "Analyzing image and generating response"
+            )
         else:
-            response = call_dravid_api(
-                full_query, include_context=True, instruction_prompt=instruction_prompt)
+            response = run_with_loader(
+                lambda: call_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt),
+                "Generating response from Claude API"
+            )
 
         if debug:
             print_info("Raw response from Claude API:")
             print(response)
-        print_success("Received response from CLaude API.")
+        print_success("Received response from Claude API.")
 
-        commands = parse_dravid_response(response)
+        print_info("Parsing Claude's response...")
+        commands = run_with_loader(
+            lambda: parse_dravid_response(response),
+            "Extracting commands from response"
+        )
+        
         if not commands:
             print_error(
-                "Failed to parse dravid's response or no commands to execute.")
+                "Failed to parse Claude's response or no commands to execute.")
             if debug:
-                print_info("claude raw response:")
+                print_info("Claude raw response:")
                 print(response)
             return
 
         if debug:
             print_info("Parsed commands:")
             pretty_print_commands(commands)
-        print_info(f"Parsed {len(commands)} commands from dravid's response.")
+        print_info(f"Parsed {len(commands)} commands from Claude's response.")
 
         for i, cmd in enumerate(commands):
             if cmd['type'] == 'explanation':
@@ -104,7 +120,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                     if isinstance(result, tuple) and not result[0]:
                         error = result[1]
                         print_info(
-                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with dravid's assistance.")
+                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
                         if handle_error_with_dravid(error, cmd, executor, metadata_manager):
                             print_info(
                                 "Fix applied successfully. Retrying the original command.")
@@ -149,8 +165,10 @@ def handle_command(cmd, executor, metadata_manager):
             )
 
             if operation_performed:
-                description = generate_description(
-                    cmd['filename'], cmd.get('content', ''))
+                description = run_with_loader(
+                    lambda: generate_description(cmd['filename'], cmd.get('content', '')),
+                    f"Generating description for {cmd['filename']}"
+                )
                 metadata_manager.update_file_metadata(
                     cmd['filename'],
                     cmd['filename'].split('.')[-1],
