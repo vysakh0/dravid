@@ -1,9 +1,10 @@
 import os
-from ..api.dravid_api import call_dravid_api
+from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
 from ..utils.utils import print_error, print_success, print_info
 from ..utils import generate_description
+
 
 def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
     if os.path.exists(filename):
@@ -27,13 +28,14 @@ Respond with an XML structure containing the suggested file path:
 If you can't suggest an alternative, respond with an empty <file> tag.
 """
 
-    response = call_dravid_api(query, include_context=True)
+    response = call_dravid_api_with_pagination(query, include_context=True)
 
     try:
         root = extract_and_parse_xml(response)
         suggested_file = root.find('.//file').text
         if suggested_file and suggested_file.strip():
-            print_info(f"Dravid suggested an alternative file: {suggested_file}")
+            print_info(
+                f"Dravid suggested an alternative file: {suggested_file}")
             return find_file_with_dravid(suggested_file.strip(), project_context, max_retries, current_retry + 1)
         else:
             print_info("Dravid couldn't suggest an alternative file.")
@@ -41,6 +43,7 @@ If you can't suggest an alternative, respond with an empty <file> tag.
     except Exception as e:
         print_error(f"Error parsing dravid's response: {str(e)}")
         return None
+
 
 def update_metadata_with_dravid(meta_description, current_dir):
     print_info("Updating metadata based on the provided description...")
@@ -72,7 +75,8 @@ Respond with an XML structure containing the files to update or remove:
 Include files that need to be updated or removed based on the user's description.
 """
 
-    files_response = call_dravid_api(files_query, include_context=True)
+    files_response = call_dravid_api_with_pagination(
+        files_query, include_context=True)
 
     try:
         root = extract_and_parse_xml(files_response)
@@ -88,7 +92,8 @@ Include files that need to be updated or removed based on the user's description
             print_info("No files identified for metadata update or removal.")
             return
 
-        print_info(f"Files identified for processing: {', '.join([f['path'] for f in files_to_process])}")
+        print_info(
+            f"Files identified for processing: {', '.join([f['path'] for f in files_to_process])}")
 
         for file_info in files_to_process:
             filename = file_info['path']
@@ -125,7 +130,8 @@ Respond with an XML structure containing the metadata:
 </response>
 """
 
-                metadata_response = call_dravid_api(metadata_query, include_context=True)
+                metadata_response = call_dravid_api_with_pagination(
+                    metadata_query, include_context=True)
                 metadata_root = extract_and_parse_xml(metadata_response)
                 file_type = metadata_root.find('.//type').text.strip()
                 description = metadata_root.find('.//description').text.strip()

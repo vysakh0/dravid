@@ -1,6 +1,6 @@
 import traceback
 import click
-from ..utils.api_utils import call_dravid_api
+from ..utils.api_utils import call_dravid_api_with_pagination
 from ..api.dravid_parser import parse_dravid_response, extract_and_parse_xml, pretty_print_commands
 from ..utils import print_error, print_success, print_info, generate_description
 import xml.etree.ElementTree as ET
@@ -77,7 +77,8 @@ Your response should be in strictly XML format with no other extra messages. Use
 """
 
     print_info("Sending error information to dravid for analysis...")
-    response = call_dravid_api(error_query, include_context=True)
+    response = call_dravid_api_with_pagination(
+        error_query, include_context=True)
 
     try:
         # Use the existing extract_and_parse_xml function for better error handling

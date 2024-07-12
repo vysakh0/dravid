@@ -132,7 +132,7 @@
       "filename": "src/drd/cli/query/image_handler.py",
       "type": "py",
       "last_modified": "2024-07-11T21:09:22.092552",
-      "content_preview": "from ...api.dravid_api import call_dravid_vision_api   def handle_image_query(query, image_path, ins",
+      "content_preview": "from ...api.dravid_api import call_dravid_vision_api_with_pagination   def handle_image_query(query, image_path, ins",
       "description": "Python module for handling image queries using Dravid Vision API in a CLI application."
     },
     {

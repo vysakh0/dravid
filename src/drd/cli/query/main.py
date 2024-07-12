@@ -1,5 +1,5 @@
 import click
-from ...api.dravid_api import call_dravid_api
+from ...api.dravid_api import call_dravid_api_with_pagination
 from ...api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
@@ -61,7 +61,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             )
         else:
             response = run_with_loader(
-                lambda: call_dravid_api(
+                lambda: call_dravid_api_with_pagination(
                     full_query, include_context=True, instruction_prompt=instruction_prompt),
                 "Generating response from Claude API"
             )

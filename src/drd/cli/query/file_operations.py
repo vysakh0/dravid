@@ -1,7 +1,8 @@
 import os
-from ...api import call_dravid_api, extract_and_parse_xml
+from ...api import call_dravid_api_with_pagination, extract_and_parse_xml
 from ...utils import print_error, print_info
 from ...metadata.project_metadata import ProjectMetadataManager
+
 
 def get_files_to_modify(query, project_context):
     file_query = f"""
@@ -21,8 +22,10 @@ Please respond with a list of filenames in the following XML format:
 
 Only include files that will need to be modified to fulfill the user's request.
 """
-    response = call_dravid_api(file_query, include_context=True)
+    response = call_dravid_api_with_pagination(
+        file_query, include_context=True)
     return parse_file_list_response(response)
+
 
 def parse_file_list_response(response: str):
     try:
@@ -33,11 +36,13 @@ def parse_file_list_response(response: str):
         print_error(f"Error parsing file list response: {e}")
         return []
 
+
 def get_file_content(filename):
     if os.path.exists(filename):
         with open(filename, 'r') as f:
             return f.read()
     return None
+
 
 def find_file_with_dravid(filename, project_context, max_retries=2, current_retry=0):
     if os.path.exists(filename):
@@ -67,13 +72,14 @@ Respond with an XML structure containing the suggested file path:
 If you can't suggest an alternative, respond with an empty <file> tag.
 """
 
-    response = call_dravid_api(query, include_context=True)
+    response = call_dravid_api_with_pagination(query, include_context=True)
 
     try:
         root = extract_and_parse_xml(response)
         suggested_file = root.find('.//file').text.strip()
         if suggested_file:
-            print_info(f"Dravid suggested an alternative file: {suggested_file}")
+            print_info(
+                f"Dravid suggested an alternative file: {suggested_file}")
             return find_file_with_dravid(suggested_file, project_context, max_retries, current_retry + 1)
         else:
             print_error("Dravid couldn't suggest an alternative file.")

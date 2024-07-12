@@ -2,7 +2,7 @@ import os
 import re
 import json
 from datetime import datetime
-from ..api.dravid_api import call_dravid_api
+from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
 from ..utils.utils import print_error, print_success, print_info
@@ -100,7 +100,7 @@ Respond with an XML structure containing this information:
 </response>
 """
     try:
-        response = call_dravid_api(query, include_context=True)
+        response = call_dravid_api_with_pagination(query, include_context=True)
         root = extract_and_parse_xml(response)
         project_info = root.find('.//project_info')
 

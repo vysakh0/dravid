@@ -4,7 +4,7 @@ import re
 import os
 import traceback
 from typing import Dict, Callable
-from ..api.dravid_api import call_dravid_api
+from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import parse_dravid_response, pretty_print_commands
 from ..utils.step_executor import Executor
 from ..utils.utils import print_error, print_success, print_info, get_project_context
@@ -226,7 +226,8 @@ Your response should be in strictly XML format with no other extra messages. Use
 """
 
     print_info("Sending error information to Dravid for analysis...")
-    response = call_dravid_api(error_query, include_context=True)
+    response = call_dravid_api_with_pagination(
+        error_query, include_context=True)
 
     try:
         fix_commands = parse_dravid_response(response)
