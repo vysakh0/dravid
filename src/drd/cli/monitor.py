@@ -23,8 +23,12 @@ class DevServerMonitor:
         self.process = None
         self.output_queue = Queue()
         self.should_stop = threading.Event()
+        self.monitor_thread = None
+        self.restart_requested = threading.Event()
 
     def start(self):
+        self.should_stop.clear()
+        self.restart_requested.clear()
         dev_server_info = self.metadata_manager.get_dev_server_info()
         start_command = dev_server_info.get('start_command')
         if not start_command:
@@ -42,7 +46,10 @@ class DevServerMonitor:
         )
         threading.Thread(target=self._enqueue_output, args=(
             self.process.stdout, self.output_queue), daemon=True).start()
-        threading.Thread(target=self._monitor_output, daemon=True).start()
+
+        self.monitor_thread = threading.Thread(
+            target=self._monitor_output, daemon=True)
+        self.monitor_thread.start()
 
     def _enqueue_output(self, out, queue):
         for line in iter(out.readline, ''):
@@ -65,6 +72,11 @@ class DevServerMonitor:
                         handler(full_error, self)
                         error_buffer.clear()
                         break
+
+                if self.restart_requested.is_set():
+                    self._perform_restart()
+                    self.restart_requested.clear()
+
             except Empty:
                 continue
 
@@ -74,9 +86,15 @@ class DevServerMonitor:
             self.process.terminate()
             self.process.wait()
 
-    def restart(self):
+    def request_restart(self):
+        self.restart_requested.set()
+
+    def _perform_restart(self):
         print_info("Restarting development server...")
-        self.stop()
+        if self.process:
+            self.process.terminate()
+            self.process.wait()
+        time.sleep(2)  # Give some time for the old process to fully terminate
         print_info("Server stopped. Starting again...")
         self.start()
         print_success("Server restarted successfully.")
@@ -99,26 +117,6 @@ class DevServerMonitor:
                 "Timeout waiting for server startup message. It may still be starting...")
 
         print_info("Continuing to monitor server output. Press Ctrl+C to stop.")
-
-
-def run_dev_server_with_monitoring():
-    print_info("Starting dev server monitor...")
-    error_handlers = {
-        r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
-        r"SyntaxError": handle_syntax_error,
-        r"(?:EADDRINUSE|address already in use)": handle_port_in_use,
-    }
-    current_dir = os.getcwd()
-    monitor = DevServerMonitor(current_dir, error_handlers)
-    try:
-        monitor.start()
-        print_info("Dev server monitor started. Press Ctrl+C to stop.")
-        while True:
-            time.sleep(1)  # Keep the main thread alive
-    except KeyboardInterrupt:
-        print_info("Stopping development server...")
-    finally:
-        monitor.stop()
 
 
 def run_dev_server_with_monitoring():
@@ -188,6 +186,7 @@ Project context:
 # Instructions for dravid: Error Resolution Assistant
 Analyze the error above and provide steps to fix it.
 This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
+When there is file content to be shown, make sure to give full content don't say "rest of the thing remain same".
 Your response should be in strictly XML format with no other extra messages. Use the following format:
 <response>
 <explanation>A brief explanation of the steps, if necessary</explanation>
@@ -250,8 +249,8 @@ Your response should be in strictly XML format with no other extra messages. Use
                     f"Performing file operation: {cmd['operation']} on {cmd['filename']}")
                 executor.perform_file_operation(
                     cmd['operation'], cmd['filename'], cmd.get('content'))
-        print_success("Fix applied. Restarting server...")
-        monitor.restart()
+        print_success("Fix applied. Requesting server restart...")
+        monitor.request_restart()
         return True
     else:
         print_info("Fix not applied. Continuing with current state.")
