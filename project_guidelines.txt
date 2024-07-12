@@ -1,1 +1,2 @@
 1. Dont use doc string.
+2. If a function has more than 1 helper functions that is only tied to them, then move the entire thing into a separate file.

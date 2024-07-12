@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T10:59:59.810598",
+  "last_updated": "2024-07-12T11:14:02.711752",
   "files": [
     {
       "filename": "conftest.py",
@@ -82,9 +82,9 @@
     {
       "filename": "src/drd/utils/utils.py",
       "type": "py",
-      "last_modified": "2024-07-11T23:25:03.123933",
-      "content_preview": "import click from colorama import Fore, Style import json import os  METADATA_FILE = 'drd.json'   de",
-      "description": "Utility module with functions for CLI color output, JSON handling, and metadata operations."
+      "last_modified": "2024-07-12T11:04:32.543056",
+      "content_preview": "import click\nfrom colorama import Fore, Style\nimport json\nimport os\n\nMETADATA_FILE = 'drd.json'\n\n\nde...",
+      "description": "Utility functions for project context, printing colorized messages, and fetching project guidelines."
     },
     {
       "filename": "src/drd/utils/description_generator.py",
@@ -117,9 +117,9 @@
     {
       "filename": "src/drd/cli/main.py",
       "type": "py",
-      "last_modified": "2024-07-12T10:35:15.734148",
-      "content_preview": "import click\nimport sys\nimport os\nfrom dotenv import load_dotenv\nfrom .query import execute_dravid_c...",
-      "description": "CLI tool for executing Dravid commands, handling queries, and managing project metadata."
+      "last_modified": "2024-07-12T11:09:50.439315",
+      "content_preview": "import click\nfrom dotenv import load_dotenv\nfrom colorama import init\nfrom .commands import dravid_c...",
+      "description": "CLI entry point for a coding assistant with various commands and options for queries and metadata."
     },
     {
       "filename": "src/drd/cli/tests/test_monitor.py",
@@ -152,9 +152,9 @@
     {
       "filename": "src/drd/cli/query/file_operations.py",
       "type": "py",
-      "last_modified": "2024-07-11T19:31:30.699450",
-      "content_preview": "import os from ...api import call_dravid_api, extract_and_parse_xml from ...utils import print_error",
-      "description": "Python module for file operations in a CLI, including API calls and XML parsing."
+      "last_modified": "2024-07-12T11:09:51.931924",
+      "content_preview": "import os\nfrom ...api import call_dravid_api, extract_and_parse_xml\nfrom ...utils import print_error...",
+      "description": "Python script for file operations in a CLI tool, handling queries and project context."
     },
     {
       "filename": "src/drd/cli/query/tests/test_file_operations.py",
@@ -267,6 +267,27 @@
       "last_modified": "2024-07-11T21:19:24.426312",
       "content_preview": "from src.drd.metadata.project_metadata import ProjectMetadataManager import unittest from unittest.m",
       "description": "Python unit test file for ProjectMetadataManager class in DRD metadata module"
+    },
+    {
+      "filename": "src/drd/cli/commands.py",
+      "type": "py",
+      "last_modified": "2024-07-12T11:14:02.708377",
+      "content_preview": "import click\nimport sys\nimport os\nfrom dotenv import load_dotenv\nfrom .query import execute_dravid_c...",
+      "description": "CLI tool for executing queries, managing metadata, and interacting with AI models in a development e"
+    },
+    {
+      "filename": "src/drd/cli/ask_handler.py",
+      "type": "py",
+      "last_modified": "2024-07-12T11:14:01.192978",
+      "content_preview": "import click\nimport sys\nfrom ..utils.api_utils import stream_claude_response, call_dravid_api\nfrom ....",
+      "description": "CLI handler for asking questions about files, with file content reading and API interaction function"
+    },
+    {
+      "filename": "drd.json",
+      "type": "json",
+      "last_modified": "2024-07-12T11:14:02.711812",
+      "content_preview": "{\n  \"project_name\": \"drd\",\n  \"last_updated\": \"2024-07-12T11:14:02.708239\",\n  \"files\": [\n    {\n      ...",
+      "description": ""
     }
   ],
   "dev_server": {
