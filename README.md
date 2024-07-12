@@ -89,7 +89,13 @@ This command will start your dev server (as in the drd.json) and then continuall
 and then restart, you can sitback and sip coffee :)
 
 ```
-drd --monitor-fix
+drd --hf
+```
+
+or
+
+```
+drd --hot-fix
 ```
 
 ### Metadata Management
@@ -102,6 +108,12 @@ This script will ignore files in your .gitgnore and recursively read and give de
 drd --meta-init
 ```
 
+or
+
+```
+drd --i
+```
+
 Note: make sure to include as many things in .gitignore that are not relevant. This would make multiple LLM calls.
 
 When you have added some files or removed files on your own for some reason and you want Dravid to know about it,
@@ -109,6 +121,12 @@ you have to run this:
 
 ```
 drd --meta-add "modified the about page"
+```
+
+or
+
+```
+drd --a "added users api"
 ```
 
 This would update the drd.json
