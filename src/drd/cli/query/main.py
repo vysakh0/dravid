@@ -85,10 +85,10 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 print(response)
             return
 
-        if debug:
-            print_info("Parsed commands:")
-            pretty_print_commands(commands)
+        # if debug:
+        #     print_info("Parsed commands:")
         print_info(f"Parsed {len(commands)} commands from Claude's response.")
+        pretty_print_commands(commands)
 
         for i, cmd in enumerate(commands):
             if cmd['type'] == 'explanation':

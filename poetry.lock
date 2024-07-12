@@ -276,6 +276,16 @@ files = [
 ]
 
 [[package]]
+name = "pigments"
+version = "1.6"
+description = "Pigments clone of Pygments"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Pigments-1.6.tar.gz", hash = "sha256:8f927e03d397854faca0bd147a97303dd42aa9d83f7bca385b12901be0906902"},
+]
+
+[[package]]
 name = "pillow"
 version = "9.5.0"
 description = "Python Imaging Library (Fork)"
@@ -593,4 +603,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7cdbb6c31a25948e24afeb5e346df1fb4040c9b371802976fc395e795b8b5bb1"
+content-hash = "d79954d5e20648e7de798607356a44a93b60cd0b29d741fd75cf469dfb32ccdd"
