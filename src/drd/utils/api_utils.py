@@ -33,7 +33,6 @@ def call_dravid_api(query, include_context=False, instruction_prompt=None):
     response.raise_for_status()
 
     resp = response.json()['content'][0]['text']
-    print(resp, "resp")
 
     try:
         root = extract_and_parse_xml(resp)

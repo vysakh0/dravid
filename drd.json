@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-11T23:59:26.151371",
+  "last_updated": "2024-07-12T00:03:15.253336",
   "files": [
     {
       "filename": "conftest.py",
@@ -96,9 +96,9 @@
     {
       "filename": "src/drd/utils/api_utils.py",
       "type": "py",
-      "last_modified": "2024-07-11T19:23:55.801092",
-      "content_preview": "import requests import os import json import base64 from ..api.dravid_parser import extract_and_pars",
-      "description": "Python utility module for API interactions, including requests, parsing, and data handling."
+      "last_modified": "2024-07-12T00:03:13.986915",
+      "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom ..api.dravid_parser import extract_and_pars...",
+      "description": "Utility functions for making API calls to Dravid, handling responses, and parsing XML data."
     },
     {
       "filename": "src/drd/cli/monitor.py",
@@ -145,9 +145,9 @@
     {
       "filename": "src/drd/cli/query/main.py",
       "type": "py",
-      "last_modified": "2024-07-11T23:29:12.740987",
-      "content_preview": "import click from ...api.dravid_api import call_dravid_api from ...api.dravid_parser import parse_dr",
-      "description": "Python CLI module for querying and parsing data using Dravid API and parser"
+      "last_modified": "2024-07-12T00:03:15.253436",
+      "content_preview": "import click\nfrom ...api.dravid_api import call_dravid_api\nfrom ...api.dravid_parser import parse_dr...",
+      "description": "CLI tool for executing Dravid commands, handling queries, and managing project metadata."
     },
     {
       "filename": "src/drd/cli/query/file_operations.py",

@@ -71,7 +71,8 @@ def initialize_project_metadata(current_dir):
         print_info("No .gitignore found. Using default ignore patterns.")
 
     folder_structure = get_folder_structure(current_dir, ignore_patterns)
-    print(folder_structure)
+    print_info("The current folder structure:")
+    print_info(folder_structure)
 
     query = f"""
 Current folder structure:

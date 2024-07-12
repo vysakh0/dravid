@@ -19,12 +19,14 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         project_context = metadata_manager.get_project_context()
 
         if project_context:
+            print_info(
+                "Identifying related files to the query..")
             files_to_modify = get_files_to_modify(query, project_context)
 
-            if debug:
-                print_info("Files to be modified:")
-                for file in files_to_modify:
-                    print(file)
+            # if debug:
+            print_info("Possible files to be modify if exists:")
+            for file in files_to_modify:
+                print(file)
 
             file_contents = {}
             for file in files_to_modify:
@@ -51,16 +53,16 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 full_query, include_context=True, instruction_prompt=instruction_prompt)
 
         if debug:
-            print_info("Raw response from Dravid API:")
+            print_info("Raw response from Claude API:")
             print(response)
-        print_success("Received response from Dravid API.")
+        print_success("Received response from CLaude API.")
 
         commands = parse_dravid_response(response)
         if not commands:
             print_error(
                 "Failed to parse dravid's response or no commands to execute.")
             if debug:
-                print_info("dravid's raw response:")
+                print_info("claude raw response:")
                 print(response)
             return
 
