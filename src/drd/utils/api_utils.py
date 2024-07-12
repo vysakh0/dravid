@@ -1,10 +1,12 @@
 import requests
+import mimetypes
 import os
 import json
 import base64
 from typing import Dict, Any, Optional
 from ..api.dravid_parser import extract_and_parse_xml
 import xml.etree.ElementTree as ET
+from .utils import print_info
 import click
 
 API_URL = 'https://api.anthropic.com/v1/messages'
@@ -65,6 +67,7 @@ def call_dravid_vision_api(query: str, image_path: str, include_context: bool = 
     api_key = get_api_key()
     headers = get_headers(api_key)
 
+    mime_type, _ = mimetypes.guess_type(image_path)
     with open(image_path, "rb") as image_file:
         image_data = base64.b64encode(image_file.read()).decode('utf-8')
 
@@ -79,7 +82,7 @@ def call_dravid_vision_api(query: str, image_path: str, include_context: bool = 
                         'type': 'image',
                         'source': {
                             'type': 'base64',
-                            'media_type': 'image/png',
+                            'media_type': mime_type,
                             'data': image_data
                         }
                     },

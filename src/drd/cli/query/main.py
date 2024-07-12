@@ -10,7 +10,7 @@ from .image_handler import handle_image_query
 
 
 def execute_dravid_command(query, image_path, debug, instruction_prompt):
-    print_info("Starting Dravid CLI tool...")
+    print_info("Starting Dravid CLI tool..")
 
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)
@@ -25,7 +25,8 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 "Analyzing project files"
             )
 
-            print_info(f"Found {len(files_to_modify)} potentially relevant files.")
+            print_info(
+                f"Found {len(files_to_modify)} potentially relevant files.")
             if debug:
                 print_info("Possible files to be modified:")
                 for file in files_to_modify:
@@ -54,12 +55,14 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         if image_path:
             print_info(f"Processing image: {image_path}")
             response = run_with_loader(
-                lambda: handle_image_query(full_query, image_path, instruction_prompt),
+                lambda: handle_image_query(
+                    full_query, image_path, instruction_prompt),
                 "Analyzing image and generating response"
             )
         else:
             response = run_with_loader(
-                lambda: call_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt),
+                lambda: call_dravid_api(
+                    full_query, include_context=True, instruction_prompt=instruction_prompt),
                 "Generating response from Claude API"
             )
 
@@ -73,7 +76,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             lambda: parse_dravid_response(response),
             "Extracting commands from response"
         )
-        
+
         if not commands:
             print_error(
                 "Failed to parse Claude's response or no commands to execute.")
@@ -166,7 +169,8 @@ def handle_command(cmd, executor, metadata_manager):
 
             if operation_performed:
                 description = run_with_loader(
-                    lambda: generate_description(cmd['filename'], cmd.get('content', '')),
+                    lambda: generate_description(
+                        cmd['filename'], cmd.get('content', '')),
                     f"Generating description for {cmd['filename']}"
                 )
                 metadata_manager.update_file_metadata(

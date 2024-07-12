@@ -4,7 +4,8 @@ from .utils import (
     print_success,
     print_info,
     print_step,
-    fetch_project_guidelines
+    fetch_project_guidelines,
+    run_with_loader
 )
 from .api_utils import call_dravid_api, call_dravid_vision_api
 
@@ -18,5 +19,6 @@ __all__ = [
     'call_dravid_api',
     'call_dravid_vision_api',
     'generate_description',
-    'fetch_project_guidelines'
+    'fetch_project_guidelines',
+    'run_with_loader'
 ]
