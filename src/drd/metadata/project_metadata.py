@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime
 
-
 class ProjectMetadataManager:
     def __init__(self, project_dir):
         self.project_dir = project_dir
@@ -41,6 +40,11 @@ class ProjectMetadataManager:
             'content_preview': content[:100] + ('...' if len(content) > 100 else ''),
             'description': description or file_entry.get('description', '')
         })
+        self.save_metadata()
+
+    def remove_file_metadata(self, filename):
+        self.metadata['last_updated'] = datetime.now().isoformat()
+        self.metadata['files'] = [f for f in self.metadata['files'] if f['filename'] != filename]
         self.save_metadata()
 
     def get_file_metadata(self, filename):

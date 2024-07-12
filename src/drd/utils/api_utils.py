@@ -11,11 +11,13 @@ API_URL = 'https://api.anthropic.com/v1/messages'
 MODEL = 'claude-3-5-sonnet-20240620'
 MAX_TOKENS = 4000
 
+
 def get_api_key() -> str:
     api_key = os.getenv('CLAUDE_API_KEY')
     if not api_key:
         raise ValueError("CLAUDE_API_KEY not found in environment variables")
     return api_key
+
 
 def get_headers(api_key: str) -> Dict[str, str]:
     return {
@@ -24,10 +26,13 @@ def get_headers(api_key: str) -> Dict[str, str]:
         'Anthropic-Version': '2023-06-01'
     }
 
+
 def make_api_call(data: Dict[str, Any], headers: Dict[str, str], stream: bool = False) -> requests.Response:
-    response = requests.post(API_URL, json=data, headers=headers, stream=stream)
+    response = requests.post(
+        API_URL, json=data, headers=headers, stream=stream)
     response.raise_for_status()
     return response
+
 
 def parse_response(response: str) -> str:
     try:
@@ -37,10 +42,11 @@ def parse_response(response: str) -> str:
         click.echo(f"Error parsing XML response: {e}", err=True)
         return response
 
+
 def call_dravid_api(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     api_key = get_api_key()
     headers = get_headers(api_key)
-    
+
     data = {
         'model': MODEL,
         'system': instruction_prompt or "",
@@ -50,9 +56,10 @@ def call_dravid_api(query: str, include_context: bool = False, instruction_promp
 
     response = make_api_call(data, headers)
     resp = response.json()['content'][0]['text']
-    click.echo(f"Raw response from Claude API: {resp}", err=True)
+    # click.echo(f"Raw response from Claude API: {resp}", err=True)
 
     return parse_response(resp)
+
 
 def call_dravid_vision_api(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     api_key = get_api_key()
@@ -88,9 +95,10 @@ def call_dravid_vision_api(query: str, image_path: str, include_context: bool = 
 
     response = make_api_call(data, headers)
     resp = response.json()['content'][0]['text']
-    click.echo(f"Raw response from Claude Vision API: {resp}", err=True)
+    # click.echo(f"Raw response from Claude Vision API: {resp}", err=True)
 
     return parse_response(resp)
+
 
 def stream_claude_response(query: str, instruction_prompt: Optional[str] = None) -> str:
     api_key = get_api_key()

@@ -18,7 +18,7 @@ Dravid (DRD) is an advanced, AI-powered CLI coding framework designed to streaml
 
 - Python 3.7+
 - pip (Python package installer)
-- CLAUDE_API_KEY (env should be set)
+- CLAUDE_API_KEY (environment variable should be set)
 
 To install Dravid, run the following command:
 
@@ -38,7 +38,7 @@ Execute a Dravid command:
 drd "create a nextjs project"
 ```
 
-The above command load project context or project guidelines (you can create your own project_guidelines.txt) if it exists. And any relevant file content in its context.
+The above command loads project context or project guidelines (you can create your own project_guidelines.txt) if they exist, along with any relevant file content in its context.
 
 ### Ask Questions or Generate Content
 
@@ -51,10 +51,10 @@ drd --ask "how is the weather"
 Generate a file directly:
 
 ```
-drd --ask "create a MIT LICENSE file, just the file, dont respond with anything else" >> LICENSE
+drd --ask "create a MIT LICENSE file, just the file, don't respond with anything else" >> LICENSE
 ```
 
---ask is much faster than than the execute one because it doens't load project context or project guidelines (you can create your own project_guidelines.txt)
+--ask is much faster than the execute command because it doesn't load project context or project guidelines (you can create your own project_guidelines.txt)
 
 ### Image-based Queries
 
@@ -69,7 +69,7 @@ drd "make the home image similar to the image" --image "~/Downloads/reference.pn
 Run the development server with automatic error fixing:
 
 ```
-drd --monitor--init
+drd --monitor-init
 ```
 
 ### Metadata Management
@@ -136,8 +136,8 @@ To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
    ```
    CLAUDE_API_KEY=your_claude_api_key_here
    ```
-4. You can use dravid to add feature or functionalities to the project. As this project uses drd.json
-   and has used dravid to build dravid.
+4. You can use Dravid to add features or functionalities to the project. As this project uses drd.json
+   and has used Dravid to build Dravid.
 
 ```
 poetry run drd "refactor api_utils"
@@ -149,12 +149,14 @@ or
 poetry run drd "add tests for utils/utils"
 ```
 
+```
 poetry run drd --ask "who are you"
+```
 
 ## Testing
 
-After adding some functionalities if you want to test how it works, I would suggest you can create a directory
-called `myapp` or `testapp` or `test-app` in the root of this project. These folder names are already in .gitgnore.
+After adding some functionalities, if you want to test how it works, I suggest creating a directory
+called `myapp` or `testapp` or `test-app` in the root of this project. These folder names are already in .gitignore.
 
 ```
 cd myapp
