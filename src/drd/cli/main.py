@@ -19,9 +19,10 @@ load_dotenv()
 @click.option('--meta-init', '--i', is_flag=True, help='Initialize project metadata')
 @click.option('--ask', help='Ask an open-ended question and get a streamed response from Claude')
 @click.option('--file', type=click.Path(), multiple=True, help='Read content from specified file(s) and include in the context')
-def dravid_cli(query, image, debug, hot_fix, meta_add, meta_init, ask, file):
+@click.option('--version', is_flag=True, help='Show the version of the tool')
+def dravid_cli(query, image, debug, hot_fix, meta_add, meta_init, ask, file, version):
     dravid_cli_logic(query, image, debug, hot_fix,
-                     meta_add, meta_init, ask, file)
+                     meta_add, meta_init, ask, file, version)
 
 
 if __name__ == '__main__':

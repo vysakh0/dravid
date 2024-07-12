@@ -1,6 +1,6 @@
 # Dravid (DRD) - AI-Powered CLI Coding Framework
 
-Dravid (DRD) is an advanced, AI-powered CLI coding framework(in alpha) designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
+Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
 
 ## Features
 
@@ -31,7 +31,7 @@ pip install dravid
 After installation, you can use the `drd` command directly from your terminal. Here are some common usage examples:
 
 NOTE: for better results, go step by step and communicate clearly. You can also define project_guidelines.txt
-which will be referenced in the main query, you can use this to instruct on how the code should ge generated etc.
+which will be referenced in the main query, you can use this to instruct on how the code should be generated etc.
 
 Also, any png or jpg files that will be generated and needs to be replaced will have placeholder prefix, so you
 know that it has to be replaced.
@@ -145,6 +145,158 @@ For more detailed usage instructions and options, use the help command:
 drd --help
 ```
 
+## Use Cases
+
+### Next.js Project Development
+
+1. Create a simple Next.js app:
+
+   ```
+   drd "create a simple nextjs app"
+   ```
+
+2. Include shadcn components:
+
+   ```
+   drd "include shadcn components like button, input, select etc"
+   ```
+
+3. Modify home page based on a reference image:
+
+   ```
+   drd "make the home page similar to the image" --image ~/Downloads/reference.png
+   ```
+
+4. Create additional pages with consistent layout:
+
+   ```
+   drd "whatever links like Company, About, Services etc that you see in Nav link you can convert them into links and page on its own and with some sample content. All these new pages should have the same layout as the home page"
+   ```
+
+5. Auto-fix errors and start development server:
+   ```
+   drd --hf
+   ```
+
+### Working with Existing Projects
+
+Initialize Dravid in an existing project:
+
+```
+drd --i
+```
+
+This creates a drd.json based on the existing folder structure, allowing you to start using Dravid in that project.
+
+### Exploring New Languages (e.g., Elixir)
+
+1. Create a simple Elixir project (even if Elixir is not installed):
+
+   ```
+   drd "create a simple elixir project"
+   ```
+
+   Dravid will auto-fix any errors, including installing necessary dependencies.
+
+2. Handle specific errors:
+   ```
+   drd <<EOF
+   Your error trace in "file"
+   EOF
+   ```
+
+### Ruby on Rails Project Development
+
+1. Create a new Rails project:
+
+   ```
+   drd "create a new Ruby on Rails project with PostgreSQL database"
+   ```
+
+2. Generate a scaffold for a resource:
+
+   ```
+   drd "generate a scaffold for a Blog model with title and content fields"
+   ```
+
+3. Set up authentication:
+
+   ```
+   drd "add Devise gem for user authentication"
+   ```
+
+4. Create a custom controller and views:
+
+   ```
+   drd "create a controller for static pages with home, about, and contact actions, including corresponding views"
+   ```
+
+5. Implement a feature based on an image:
+
+   ```
+   drd "implement a comment section for blog posts similar to the image" --image ~/Downloads/comment_section.png
+   ```
+
+6. Run migrations and start the server:
+
+   ```
+   drd "run database migrations and start the Rails server"
+   ```
+
+7. Auto-fix any errors:
+   ```
+   drd --hf
+   ```
+
+### Python Project Development
+
+1. Set up a new Python project with virtual environment:
+
+   ```
+   drd "create a new Python project with poetry for dependency management"
+   ```
+
+2. Create a simple Flask web application:
+
+   ```
+   drd "create a basic Flask web application with a home route and a simple API endpoint"
+   ```
+
+3. Add database integration:
+
+   ```
+   drd "add SQLAlchemy ORM to the Flask app and create a User model"
+   ```
+
+4. Implement user authentication:
+
+   ```
+   drd "implement JWT-based authentication for the Flask API"
+   ```
+
+5. Create a data processing script:
+
+   ```
+   drd "create a Python script that processes CSV files using pandas and generates a summary report"
+   ```
+
+6. Add unit tests:
+
+   ```
+   drd "add pytest-based unit tests for the existing functions in the project"
+   ```
+
+7. Generate project documentation:
+
+   ```
+   drd "generate Sphinx documentation for the project, including docstrings for all functions and classes"
+   ```
+
+8. Auto-fix any errors or missing dependencies:
+   ```
+   drd --hf
+   ```
+
 ## Project Structure
 
 - `src/drd/`: Main source code directory
@@ -178,9 +330,11 @@ To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
 
 3. Set up environment variables:
    Create a `.env` file in the project root and add your API keys:
+
    ```
    CLAUDE_API_KEY=your_claude_api_key_here
    ```
+
 4. You can use Dravid to add features or functionalities to the project. As this project uses drd.json
    and has used Dravid to build Dravid.
 
