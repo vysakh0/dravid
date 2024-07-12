@@ -30,6 +30,9 @@ pip install dravid
 
 After installation, you can use the `drd` command directly from your terminal. Here are some common usage examples:
 
+NOTE: for better results, go step by step and communicate clearly. There is no RAG implementation, so there is a
+context window limit.
+
 ### Basic Query
 
 Execute a Dravid command:
