@@ -1,6 +1,6 @@
 # Dravid (DRD) - AI-Powered CLI Coding Framework
 
-Dravid (DRD) is an advanced, AI-powered CLI coding framework designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
+Dravid (DRD) is an advanced, AI-powered CLI coding framework(in alpha) designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
 
 ## Features
 
@@ -30,8 +30,11 @@ pip install dravid
 
 After installation, you can use the `drd` command directly from your terminal. Here are some common usage examples:
 
-NOTE: for better results, go step by step and communicate clearly. There is no RAG implementation, so there is a
-context window limit.
+NOTE: for better results, go step by step and communicate clearly. You can also define project_guidelines.txt
+which will be referenced in the main query, you can use this to instruct on how the code should ge generated etc.
+
+Also, any png or jpg files that will be generated and needs to be replaced will have placeholder prefix, so you
+know that it has to be replaced.
 
 ### Basic Query
 
@@ -41,7 +44,18 @@ Execute a Dravid command:
 drd "create a nextjs project"
 ```
 
-The above command loads project context or project guidelines (you can create your own project_guidelines.txt) if they exist, along with any relevant file content in its context.
+The above command loads project context or project guidelines if they exist, along with any relevant file content in its context.
+
+#### With larger text (heredoc)
+
+When you have larger string or if you want to copy paste a error stack with double quotes etc, please use this.
+
+```
+drd <<EOF
+Fix this error:
+....
+EOF
+```
 
 ### Ask Questions or Generate Content
 
@@ -67,27 +81,37 @@ Use image references in your queries:
 drd "make the home image similar to the image" --image "~/Downloads/reference.png"
 ```
 
-### Development Server with Monitoring
+### Self healing fix
 
-Run the development server with automatic error fixing:
+You can run the development server with automatic error fixing.
+
+This command will start your dev server (as in the drd.json) and then continually fix any errors
+and then restart, you can sitback and sip coffee :)
 
 ```
-drd --monitor-init
+drd --monitor-fix
 ```
 
 ### Metadata Management
 
-Initialize metadata for an existing project:
+To use Dravid cli in an existing project you would have to initialize metadata (drd.json)
+
+This script will ignore files in your .gitgnore and recursively read and give description for each of the file
 
 ```
 drd --meta-init
 ```
 
-Update metadata after modifying files:
+Note: make sure to include as many things in .gitignore that are not relevant. This would make multiple LLM calls.
+
+When you have added some files or removed files on your own for some reason and you want Dravid to know about it,
+you have to run this:
 
 ```
 drd --meta-add "modified the about page"
 ```
+
+This would update the drd.json
 
 ### File-specific Queries
 
