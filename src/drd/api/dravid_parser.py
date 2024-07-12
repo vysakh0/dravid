@@ -89,6 +89,8 @@ def pretty_print_commands(commands: List[Dict[str, Any]]):
         click.echo(click.style(f"\nCommand {i}:", fg="cyan", bold=True))
 
         if cmd['type'] == 'file':
+            if cmd['filename'] == 'metadata':
+                continue
             filename = cmd.get('filename', 'Unknown file')
             operation = cmd.get('operation', 'Unknown operation')
             content = cmd.get('content', '')
@@ -113,10 +115,11 @@ def pretty_print_commands(commands: List[Dict[str, Any]]):
                         formatted_content, lexer, TerminalFormatter())
                     click.echo(highlighted_content)
                 except Exception as e:
+                    # Fallback to non-highlighted output
                     click.echo(f"# {filename}")
                     click.echo(content)
                     click.echo(click.style(
-                        f"Note: Syntax highlighting failed. Error: {str(e)}", fg="red"))
+                        f"Note: Syntax highlighting unavailable. Displaying raw content.", fg="yellow"))
 
         elif cmd['type'] == 'shell':
             command = cmd.get('command', '')
@@ -131,6 +134,7 @@ def pretty_print_commands(commands: List[Dict[str, Any]]):
                     command, lexer, TerminalFormatter())
                 click.echo(highlighted_command)
             except:
+                # Fallback to non-highlighted output
                 click.echo(click.style(command, fg="blue"))
 
         elif cmd['type'] == 'explanation':

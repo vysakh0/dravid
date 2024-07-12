@@ -1,6 +1,6 @@
 import click
-from ...api.dravid_api import call_dravid_api_with_pagination
-from ...api.dravid_parser import parse_dravid_response, pretty_print_commands
+from ...api.dravid_api import stream_dravid_api, call_dravid_vision_api
+from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
@@ -46,49 +46,31 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             full_query = f"{project_context}\n\nProject Guidelines:\n{project_guidelines}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
         else:
             print_info(
-                """No current project context found. Will create a new project in the current directory.
-                Please exit with ctrl+c if you have not created a fresh directory
-                """)
+                "No current project context found. Will create a new project in the current directory.")
             full_query = f"User query: {query}"
 
         print_info("Preparing to send query to Claude API...")
         if image_path:
             print_info(f"Processing image: {image_path}")
-            response = run_with_loader(
-                lambda: handle_image_query(
-                    full_query, image_path, instruction_prompt),
+            commands = run_with_loader(
+                lambda: call_dravid_vision_api(
+                    full_query, image_path, include_context=True, instruction_prompt=instruction_prompt),
                 "Analyzing image and generating response"
             )
         else:
-            response = run_with_loader(
-                lambda: call_dravid_api_with_pagination(
-                    full_query, include_context=True, instruction_prompt=instruction_prompt),
-                "Generating response from Claude API"
-            )
-
-        if debug:
-            print_info("Raw response from Claude API:")
-            print(response)
-        print_success("Received response from Claude API.")
-
-        print_info("Parsing Claude's response...")
-        commands = run_with_loader(
-            lambda: parse_dravid_response(response),
-            "Extracting commands from response"
-        )
+            print_info("Streaming response from Claude API...")
+            commands = []
+            for new_commands in stream_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt):
+                commands.extend(new_commands)
+                print_info(f"Received {len(new_commands)} new command(s)")
+                pretty_print_commands(new_commands)
 
         if not commands:
             print_error(
                 "Failed to parse Claude's response or no commands to execute.")
-            if debug:
-                print_info("Claude raw response:")
-                print(response)
             return
 
-        # if debug:
-        #     print_info("Parsed commands:")
         print_info(f"Parsed {len(commands)} commands from Claude's response.")
-        pretty_print_commands(commands)
 
         for i, cmd in enumerate(commands):
             if cmd['type'] == 'explanation':
