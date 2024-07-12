@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T11:14:02.711752",
+  "last_updated": "2024-07-12T11:31:49.552462",
   "files": [
     {
       "filename": "conftest.py",
@@ -19,9 +19,9 @@
     {
       "filename": "README.md",
       "type": "md",
-      "last_modified": "2024-07-12T10:59:58.012588",
+      "last_modified": "2024-07-12T11:31:49.552626",
       "content_preview": "# Dravid (DRD) - AI-Powered CLI Coding Framework\n\nDravid (DRD) is an advanced, AI-powered CLI coding...",
-      "description": "AI-powered CLI coding framework with features for efficient development and project management."
+      "description": "AI-powered CLI coding framework for efficient development with image handling and file operations."
     },
     {
       "filename": "CONTRIBUTING.md",

@@ -14,6 +14,108 @@ Dravid (DRD) is an advanced, AI-powered CLI coding framework designed to streaml
 
 ## Installation
 
+### Prerequisites
+
+- Python 3.7+
+- pip (Python package installer)
+- CLAUDE_API_KEY (env should be set)
+
+To install Dravid, run the following command:
+
+```
+pip install dravid
+```
+
+## Usage
+
+After installation, you can use the `drd` command directly from your terminal. Here are some common usage examples:
+
+### Basic Query
+
+Execute a Dravid command:
+
+```
+drd "create a nextjs project"
+```
+
+The above command load project context or project guidelines (you can create your own project_guidelines.txt) if it exists. And any relevant file content in its context.
+
+### Ask Questions or Generate Content
+
+Ask questions or generate content:
+
+```
+drd --ask "how is the weather"
+```
+
+Generate a file directly:
+
+```
+drd --ask "create a MIT LICENSE file, just the file, dont respond with anything else" >> LICENSE
+```
+
+--ask is much faster than than the execute one because it doens't load project context or project guidelines (you can create your own project_guidelines.txt)
+
+### Image-based Queries
+
+Use image references in your queries:
+
+```
+drd "make the home image similar to the image" --image "~/Downloads/reference.png"
+```
+
+### Development Server with Monitoring
+
+Run the development server with automatic error fixing:
+
+```
+drd --monitor--init
+```
+
+### Metadata Management
+
+Initialize metadata for an existing project:
+
+```
+drd --meta-init
+```
+
+Update metadata after modifying files:
+
+```
+drd --meta-add "modified the about page"
+```
+
+### File-specific Queries
+
+Ask for suggestions on specific files:
+
+```
+drd --ask "can you suggest how to refactor this file" --file "src/main.py"
+```
+
+For more detailed usage instructions and options, use the help command:
+
+```
+drd --help
+```
+
+## Project Structure
+
+- `src/drd/`: Main source code directory
+  - `cli/`: Command-line interface modules
+  - `api/`: API interaction and parsing modules
+  - `utils/`: Utility functions and helpers
+  - `prompts/`: AI prompt templates
+  - `metadata/`: Project metadata management
+- `tests/`: Test suite for the project
+
+## Contributing
+
+We welcome contributions to Dravid! Please see our [Contributing Guide](CONTRIBUTING.md) for more details on how to get started.
+
+## Development
+
 To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
 
 1. Clone the repository:
@@ -34,43 +136,30 @@ To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
    ```
    CLAUDE_API_KEY=your_claude_api_key_here
    ```
-
-## Usage
-
-To start using Dravid, activate the Poetry environment and run the main script:
+4. You can use dravid to add feature or functionalities to the project. As this project uses drd.json
+   and has used dravid to build dravid.
 
 ```
-poetry shell
-python src/drd/main.py
+poetry run drd "refactor api_utils"
 ```
 
-### Basic Commands
-
-- `dravid query "Your query here"`: Execute a Dravid command
-- `dravid monitor`: Start the development server with file monitoring
-- `dravid init`: Initialize project metadata
-
-For more detailed usage instructions, refer to the in-app help:
+or
 
 ```
-python src/drd/main.py --help
+poetry run drd "add tests for utils/utils"
 ```
 
-## Project Structure
-
-- `src/drd/`: Main source code directory
-  - `cli/`: Command-line interface modules
-  - `api/`: API interaction and parsing modules
-  - `utils/`: Utility functions and helpers
-  - `prompts/`: AI prompt templates
-  - `metadata/`: Project metadata management
-- `tests/`: Test suite for the project
-
-## Contributing
-
-We welcome contributions to Dravid! Please see our [Contributing Guide](CONTRIBUTING.md) for more details on how to get started.
+poetry run drd --ask "who are you"
 
 ## Testing
+
+After adding some functionalities if you want to test how it works, I would suggest you can create a directory
+called `myapp` or `testapp` or `test-app` in the root of this project. These folder names are already in .gitgnore.
+
+```
+cd myapp
+poetry run drd "create a simple elixir project"
+```
 
 To run the test suite:
 
