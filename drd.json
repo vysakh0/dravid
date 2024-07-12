@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T10:53:08.351694",
+  "last_updated": "2024-07-12T10:59:59.810598",
   "files": [
     {
       "filename": "conftest.py",
@@ -19,16 +19,16 @@
     {
       "filename": "README.md",
       "type": "md",
-      "last_modified": "2024-07-07T15:54:54.902838",
-      "content_preview": "",
-      "description": "Project documentation with setup instructions, usage guide, and contributor guidelines."
+      "last_modified": "2024-07-12T10:59:58.012588",
+      "content_preview": "# Dravid (DRD) - AI-Powered CLI Coding Framework\n\nDravid (DRD) is an advanced, AI-powered CLI coding...",
+      "description": "AI-powered CLI coding framework with features for efficient development and project management."
     },
     {
       "filename": "CONTRIBUTING.md",
       "type": "md",
-      "last_modified": "2024-07-07T15:55:38.012959",
-      "content_preview": "",
-      "description": "Contribution guidelines for developers, outlining code standards and submission process."
+      "last_modified": "2024-07-12T10:59:59.810662",
+      "content_preview": "# Contributing to Dravid (DRD)\n\nFirst off, thank you for considering contributing to Dravid! It's pe...",
+      "description": "Guidelines for contributing to the Dravid project, including bug reporting and enhancement suggestio"
     },
     {
       "filename": "poetry.lock",
