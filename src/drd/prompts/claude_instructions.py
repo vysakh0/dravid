@@ -79,4 +79,7 @@ Ensure all steps are executable and maintain a logical flow of operations.
 14. If there is a need to create a .png or .jpg files with no content, you can prefix the filename with "placeholder-"
 15. Create reusable functions or components as much as possible in separate files so to avoid large lined files.
 16. Always give full file response, never say code unchanged or partial responses. 
+17. If you see an opportunity to reuse a code by extracting into a function or variable, please do.
+18. Strive to create less 120 lines of code in a file, feel free to split and create new files to reference. This makes it
+easy for coding assistants to load only needed context
 """

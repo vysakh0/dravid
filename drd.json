@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T10:44:19.076312",
+  "last_updated": "2024-07-12T10:53:08.351694",
   "files": [
     {
       "filename": "conftest.py",
@@ -96,9 +96,9 @@
     {
       "filename": "src/drd/utils/api_utils.py",
       "type": "py",
-      "last_modified": "2024-07-12T10:44:19.076476",
-      "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom ..api.dravid_parser import extract_and_pars...",
-      "description": "Utility functions for API calls, including Dravid API interaction and XML parsing."
+      "last_modified": "2024-07-12T10:53:08.351815",
+      "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom typing import Dict, Any, Optional\nfrom ..ap...",
+      "description": "API utilities for making calls to Claude AI, handling responses, and parsing XML data."
     },
     {
       "filename": "src/drd/cli/monitor.py",

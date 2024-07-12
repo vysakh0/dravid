@@ -2,67 +2,68 @@ import requests
 import os
 import json
 import base64
+from typing import Dict, Any, Optional
 from ..api.dravid_parser import extract_and_parse_xml
 import xml.etree.ElementTree as ET
 import click
 
+API_URL = 'https://api.anthropic.com/v1/messages'
+MODEL = 'claude-3-5-sonnet-20240620'
+MAX_TOKENS = 4000
 
-def call_dravid_api(query, include_context=False, instruction_prompt=None):
+def get_api_key() -> str:
     api_key = os.getenv('CLAUDE_API_KEY')
     if not api_key:
         raise ValueError("CLAUDE_API_KEY not found in environment variables")
+    return api_key
 
-    headers = {
-        'x-api-key': f'{api_key}',
+def get_headers(api_key: str) -> Dict[str, str]:
+    return {
+        'x-api-key': api_key,
         'Content-Type': 'application/json',
         'Anthropic-Version': '2023-06-01'
     }
 
-    instruction_prompt = instruction_prompt or ""
-
-    data = {
-        'model': 'claude-3-5-sonnet-20240620',
-        'system': instruction_prompt,
-        'messages': [
-            {'role': 'user', 'content': query}
-        ],
-        'max_tokens': 4000
-    }
-
-    response = requests.post(
-        'https://api.anthropic.com/v1/messages', json=data, headers=headers)
+def make_api_call(data: Dict[str, Any], headers: Dict[str, str], stream: bool = False) -> requests.Response:
+    response = requests.post(API_URL, json=data, headers=headers, stream=stream)
     response.raise_for_status()
+    return response
 
-    resp = response.json()['content'][0]['text']
-    print(resp, "resp")
-
+def parse_response(response: str) -> str:
     try:
-        root = extract_and_parse_xml(resp)
+        root = extract_and_parse_xml(response)
         return ET.tostring(root, encoding='unicode')
     except Exception as e:
-        print(f"Error parsing XML response: {e}")
-        return resp
+        click.echo(f"Error parsing XML response: {e}", err=True)
+        return response
 
-
-def call_dravid_vision_api(query, image_path, include_context=False, instruction_prompt=None):
-    api_key = os.getenv('CLAUDE_API_KEY')
-    if not api_key:
-        raise ValueError("CLAUDE_API_KEY not found in environment variables")
-
-    headers = {
-        'x-api-key': f'{api_key}',
-        'Content-Type': 'application/json',
-        'Anthropic-Version': '2023-06-01'
+def call_dravid_api(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+    api_key = get_api_key()
+    headers = get_headers(api_key)
+    
+    data = {
+        'model': MODEL,
+        'system': instruction_prompt or "",
+        'messages': [{'role': 'user', 'content': query}],
+        'max_tokens': MAX_TOKENS
     }
 
-    instruction_prompt = instruction_prompt or ""
+    response = make_api_call(data, headers)
+    resp = response.json()['content'][0]['text']
+    click.echo(f"Raw response from Claude API: {resp}", err=True)
+
+    return parse_response(resp)
+
+def call_dravid_vision_api(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+    api_key = get_api_key()
+    headers = get_headers(api_key)
 
     with open(image_path, "rb") as image_file:
         image_data = base64.b64encode(image_file.read()).decode('utf-8')
 
     data = {
-        'model': 'claude-3-5-sonnet-20240620',
-        'system': instruction_prompt,
+        'model': MODEL,
+        'system': instruction_prompt or "",
         'messages': [
             {
                 'role': 'user',
@@ -71,7 +72,7 @@ def call_dravid_vision_api(query, image_path, include_context=False, instruction
                         'type': 'image',
                         'source': {
                             'type': 'base64',
-                            'media_type': 'image/png',  # Adjust based on actual image type
+                            'media_type': 'image/png',
                             'data': image_data
                         }
                     },
@@ -82,57 +83,31 @@ def call_dravid_vision_api(query, image_path, include_context=False, instruction
                 ]
             }
         ],
-        'max_tokens': 4000
+        'max_tokens': MAX_TOKENS
     }
 
-    response = requests.post(
-        'https://api.anthropic.com/v1/messages', json=data, headers=headers)
-    response.raise_for_status()
-
+    response = make_api_call(data, headers)
     resp = response.json()['content'][0]['text']
-    print(resp, "resp")
+    click.echo(f"Raw response from Claude Vision API: {resp}", err=True)
 
-    try:
-        root = extract_and_parse_xml(resp)
-        return ET.tostring(root, encoding='unicode')
-    except Exception as e:
-        print(f"Error parsing XML response: {e}")
-        return resp
+    return parse_response(resp)
 
-
-def stream_claude_response(query, instruction_prompt=None):
-    api_key = os.getenv('CLAUDE_API_KEY')
-    if not api_key:
-        raise ValueError("CLAUDE_API_KEY not found in environment variables")
-
-    headers = {
-        'x-api-key': api_key,
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-        'Anthropic-Version': '2023-06-01'
-    }
-
-    instruction_prompt = instruction_prompt or ""
+def stream_claude_response(query: str, instruction_prompt: Optional[str] = None) -> str:
+    api_key = get_api_key()
+    headers = get_headers(api_key)
+    headers['Accept'] = 'text/event-stream'
 
     data = {
-        'model': 'claude-3-5-sonnet-20240620',
-        'system': instruction_prompt,
-        'messages': [
-            {'role': 'user', 'content': query}
-        ],
-        'max_tokens': 4000,
+        'model': MODEL,
+        'system': instruction_prompt or "",
+        'messages': [{'role': 'user', 'content': query}],
+        'max_tokens': MAX_TOKENS,
         'stream': True
     }
 
-    response = requests.post(
-        'https://api.anthropic.com/v1/messages',
-        json=data,
-        headers=headers,
-        stream=True
-    )
-    response.raise_for_status()
-
+    response = make_api_call(data, headers, stream=True)
     full_response = ""
+
     for line in response.iter_lines():
         if line:
             line = line.decode('utf-8')
