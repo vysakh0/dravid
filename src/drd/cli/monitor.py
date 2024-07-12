@@ -50,13 +50,21 @@ class DevServerMonitor:
         out.close()
 
     def _monitor_output(self):
+        error_buffer = []
         while not self.should_stop.is_set():
             try:
                 line = self.output_queue.get(timeout=0.1)
                 click.echo(line, nl=False)  # Print server output in real-time
+                error_buffer.append(line)
+                if len(error_buffer) > 10:
+                    error_buffer.pop(0)
+
                 for error_pattern, handler in self.error_handlers.items():
                     if re.search(error_pattern, line, re.IGNORECASE):
-                        handler(line, self)
+                        full_error = ''.join(error_buffer)
+                        handler(full_error, self)
+                        error_buffer.clear()
+                        break
             except Empty:
                 continue
 
@@ -113,27 +121,43 @@ def run_dev_server_with_monitoring():
         monitor.stop()
 
 
-def handle_module_not_found(line, monitor):
+def run_dev_server_with_monitoring():
+    print_info("Starting dev server monitor...")
+    error_handlers = {
+        r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
+        r"(?:SyntaxError|Expected|Unexpected token)": handle_syntax_error,
+        r"(?:Error:|Failed to compile)": handle_general_error,
+    }
+    current_dir = os.getcwd()
+    monitor = DevServerMonitor(current_dir, error_handlers)
+    try:
+        monitor.start()
+        print_info("Dev server monitor started. Press Ctrl+C to stop.")
+        while True:
+            time.sleep(1)  # Keep the main thread alive
+    except KeyboardInterrupt:
+        print_info("Stopping development server...")
+    finally:
+        monitor.stop()
+
+
+def handle_module_not_found(error_msg, monitor):
     match = re.search(
-        r"(?:Cannot find module|Module not found|ImportError|No module named).*['\"](.*?)['\"]", line, re.IGNORECASE)
+        r"(?:Cannot find module|Module not found|ImportError|No module named).*['\"](.*?)['\"]", error_msg, re.IGNORECASE)
     if match:
         module_name = match.group(1)
         error = ImportError(f"Module '{module_name}' not found")
-        monitoring_handle_error_with_dravid(error, line, monitor)
+        monitoring_handle_error_with_dravid(error, error_msg, monitor)
 
 
-def handle_syntax_error(line, monitor):
-    error = SyntaxError(f"Syntax error in line: {line}")
-    monitoring_handle_error_with_dravid(error, line, monitor)
+def handle_syntax_error(error_msg, monitor):
+    error = SyntaxError(f"Syntax error detected: {error_msg}")
+    monitoring_handle_error_with_dravid(error, error_msg, monitor)
 
 
-def handle_port_in_use(line, monitor):
-    match = re.search(
-        r"(?:EADDRINUSE|address already in use).*:(\d+)", line, re.IGNORECASE)
-    if match:
-        port = match.group(1)
-        error = OSError(f"Port {port} is already in use")
-        monitoring_handle_error_with_dravid(error, line, monitor)
+def handle_general_error(error_msg, monitor):
+    error = Exception(f"General error detected: {error_msg}")
+    monitoring_handle_error_with_dravid(error, error_msg, monitor)
 
 
 def monitoring_handle_error_with_dravid(error, line, monitor):
