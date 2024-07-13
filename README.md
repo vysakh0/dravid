@@ -2,6 +2,9 @@
 
 Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
 
+https://github.com/user-attachments/assets/14350e4d-6cec-4922-997f-f34e9f716189
+
+
 ## Features
 
 - AI-powered CLI for efficient coding and project management
