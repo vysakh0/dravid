@@ -4,6 +4,7 @@ Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed
 
 https://github.com/user-attachments/assets/14350e4d-6cec-4922-997f-f34e9f716189
 
+More videos in the end of the file.
 
 ## Features
 
@@ -354,6 +355,24 @@ poetry run drd "add tests for utils/utils"
 ```
 poetry run drd --ask "who are you"
 ```
+### Video examples
+
+
+https://github.com/user-attachments/assets/2bcd2969-2746-4115-a879-18b8333a3053
+
+
+
+
+https://github.com/user-attachments/assets/15112577-0d45-44be-b564-74bee548ac66
+
+
+https://github.com/user-attachments/assets/25b82c1f-e357-405b-9b85-2488a2d2b771
+
+
+
+https://github.com/user-attachments/assets/07784a9e-8de6-4161-9e83-8cad1fa04ae6
+
+
 
 ## Testing
 
