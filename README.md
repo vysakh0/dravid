@@ -1,10 +1,17 @@
 # Dravid (DRD) - AI-Powered CLI Coding Framework
 
-Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to streamline and enhance the development process. It leverages artificial intelligence to assist developers in various tasks, from project setup to code generation and file management.
+Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow the instructions from the user until it gets the job done even if it means fixing errors including installation errors etc. It can generate code, fix errors by itself until the intent is done. 
 
 https://github.com/user-attachments/assets/14350e4d-6cec-4922-997f-f34e9f716189
 
-More videos in the end of the file.
+https://github.com/user-attachments/assets/07784a9e-8de6-4161-9e83-8cad1fa04ae6
+
+
+As you can see in the video, when you try to initialise a project where the system dependencies doesn't exist, Dravid will try to fix them one by one, even if it means those will have
+errors on its own.
+
+You will also be able to initialise this in your existing project, see the Usage section for more.
+
 
 ## Features
 
@@ -366,11 +373,9 @@ https://github.com/user-attachments/assets/2bcd2969-2746-4115-a879-18b8333a3053
 https://github.com/user-attachments/assets/15112577-0d45-44be-b564-74bee548ac66
 
 
+
 https://github.com/user-attachments/assets/25b82c1f-e357-405b-9b85-2488a2d2b771
 
-
-
-https://github.com/user-attachments/assets/07784a9e-8de6-4161-9e83-8cad1fa04ae6
 
 
 
