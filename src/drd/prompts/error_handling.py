@@ -112,6 +112,9 @@ export PATH="/usr/local/opt/maven/bin:$PATH
 
 20. Do not attempt to delete any files outside the current directory like ~/.zshrc or others. 
 21. Never run destructive commands like `rm -rf`. NEVER.
+For eg, if there is an existing project and the new project can't be initialised
+or when some file conflicts for shell command to succeed then suggest a shell script like 
+"echo 'create a new directory and try again'"
 22. When installing new languages try to install through a version manager
 """
 

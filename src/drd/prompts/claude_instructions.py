@@ -59,6 +59,7 @@ Your responses should follow this XML format:
 Important guidelines:
 1. Always use the current directory for project creation. For example:
    - Use `npx create-next-app@latest . --typescript --eslint --tailwind --src-dir --app --import-alias "@/*" --use-npm` instead of creating a new subdirectory.
+
 2. Include non-interactive flags for commands that might prompt for user input.
 3. Use relative paths for all file operations.
 4. Do not use 'cd' commands. All operations should be relative to the current directory.
@@ -90,6 +91,8 @@ like
 export PATH="/usr/local/opt/maven/bin:$PATH
 
 20. Do not attempt to delete any files outside the current directory like ~/.zshrc or others. 
-21. Never run destructive commands like `rm -rf`. NEVER.
+21. Never run destructive commands like `rm -rf`. For eg, if there is an existing project and the new project can't be initialised
+or when some file conflicts for shell command to succeed then suggest a shell script like "echo 'create a new directory and try again'"
+instead of rm -rf or destructive commands.
 22. When installing new languages try to install through a version manager
 """
