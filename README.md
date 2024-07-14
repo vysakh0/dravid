@@ -2,7 +2,12 @@
 
 Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow the instructions from the user until it gets the job done even if it means fixing errors including installation errors etc. It can generate code, fix errors by itself until the intent is done.
 
-**DISCLAIMER**: _Make sure to try in a new directory for a fresh project. If it is an existing project in a separate git branch, or a sandbox environment. And monitor the commands generated. Please use version 0.8.0 or higher. You can check the verison by drd --version_
+### Security and Sandbox (important note)
+ - Make sure to try in a new directory for a fresh project.
+ - If it is an existing project, create a separate git branch, or a sandbox environment. And monitor the commands generated. Git add or commit as when you get results
+ - Your file content will be sent to CLAUDE API LLM to give you response. So please don't include sensitive files in the project.
+ - Don't use hardcoded API_KEYS, use .env and makre sure it is part of .gitignore, so the tool can skip reading it.
+ - Please use version 0.8.0 or higher. You can check the verison by drd --version
 
 ### Quick preview:
 
