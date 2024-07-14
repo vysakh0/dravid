@@ -11,7 +11,7 @@ from ..utils.api_utils import stream_claude_response
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.7.0"  # Update this as you release new versions
+VERSION = "0.8.0"  # Update this as you release new versions
 
 
 def handle_query_command(query, image, debug):
@@ -25,9 +25,9 @@ def handle_query_command(query, image, debug):
     execute_dravid_command(query, image, debug, instruction_prompt)
 
 
-def dravid_cli_logic(query, image, debug, monitor_fix, meta_add, meta_init, ask, file, version):
+def dravid_cli_logic(query, image, debug, monitor_fix, meta_add, meta_init, ask, file, version, monitor_command):
     if monitor_fix:
-        run_dev_server_with_monitoring()
+        run_dev_server_with_monitoring(monitor_command)
     elif meta_add:
         update_metadata_with_dravid(meta_add, os.getcwd())
     elif meta_init:

@@ -13,72 +13,86 @@ from ..metadata.project_metadata import ProjectMetadataManager
 from queue import Queue, Empty
 import threading
 import subprocess
+import select
+import sys
 
 
 class DevServerMonitor:
-    def __init__(self, project_dir: str, error_handlers: dict):
+    def __init__(self, project_dir: str, error_handlers: dict, custom_command: str = None):
         self.project_dir = project_dir
         self.metadata_manager = ProjectMetadataManager(project_dir)
         self.error_handlers = error_handlers
+        self.custom_command = custom_command
         self.process = None
         self.output_queue = Queue()
         self.should_stop = threading.Event()
         self.monitor_thread = None
         self.restart_requested = threading.Event()
+        self.user_input_queue = Queue()
 
     def start(self):
         self.should_stop.clear()
         self.restart_requested.clear()
-        dev_server_info = self.metadata_manager.get_dev_server_info()
-        start_command = dev_server_info.get('start_command')
-        if not start_command:
-            raise ValueError("Dev server start command not found in metadata")
 
-        click.echo(f"Starting dev server with command: {start_command}")
+        if self.custom_command:
+            start_command = self.custom_command
+        else:
+            dev_server_info = self.metadata_manager.get_dev_server_info()
+            start_command = dev_server_info.get('start_command')
+            if not start_command:
+                raise ValueError("Server start command not found in metadata")
+
+        click.echo(f"Starting server with command: {start_command}")
         self.process = subprocess.Popen(
-            start_command.split(),
+            start_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            stdin=subprocess.PIPE,
             text=True,
             bufsize=1,
             universal_newlines=True,
+            shell=True,
             cwd=self.project_dir
         )
-        threading.Thread(target=self._enqueue_output, args=(
-            self.process.stdout, self.output_queue), daemon=True).start()
 
         self.monitor_thread = threading.Thread(
             target=self._monitor_output, daemon=True)
         self.monitor_thread.start()
 
-    def _enqueue_output(self, out, queue):
-        for line in iter(out.readline, ''):
-            queue.put(line)
-        out.close()
-
     def _monitor_output(self):
         error_buffer = []
         while not self.should_stop.is_set():
-            try:
-                line = self.output_queue.get(timeout=0.1)
-                click.echo(line, nl=False)  # Print server output in real-time
-                error_buffer.append(line)
-                if len(error_buffer) > 10:
-                    error_buffer.pop(0)
+            ready, _, _ = select.select(
+                [self.process.stdout, sys.stdin], [], [], 0.1)
 
-                for error_pattern, handler in self.error_handlers.items():
-                    if re.search(error_pattern, line, re.IGNORECASE):
-                        full_error = ''.join(error_buffer)
-                        handler(full_error, self)
-                        error_buffer.clear()
-                        break
+            if self.process.stdout in ready:
+                line = self.process.stdout.readline()
+                if line:
+                    # Print server output in real-time
+                    click.echo(line, nl=False)
+                    error_buffer.append(line)
+                    if len(error_buffer) > 10:
+                        error_buffer.pop(0)
 
-                if self.restart_requested.is_set():
-                    self._perform_restart()
-                    self.restart_requested.clear()
+                    for error_pattern, handler in self.error_handlers.items():
+                        if re.search(error_pattern, line, re.IGNORECASE):
+                            full_error = ''.join(error_buffer)
+                            handler(full_error, self)
+                            error_buffer.clear()
+                            break
+                else:
+                    # Process has ended
+                    break
 
-            except Empty:
-                continue
+            if sys.stdin in ready:
+                input_line = sys.stdin.readline()
+                if input_line:
+                    self.process.stdin.write(input_line)
+                    self.process.stdin.flush()
+
+            if self.restart_requested.is_set():
+                self._perform_restart()
+                self.restart_requested.clear()
 
     def stop(self):
         self.should_stop.set()
@@ -90,7 +104,7 @@ class DevServerMonitor:
         self.restart_requested.set()
 
     def _perform_restart(self):
-        print_info("Restarting development server...")
+        print_info("Restarting server...")
         if self.process:
             self.process.terminate()
             self.process.wait()
@@ -100,41 +114,47 @@ class DevServerMonitor:
         print_success("Server restarted successfully.")
         print_info("Waiting for server output...")
 
-        # Wait for some initial output after restart
-        timeout = 10  # seconds
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            try:
-                line = self.output_queue.get(timeout=0.5)
-                print(line, end='')
-                if "started" in line.lower() or "listening" in line.lower():
-                    print_success("Server is up and running!")
-                    break
-            except Empty:
-                pass
-        else:
-            print_success(
-                "Timeout waiting for server startup message. It may still be starting...")
-
-        print_info("Continuing to monitor server output. Press Ctrl+C to stop.")
+    def get_user_input(self, prompt):
+        print(prompt, end='', flush=True)
+        return input().strip().lower()
 
 
-def run_dev_server_with_monitoring():
-    print_info("Starting dev server monitor...")
+def run_dev_server_with_monitoring(custom_command: str = None):
+    print_info("Starting server monitor...")
     error_handlers = {
         r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
         r"(?:SyntaxError|Expected|Unexpected token)": handle_syntax_error,
         r"(?:Error:|Failed to compile)": handle_general_error,
     }
     current_dir = os.getcwd()
-    monitor = DevServerMonitor(current_dir, error_handlers)
+    monitor = DevServerMonitor(current_dir, error_handlers, custom_command)
     try:
         monitor.start()
-        print_info("Dev server monitor started. Press Ctrl+C to stop.")
+        print_info("Server monitor started. Press Ctrl+C to stop.")
         while True:
             time.sleep(1)  # Keep the main thread alive
     except KeyboardInterrupt:
-        print_info("Stopping development server...")
+        print_info("Stopping server...")
+    finally:
+        monitor.stop()
+
+
+def run_dev_server_with_monitoring(custom_command: str = None):
+    print_info("Starting server monitor...")
+    error_handlers = {
+        r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
+        r"(?:SyntaxError|Expected|Unexpected token)": handle_syntax_error,
+        r"(?:Error:|Failed to compile)": handle_general_error,
+    }
+    current_dir = os.getcwd()
+    monitor = DevServerMonitor(current_dir, error_handlers, custom_command)
+    try:
+        monitor.start()
+        print_info("Server monitor started. Press Ctrl+C to stop.")
+        while True:
+            time.sleep(1)  # Keep the main thread alive
+    except KeyboardInterrupt:
+        print_info("Stopping server...")
     finally:
         monitor.stop()
 
@@ -169,7 +189,7 @@ def monitoring_handle_error_with_dravid(error, line, monitor):
 
     error_query = f"""
 # Error Context
-An error occurred while running the dev server:
+An error occurred while running the server:
 
 Error type: {error_type}
 Error message: {error_message}
@@ -237,7 +257,9 @@ Your response should be in strictly XML format with no other extra messages. Use
     print_info("dravid's suggested fix:")
     pretty_print_commands(fix_commands)
 
-    if click.confirm("Do you want to apply this fix?"):
+    user_input = monitor.get_user_input(
+        "Do you want to apply this fix? [y/N]: ")
+    if user_input == 'y':
         print_info("Applying dravid's suggested fix...")
         executor = Executor()
         for cmd in fix_commands:

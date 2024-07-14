@@ -109,6 +109,26 @@ or
 drd --hot-fix
 ```
 
+#### Test server monitoring and continous fix
+
+You can also pass custom cmd options to `--hf` then it will pick that command over the dev server command.
+This useful especially if you have test runners.
+
+If you have 100 test cases, and 10 of the file, you can set this command to identify errors and automatically fix
+
+```
+drd --hf --cmd "npm run test:watch"
+```
+
+or
+
+```
+drd --hf --command "poetry run test:watch"
+```
+
+It would work with any languages or frameworks, make sure that the command is a continually running one not the usual
+test script which exits out after tests passes or fails.
+
 ### Metadata Management
 
 To use Dravid cli in an existing project you would have to initialize metadata (drd.json)
