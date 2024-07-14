@@ -1,28 +1,25 @@
 # Dravid (DRD) - AI-Powered CLI Coding Framework
 
-Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow the instructions from the user until it gets the job done even if it means fixing errors including installation errors etc. It can generate code, fix errors by itself until the intent is done.
+Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow user instructions until the job is done, even if it means fixing errors, including installation issues. It can generate code and fix errors autonomously until the intended result is achieved.
 
 ### Security and Sandbox (important note)
- - Make sure to try in a new directory for a fresh project.
- - If it is an existing project, create a separate git branch, or a sandbox environment. And monitor the commands generated. Git add or commit as when you get results
- - Your file content will be sent to CLAUDE API LLM to give you response. So please don't include sensitive files in the project.
- - Don't use hardcoded API_KEYS, use .env and makre sure it is part of .gitignore, so the tool can skip reading it.
- - Please use version 0.8.0 or higher. You can check the verison by drd --version
-
+- Always try in a new directory for a fresh project.
+- For existing projects, create a separate git branch or a sandbox environment. Monitor the generated commands. Git add or commit when you get results.
+- Your file content will be sent to the CLAUDE API LLM for response. Do not include sensitive files in the project.
+- Don't use hardcoded API_KEYS. Use .env and ensure it's part of .gitignore so the tool can skip reading it.
+- Please use version 0.8.0 or higher. You can check the version with drd --version.
+  
 ### Quick preview:
 
-1.  As you can see in the video, when you try to initialise a project where the system dependencies doesn't exist, Dravid will try to fix them one by one, even if it means those will have
-    errors on its own.
+1.  As shown in the video, when initializing a project where system dependencies don't exist, Dravid will attempt to fix them one by one, even if those fixes result in their own errors
 
 https://github.com/user-attachments/assets/07784a9e-8de6-4161-9e83-8cad1fa04ae6
 
-2. Imagine you have a dev server which has import error and reference error, so you need to install dependencies
-   or include right fix. Dravid will monitor your dev server or test server and autofix. Very useful if you have
-   an existing project where you want to fix your tests or you want to refactor the entire project.
+2. If you have a dev server with import or reference errors, requiring dependency installation or fixes, Dravid will monitor your dev or test server and autofix. This is particularly useful for existing projects where you want to fix tests or refactor the entire project.
 
 https://github.com/user-attachments/assets/14350e4d-6cec-4922-997f-f34e9f716189
 
-You will also be able to initialise this in your existing project, see the Usage section for more.
+You can also initialize Dravid in your existing project. See the Usage section for more details.
 
 ## Features
 
