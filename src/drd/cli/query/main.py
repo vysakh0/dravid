@@ -12,6 +12,8 @@ from .image_handler import handle_image_query
 
 def execute_dravid_command(query, image_path, debug, instruction_prompt):
     print_info("Starting Dravid CLI tool..")
+    print_info("Please make sure you are in a fresh directory. If it is an existing project, please ensure you're in a git branc")
+    print_info("Use Ctrl+C if you're not")
 
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)

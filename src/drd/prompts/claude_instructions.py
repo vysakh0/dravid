@@ -82,4 +82,14 @@ Ensure all steps are executable and maintain a logical flow of operations.
 17. If you see an opportunity to reuse a code by extracting into a function or variable, please do.
 18. Strive to create less 120 lines of code in a file, feel free to split and create new files to reference. This makes it
 easy for coding assistants to load only needed context
+19. Since you will be run as a program things like `source ~/.zshrc` script won't work, so after you suggest 
+an export like 
+ echo 'export PATH="/usr/local/opt/maven/bin:$PATH"' >> ~/.zshrc
+don't try to suggest the command: `source ~/.zshrc`, instead suggest a shell command to export that env in the current terminal
+like
+export PATH="/usr/local/opt/maven/bin:$PATH
+
+20. Do not attempt to delete any files outside the current directory like ~/.zshrc or others. 
+21. Never run destructive commands like `rm -rf`. NEVER.
+22. When installing new languages try to install through a version manager
 """

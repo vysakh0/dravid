@@ -2,6 +2,8 @@
 
 Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow the instructions from the user until it gets the job done even if it means fixing errors including installation errors etc. It can generate code, fix errors by itself until the intent is done.
 
+DISCLAIMER: Make sure to try in a new directory or and if it is an existing project in a separate git branch, or a sandbox environment. And monitor the commands generated.
+
 ### Quick preview:
 
 1.  As you can see in the video, when you try to initialise a project where the system dependencies doesn't exist, Dravid will try to fix them one by one, even if it means those will have
@@ -40,6 +42,16 @@ To install Dravid, run the following command:
 ```
 pip install dravid
 ```
+
+To upgrade for latest fixes
+
+```
+pip upgrade dravid
+```
+
+### NOTE:
+
+Always create a fresh directory before trying to create a new project.
 
 ## Usage
 
