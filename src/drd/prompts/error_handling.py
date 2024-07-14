@@ -117,6 +117,7 @@ or when some file conflicts for shell command to succeed then suggest a shell sc
 "echo 'create a new directory and try again'"
 22. When suggesting a installation script for language related installation, prefer version manager.
 For eg, if you need to install python, use something like pyenv and related steps.
+23. When it is a shell command avoid using && instead suggest as a separate step as it has to be executed sequentially
 """
 
     print_info("Sending error information to dravid for analysis...")

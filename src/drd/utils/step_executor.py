@@ -18,6 +18,7 @@ class Executor:
             'dd', 'fsck', 'mkswap', 'mount', 'umount',
             'sudo', 'su', 'chown', 'chmod'
         ]
+        self.env = os.environ.copy()
 
     def is_safe_path(self, path):
         full_path = os.path.abspath(os.path.join(self.current_dir, path))
@@ -45,62 +46,6 @@ class Executor:
         if command_parts[0] == 'rm':
             return self.is_safe_rm_command(command)
         return not any(cmd in self.disallowed_commands for cmd in command_parts)
-
-    def execute_shell_command(self, command, timeout=300):  # 5 minutes timeout
-        if not self.is_safe_command(command):
-            error_message = f"Command not allowed for security reasons: {command}"
-            print_error(error_message)
-            raise Exception(error_message)
-
-        click.echo(
-            f"{Fore.YELLOW}Executing shell command: {command}{Style.RESET_ALL}")
-        env = os.environ.copy()
-        env['CI'] = 'true'
-
-        try:
-            process = subprocess.Popen(
-                command,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                env=env,
-            )
-
-            start_time = time.time()
-            output = []
-            while True:
-                return_code = process.poll()
-                if return_code is not None:
-                    break
-                if time.time() - start_time > timeout:
-                    process.terminate()
-                    error_message = f"Command timed out after {timeout} seconds: {command}"
-                    print_error(error_message)
-                    raise Exception(error_message)
-
-                line = process.stdout.readline()
-                if line:
-                    print(line.strip())
-                    output.append(line)
-
-                time.sleep(0.1)
-
-            stdout, stderr = process.communicate()
-            output.append(stdout)
-
-            if return_code != 0:
-                error_message = f"Command failed with return code {return_code}\nError output: {stderr}"
-                print_error(error_message)
-                raise Exception(error_message)
-
-            print_success("Command executed successfully.")
-            return ''.join(output)
-
-        except Exception as e:
-            error_message = f"Error executing command '{command}': {str(e)}"
-            print_error(error_message)
-            raise Exception(error_message)
 
     def perform_file_operation(self, operation, filename, content=None, force=False):
         full_path = os.path.abspath(os.path.join(self.current_dir, filename))
@@ -178,3 +123,110 @@ class Executor:
     def get_folder_structure(self):
         ignore_patterns, _ = get_ignore_patterns(self.current_dir)
         return get_folder_structure(self.current_dir, ignore_patterns)
+
+    def execute_shell_command(self, command, timeout=300):  # 5 minutes timeout
+        if not self.is_safe_command(command):
+            error_message = f"Command not allowed for security reasons: {command}"
+            print_error(error_message)
+            raise Exception(error_message)
+
+        click.echo(
+            f"{Fore.YELLOW}Executing shell command: {command}{Style.RESET_ALL}")
+
+        if command.strip().startswith(('source ', '.')):
+            return self._handle_source_command(command)
+
+        try:
+            process = subprocess.Popen(
+                command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=self.env,
+            )
+
+            start_time = time.time()
+            output = []
+            while True:
+                return_code = process.poll()
+                if return_code is not None:
+                    break
+                if time.time() - start_time > timeout:
+                    process.terminate()
+                    error_message = f"Command timed out after {timeout} seconds: {command}"
+                    print_error(error_message)
+                    raise Exception(error_message)
+
+                line = process.stdout.readline()
+                if line:
+                    print(line.strip())
+                    output.append(line)
+
+                time.sleep(0.1)
+
+            stdout, stderr = process.communicate()
+            output.append(stdout)
+
+            if return_code != 0:
+                error_message = f"Command failed with return code {return_code}\nError output: {stderr}"
+                print_error(error_message)
+                raise Exception(error_message)
+
+            # Update environment variables if the command was successful
+            self._update_env_from_command(command)
+
+            print_success("Command executed successfully.")
+            return ''.join(output)
+
+        except Exception as e:
+            error_message = f"Error executing command '{command}': {str(e)}"
+            print_error(error_message)
+            raise Exception(error_message)
+
+    def _handle_source_command(self, command):
+        # Extract the file path from the source command
+        _, file_path = command.split(None, 1)
+        file_path = os.path.expandvars(os.path.expanduser(file_path))
+
+        if not os.path.isfile(file_path):
+            error_message = f"Source file not found: {file_path}"
+            print_error(error_message)
+            raise Exception(error_message)
+
+        # Execute the source command in a subshell and capture the environment changes
+        try:
+            result = subprocess.run(
+                f'source {file_path} && env',
+                shell=True,
+                check=True,
+                capture_output=True,
+                text=True,
+                executable='/bin/bash'
+            )
+
+            # Update the environment with any changes
+            for line in result.stdout.splitlines():
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    self.env[key] = value
+
+            print_success(f"Sourced file successfully: {file_path}")
+            return "Source command executed successfully"
+        except subprocess.CalledProcessError as e:
+            error_message = f"Error executing source command: {str(e)}"
+            print_error(error_message)
+            raise Exception(error_message)
+
+    def _update_env_from_command(self, command):
+        # Check if the command is setting an environment variable
+        if '=' in command and not command.startswith(('export ', 'set ')):
+            key, value = command.split('=', 1)
+            self.env[key.strip()] = value.strip().strip('"\'')
+        elif command.startswith(('export ', 'set ')):
+            # Handle export and set commands
+            parts = command.split(None, 2)
+            if len(parts) == 3:
+                _, key, value = parts
+                key = key.split('=')[0]  # Handle cases like "export FOO=bar"
+                self.env[key] = value.strip().strip('"\'')
