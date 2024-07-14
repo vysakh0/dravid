@@ -48,7 +48,7 @@ pip install dravid
 To upgrade for latest fixes
 
 ```
-pip upgrade dravid
+pip install --upgrade dravid
 ```
 
 ### NOTE:
