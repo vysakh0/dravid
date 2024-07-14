@@ -8,7 +8,8 @@ Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed
 - Your file content will be sent to the CLAUDE API LLM for response. Do not include sensitive files in the project.
 - Don't use hardcoded API_KEYS. Use .env and ensure it's part of .gitignore so the tool can skip reading it.
 - Please use version 0.8.0 or higher. You can check the version with drd --version.
-  
+- If possible try in a docker instance.
+
 ### Quick preview:
 
 1.  As shown in the video, when initializing a project where system dependencies don't exist, Dravid will attempt to fix them one by one, even if those fixes result in their own errors
