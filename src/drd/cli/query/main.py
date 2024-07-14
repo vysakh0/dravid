@@ -4,7 +4,8 @@ from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
-from ...utils import print_error, print_success, print_info, print_step, generate_description, fetch_project_guidelines, run_with_loader
+from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader
+from ...metadata.common_utils import generate_file_description
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
 
@@ -150,14 +151,20 @@ def handle_command(cmd, executor, metadata_manager):
             )
 
             if operation_performed:
-                description = run_with_loader(
-                    lambda: generate_description(
-                        cmd['filename'], cmd.get('content', '')),
+                project_context = metadata_manager.get_project_context()
+                folder_structure = executor.get_folder_structure()
+                file_type, description = run_with_loader(
+                    lambda: generate_file_description(
+                        cmd['filename'],
+                        cmd.get('content', ''),
+                        project_context,
+                        folder_structure
+                    ),
                     f"Generating description for {cmd['filename']}"
                 )
                 metadata_manager.update_file_metadata(
                     cmd['filename'],
-                    cmd['filename'].split('.')[-1],
+                    file_type,
                     cmd.get('content', ''),
                     description
                 )

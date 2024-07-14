@@ -2,7 +2,8 @@ import traceback
 import click
 from ..utils.api_utils import call_dravid_api_with_pagination
 from ..api.dravid_parser import parse_dravid_response, extract_and_parse_xml, pretty_print_commands
-from ..utils import print_error, print_success, print_info, generate_description
+from ..utils import print_error, print_success, print_info
+from ..metadata.common_utils import generate_file_description
 import xml.etree.ElementTree as ET
 
 
@@ -161,11 +162,17 @@ def apply_fix_commands(fix_commands, executor, metadata_manager):
 
                     # Update metadata for CREATE and UPDATE operations
                     if cmd['operation'] in ['CREATE', 'UPDATE']:
-                        description = generate_description(
-                            cmd['filename'], cmd.get('content', ''))
+                        project_context = metadata_manager.get_project_context()
+                        folder_structure = executor.get_folder_structure()
+                        file_type, description = generate_file_description(
+                            cmd['filename'],
+                            cmd.get('content', ''),
+                            project_context,
+                            folder_structure
+                        )
                         metadata_manager.update_file_metadata(
                             cmd['filename'],
-                            cmd['filename'].split('.')[-1],
+                            file_type,
                             cmd.get('content', ''),
                             description
                         )

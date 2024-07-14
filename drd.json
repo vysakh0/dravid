@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-12T14:34:36.134578",
+  "last_updated": "2024-07-14T13:46:56.118163",
   "files": [
     {
       "filename": "conftest.py",
@@ -80,25 +80,11 @@
       "description": "Utility functions for file operations, project context, and console output formatting."
     },
     {
-      "filename": "src/drd/utils/description_generator.py",
-      "type": "py",
-      "last_modified": "2024-07-11T19:23:55.801357",
-      "content_preview": "import requests import os   def generate_description(filename, content):     api_key = os.getenv('CL",
-      "description": "Python utility for generating file descriptions using an API with environment variable for key."
-    },
-    {
       "filename": "src/drd/utils/api_utils.py",
       "type": "py",
       "last_modified": "2024-07-12T10:53:08.351815",
       "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom typing import Dict, Any, Optional\nfrom ..ap...",
       "description": "API utilities for making calls to Claude AI, handling responses, and parsing XML data."
-    },
-    {
-      "filename": "src/drd/cli/monitor.py",
-      "type": "py",
-      "last_modified": "2024-07-11T19:28:12.715252",
-      "content_preview": "import click import time import re import os import traceback from typing import Dict, Callable from",
-      "description": "Python CLI module for monitoring and processing file changes with click commands."
     },
     {
       "filename": "src/drd/cli/__init__.py",
@@ -236,16 +222,16 @@
     {
       "filename": "src/drd/metadata/updater.py",
       "type": "py",
-      "last_modified": "2024-07-12T11:57:56.975313",
-      "content_preview": "import os\nfrom ..api.dravid_api import call_dravid_api\nfrom ..api.dravid_parser import extract_and_p...",
-      "description": "Metadata updater for finding files, calling APIs, and managing project metadata."
+      "last_modified": "2024-07-14T13:46:48.108221",
+      "content_preview": "import os\nfrom ..api.dravid_api import call_dravid_api_with_pagination\nfrom ..api.dravid_parser impo...",
+      "description": "Python module for updating project metadata using the Dravid AI system. It includes functions for finding files, calling the Dravid API, parsing responses, and updating or removing file metadata. The module interacts with the ProjectMetadataManager, uses utility functions for file operations and output formatting, and handles various scenarios such as missing files and API response parsing. It's designed to work within the context of the DRD project, maintaining and updating metadata based on user descriptions and project structure changes."
     },
     {
       "filename": "src/drd/metadata/initializer.py",
       "type": "py",
-      "last_modified": "2024-07-11T23:57:47.821440",
-      "content_preview": "import os import re import json from datetime import datetime from ..api.dravid_api import call_drav",
-      "description": "Python module for initializing metadata, handling API calls, and processing file information."
+      "last_modified": "2024-07-14T13:46:51.584824",
+      "content_preview": "import os\nimport json\nfrom datetime import datetime\nfrom ..api.dravid_api import call_dravid_api_wit...",
+      "description": "Python module for initializing project metadata. It analyzes the project structure, queries an AI assistant (Dravid) for project information, and generates detailed metadata including file descriptions. The module uses API calls, XML parsing, and file operations to create a comprehensive project overview stored in a JSON format."
     },
     {
       "filename": "src/drd/metadata/tests/test_initializer.py",
@@ -281,6 +267,41 @@
       "last_modified": "2024-07-12T11:14:02.711812",
       "content_preview": "{\n  \"project_name\": \"drd\",\n  \"last_updated\": \"2024-07-12T11:14:02.708239\",\n  \"files\": [\n    {\n      ...",
       "description": ""
+    },
+    {
+      "filename": "src/drd/cli/monitor/server_monitor.py",
+      "type": "py",
+      "last_modified": "2024-07-14T13:31:13.794185",
+      "content_preview": "import click\nimport time\nimport re\nimport os\nfrom typing import Dict, Callable\nfrom ...metadata.proj...",
+      "description": "Python module implementing a DevServerMonitor class for monitoring and managing a development server process. It includes functionality for starting, stopping, and restarting the server, handling errors, and processing user input. The module is part of the CLI monitoring system in the DRD project, designed to work with the project's metadata management and error handling components."
+    },
+    {
+      "filename": "src/drd/cli/monitor/error_resolver.py",
+      "type": "py",
+      "last_modified": "2024-07-14T13:31:17.829571",
+      "content_preview": "import traceback\nfrom ...api.dravid_api import call_dravid_api_with_pagination\nfrom ...api.dravid_pa...",
+      "description": "Python module for error resolution in the DRD project's monitoring system. It handles runtime errors by analyzing them, querying an AI assistant (Dravid) for solutions, and applying fixes with user confirmation. The module integrates with the project's API, parser, and utility functions to manage error contexts, execute commands, and perform file operations. It's designed to work within a server monitoring thread, providing interactive error handling and resolution capabilities."
+    },
+    {
+      "filename": "src/drd/cli/monitor/error_handlers.py",
+      "type": "py",
+      "last_modified": "2024-07-14T13:31:21.050445",
+      "content_preview": "import re\nfrom .error_resolver import monitoring_handle_error_with_dravid\n\n\ndef handle_module_not_fo...",
+      "description": "Python module containing error handling functions for the CLI monitoring system. It includes handlers for module not found errors, syntax errors, and general errors. These handlers use regex to parse error messages and call the monitoring_handle_error_with_dravid function from the error_resolver module to process and potentially resolve the errors using the Dravid AI system."
+    },
+    {
+      "filename": "src/drd/cli/monitor/__init__.py",
+      "type": "py",
+      "last_modified": "2024-07-14T13:31:23.868643",
+      "content_preview": "from .server_monitor import run_dev_server_with_monitoring\n\n__all__ = ['run_dev_server_with_monitori...",
+      "description": "Python module initializing the monitor package, exposing the run_dev_server_with_monitoring function from the server_monitor module. This file serves as the entry point for the CLI monitoring functionality in the Dravid (DRD) project."
+    },
+    {
+      "filename": "src/drd/metadata/common_utils.py",
+      "type": "py",
+      "last_modified": "2024-07-14T13:46:56.118366",
+      "content_preview": "import os\nimport re\nfrom ..api.dravid_api import call_dravid_api_with_pagination\nfrom ..api.dravid_p...",
+      "description": "Python module containing utility functions for metadata management in the DRD project. It includes functions for parsing .gitignore files, determining file exclusions, generating folder structures, and creating file descriptions. The module integrates with the project's API and parser components to generate metadata using AI assistance. Key functionalities include gitignore pattern parsing, file/folder exclusion logic, folder structure generation, and AI-assisted file description generation. This module is crucial for maintaining project context and organizing metadata across the DRD application."
     }
   ],
   "dev_server": {

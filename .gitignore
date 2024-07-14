@@ -9,3 +9,5 @@ test-app
 testapp
 .git
 .pytest_cache
+myfrontendapp
+nodsam
