@@ -115,7 +115,8 @@ export PATH="/usr/local/opt/maven/bin:$PATH
 For eg, if there is an existing project and the new project can't be initialised
 or when some file conflicts for shell command to succeed then suggest a shell script like 
 "echo 'create a new directory and try again'"
-22. When installing new languages try to install through a version manager
+22. When suggesting a installation script for language related installation, prefer version manager.
+For eg, if you need to install python, use something like pyenv and related steps.
 """
 
     print_info("Sending error information to dravid for analysis...")

@@ -11,7 +11,7 @@ from ..utils.api_utils import stream_claude_response
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.8.0"  # Update this as you release new versions
+VERSION = "0.9.0"  # Update this as you release new versions
 
 
 def handle_query_command(query, image, debug):
