@@ -6,6 +6,7 @@ from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
 from ..utils.utils import print_error, print_success, print_info
 from .common_utils import get_ignore_patterns, get_folder_structure, should_ignore, generate_file_description
+from ..prompts.get_project_info_prompts import get_project_info_prompt
 
 
 def initialize_project_metadata(current_dir):
@@ -17,31 +18,9 @@ def initialize_project_metadata(current_dir):
     folder_structure = get_folder_structure(current_dir, ignore_patterns)
     print_info("The current folder structure:")
     print_info(folder_structure)
-    query = f"""
-Current folder structure:
-{folder_structure}
 
-Based on the folder structure, please analyze the project and provide the following information:
-1. Project name
-2. Main programming language(s) used
-3. Framework(s) used (if any)
-4. Recommended dev server start command (if applicable)
-5. A brief description of the project
+    query = get_project_info_prompt(folder_structure)
 
-Respond with an XML structure containing this information:
-
-<response>
-  <project_info>
-    <project_name>project_name</project_name>
-    <dev_server>
-      <start_command>start_command</start_command>
-      <framework>framework_name</framework>
-      <language>programming_language</language>
-    </dev_server>
-    <description>project_description</description>
-  </project_info>
-</response>
-"""
     try:
         response = call_dravid_api_with_pagination(query, include_context=True)
         root = extract_and_parse_xml(response)

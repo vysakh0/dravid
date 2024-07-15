@@ -5,8 +5,9 @@ from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
 from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader, print_debug
+from ...utils.file_utils import get_file_content
 from ...metadata.common_utils import generate_file_description
-from .file_operations import get_files_to_modify, get_file_content
+from .file_operations import get_files_to_modify
 from .image_handler import handle_image_query
 
 

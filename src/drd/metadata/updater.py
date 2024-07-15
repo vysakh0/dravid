@@ -4,6 +4,7 @@ from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
 from ..utils.utils import print_error, print_success, print_info
 from .common_utils import get_ignore_patterns, get_folder_structure, generate_file_description
+from ..prompts.metadata_update_prompts import get_file_suggestion_prompt, get_files_to_update_prompt
 
 
 def find_file_with_dravid(filename, project_context, folder_structure, max_retries=2, current_retry=0):
@@ -14,23 +15,8 @@ def find_file_with_dravid(filename, project_context, folder_structure, max_retri
         print_error(f"File not found after {max_retries} retries: {filename}")
         return None
 
-    query = f"""
-{project_context}
-
-Current folder structure:
-{folder_structure}
-
-The file "{filename}" was not found. Based on the project context, folder structure, and the filename, can you suggest the correct path or an alternative file that might contain the updated content?
-
-Respond with an XML structure containing the suggested file path:
-
-<response>
-  <file>suggested/path/to/file.ext</file>
-</response>
-
-If you can't suggest an alternative, respond with an empty <file> tag.
-"""
-
+    query = get_file_suggestion_prompt(
+        filename, project_context, folder_structure)
     response = call_dravid_api_with_pagination(query, include_context=True)
 
     try:
@@ -60,37 +46,8 @@ def update_metadata_with_dravid(meta_description, current_dir):
     print_info("Current folder structure:")
     print_info(folder_structure)
 
-    files_query = f"""
-Project context: {project_context}
-
-Current folder structure:
-{folder_structure}
-
-User update description: {meta_description}
-
-You're a project metadata (project context) maintainer, 
-your job is to identify the relevant files for which the metadata needs to be updated or added or removed based on user update desc.
-
-Based on the user's description, project context, and the current folder structure, please identify which files need to have their metadata updated or removed.
-Respond with an XML structure containing the files to update or remove:
-
-<response>
-  <files>
-    <file>
-      <path>path/to/file1.ext</path>
-      <action>update</action>
-    </file>
-    <file>
-      <path>path/to/file2.ext</path>
-      <action>remove</action>
-    </file>
-    <!-- Add more file elements as needed -->
-  </files>
-</response>
-
-Respond strictly only with xml response as it will be used for parsing, no other extra words.
-"""
-
+    files_query = get_files_to_update_prompt(
+        project_context, folder_structure, meta_description)
     files_response = call_dravid_api_with_pagination(
         files_query, include_context=True)
 
