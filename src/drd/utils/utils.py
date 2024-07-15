@@ -28,6 +28,10 @@ def print_info(message):
     click.echo(f"{Fore.YELLOW}ℹ {message}{Style.RESET_ALL}")
 
 
+def print_debug(message):
+    click.echo(click.style(f"DEBUG: {message}", fg="cyan"))
+
+
 def print_step(step_number, total_steps, message):
     click.echo(
         f"{Fore.CYAN}[{step_number}/{total_steps}] {message}{Style.RESET_ALL}")
@@ -65,9 +69,11 @@ class Loader:
 
     def _animate(self):
         while self.is_running:
-            click.echo(f'\r{self.message} {self.animation[self.idx % len(self.animation)]}', nl=False)
+            click.echo(
+                f'\r{self.message} {self.animation[self.idx % len(self.animation)]}', nl=False)
             self.idx += 1
             time.sleep(0.1)
+
 
 def run_with_loader(func, message="Processing"):
     loader = Loader(message)

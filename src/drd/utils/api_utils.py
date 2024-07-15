@@ -5,6 +5,7 @@ import json
 import base64
 from typing import Dict, Any, Optional, List
 from ..api.dravid_parser import extract_and_parse_xml, parse_dravid_response
+from typing import Dict, Any, Optional, List, Generator
 import xml.etree.ElementTree as ET
 from .utils import print_info, print_error
 import click
@@ -125,7 +126,7 @@ def call_dravid_vision_api_with_pagination(query: str, image_path: str, include_
     return parse_response(full_response)
 
 
-def stream_claude_response(query: str, instruction_prompt: Optional[str] = None) -> str:
+def stream_claude_response(query: str, instruction_prompt: Optional[str] = None) -> Generator[str, None, None]:
     api_key = get_api_key()
     headers = get_headers(api_key)
     headers['Accept'] = 'text/event-stream'
@@ -139,7 +140,6 @@ def stream_claude_response(query: str, instruction_prompt: Optional[str] = None)
     }
 
     response = make_api_call(data, headers, stream=True)
-    full_response = ""
 
     for line in response.iter_lines():
         if line:
@@ -148,13 +148,9 @@ def stream_claude_response(query: str, instruction_prompt: Optional[str] = None)
                 data = json.loads(line[6:])
                 if data['type'] == 'content_block_delta':
                     chunk = data['delta']['text']
-                    full_response += chunk
-                    click.echo(chunk, nl=False)
+                    yield chunk
                 elif data['type'] == 'message_stop':
-                    click.echo()
                     break
-
-    return full_response
 
 
 def parse_paginated_response(response: str) -> List[Dict[str, Any]]:

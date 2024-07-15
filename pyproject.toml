@@ -16,6 +16,7 @@ colorama = "^0.4.4"
 Pillow = "^9.0.0"
 
 pigments = "^1.6"
+pygments = "^2.18.0"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.0"
 black = "^21.5b0"
@@ -29,6 +30,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 drd = "drd.cli.main:dravid_cli"
 test = "run_tests:main"
+tt = "drd.test_stream:main"
 
 [tool.pytest.ini_options]
 addopts = "-v"

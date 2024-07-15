@@ -2,58 +2,53 @@ import xml.etree.ElementTree as ET
 from typing import List, Dict, Any
 import re
 import click
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name, guess_lexer
+from pygments.formatters import TerminalFormatter
 
 
-def extract_and_parse_xml(response: str) -> ET.Element:
-    # Try to extract the outermost XML content
+def extract_outermost_xml(response: str) -> str:
     xml_start = response.find('<response>')
     xml_end = response.rfind('</response>')
     if xml_start != -1 and xml_end != -1:
-        # +11 to include '</response>'
-        xml_content = response[xml_start:xml_end + 11]
-    else:
-        raise ValueError("No valid XML response found")
+        return response[xml_start:xml_end + 11]
+    raise ValueError("No valid XML response found")
 
-    # Remove any content after the closing </response> tag
-    xml_content = re.sub(r'</response>.*$', '</response>',
-                         xml_content, flags=re.DOTALL)
 
-    # Escape any nested CDATA sections
-    xml_content = re.sub(r'<!\[CDATA\[(.*?)\]\]>', lambda m: '<![CDATA[' + m.group(
-        1).replace(']]>', ']]]]><![CDATA[>') + ']]>', xml_content, flags=re.DOTALL)
+def escape_nested_cdata(xml_content: str) -> str:
+    return re.sub(
+        r'<!\[CDATA\[(.*?)\]\]>',
+        lambda m: '<![CDATA[' + m.group(1).replace(']]>',
+                                                   ']]]]><![CDATA[>') + ']]>',
+        xml_content,
+        flags=re.DOTALL
+    )
 
-    # Parse the XML
+
+def escape_special_characters(xml_content: str) -> str:
+    return xml_content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+def extract_and_parse_xml(response: str) -> ET.Element:
     try:
-        root = ET.fromstring(xml_content)
-        return root
+        xml_content = extract_outermost_xml(response)
+        xml_content = escape_nested_cdata(xml_content)
+
+        # Escape special characters in content, but not in tags
+        xml_content = re.sub(
+            r'(>)([^<]+)(<)',
+            lambda m: m.group(
+                1) + escape_special_characters(m.group(2)) + m.group(3),
+            xml_content
+        )
+
+        return ET.fromstring(xml_content)
     except ET.ParseError as e:
-        print("---errroro", response)
         print(f"Error parsing XML: {e}")
         print("Original response:")
         print(response)
-
-        # Attempt to identify the problematic part
-        line_num, col_num = e.position
-        lines = xml_content.split('\n')
-        if line_num <= len(lines):
-            problematic_line = lines[line_num - 1]
-            print(f"Problematic line ({line_num}):")
-            print(problematic_line)
-            print(' ' * (col_num - 1) + '^')
-
-            # Try to fix common issues
-            fixed_line = re.sub(
-                r'&(?!amp;|lt;|gt;|apos;|quot;)', '&amp;', problematic_line)
-            if fixed_line != problematic_line:
-                print("Attempting to fix the line:")
-                print(fixed_line)
-                lines[line_num - 1] = fixed_line
-                fixed_xml = '\n'.join(lines)
-                try:
-                    return ET.fromstring(fixed_xml)
-                except ET.ParseError:
-                    print("Fix attempt failed.")
-
+        print("Processed XML content:")
+        print(xml_content)
         raise
 
 
@@ -89,7 +84,7 @@ def pretty_print_commands(commands: List[Dict[str, Any]]):
         click.echo(click.style(f"\nCommand {i}:", fg="cyan", bold=True))
 
         if cmd['type'] == 'file':
-            if cmd['filename'] == 'metadata':
+            if cmd.get('filename') == 'metadata':
                 continue
             filename = cmd.get('filename', 'Unknown file')
             operation = cmd.get('operation', 'Unknown operation')

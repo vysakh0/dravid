@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-14T13:46:56.118163",
+  "last_updated": "2024-07-15T19:28:48.616766",
   "files": [
     {
       "filename": "conftest.py",
@@ -82,9 +82,9 @@
     {
       "filename": "src/drd/utils/api_utils.py",
       "type": "py",
-      "last_modified": "2024-07-12T10:53:08.351815",
-      "content_preview": "import requests\nimport os\nimport json\nimport base64\nfrom typing import Dict, Any, Optional\nfrom ..ap...",
-      "description": "API utilities for making calls to Claude AI, handling responses, and parsing XML data."
+      "last_modified": "2024-07-15T19:28:48.616837",
+      "content_preview": "import requests\nimport mimetypes\nimport os\nimport json\nimport base64\nfrom typing import Dict, Any, O...",
+      "description": "Python module containing utility functions for API interactions in the DRD project. It includes functions for making API calls to Claude AI, handling responses, parsing XML data, and streaming responses. The module provides functionality for both text and image-based queries, supports pagination for long responses, and includes methods for formatting and displaying command outputs. Key features include API key management, headers setup, response parsing, and integration with the project's XML parsing utilities. This file is crucial for the project's AI-powered CLI functionality, enabling seamless communication with external AI services."
     },
     {
       "filename": "src/drd/cli/__init__.py",

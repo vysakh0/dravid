@@ -4,7 +4,7 @@ from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.error_handling import handle_error_with_dravid
-from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader
+from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader, print_debug
 from ...metadata.common_utils import generate_file_description
 from .file_operations import get_files_to_modify, get_file_content
 from .image_handler import handle_image_query
@@ -65,17 +65,18 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         else:
             print_info("Streaming response from Claude API...")
             commands = []
-            for new_commands in stream_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt):
+            for new_commands in stream_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt, debug=debug):
                 commands.extend(new_commands)
-                print_info(f"Received {len(new_commands)} new command(s)")
-                pretty_print_commands(new_commands)
+                if debug:
+                    print_debug(f"Received {len(new_commands)} new command(s)")
 
-        if not commands:
-            print_error(
-                "Failed to parse Claude's response or no commands to execute.")
-            return
+            if not commands:
+                print_error(
+                    "Failed to parse Claude's response or no commands to execute.")
+                return
 
-        print_info(f"Parsed {len(commands)} commands from Claude's response.")
+            print_info(
+                f"Parsed {len(commands)} commands from Claude's response.")
 
         for i, cmd in enumerate(commands):
             if cmd['type'] == 'explanation':
