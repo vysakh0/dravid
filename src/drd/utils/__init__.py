@@ -7,9 +7,8 @@ from .utils import (
     print_debug,
     print_warning,
     fetch_project_guidelines,
-    Loader,
-    run_with_loader
 )
+from .loader import Loader, run_with_loader
 from .api_utils import call_dravid_api_with_pagination, call_dravid_vision_api_with_pagination
 
 __all__ = [

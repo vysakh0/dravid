@@ -72,7 +72,6 @@ def generate_file_description(filename, content, project_context, folder_structu
     print_info("LLM calls to be made: 1")
     response = call_dravid_api_with_pagination(
         metadata_query, include_context=True)
-    print_info(f"Raw response: {response}")  # Add this line for debugging
     try:
         root = extract_and_parse_xml(response)
 

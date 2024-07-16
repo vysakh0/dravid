@@ -5,7 +5,8 @@ import asyncio
 from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
-from ..utils.utils import print_error, print_success, print_info, print_warning, run_with_loader, Loader
+from ..utils.utils import print_error, print_success, print_info, print_warning
+from ..utils.loader import run_with_loader, Loader
 from .common_utils import get_ignore_patterns, get_folder_structure, should_ignore
 from .rate_limit_handler import process_files
 from ..prompts.get_project_info_prompts import get_project_info_prompt

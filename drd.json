@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-16T14:50:27.811772",
+  "last_updated": "2024-07-16T20:30:42.897684",
   "files": [
     {
       "filename": "CONTRIBUTING.md",
@@ -197,8 +197,8 @@
     {
       "filename": "src/drd/utils/__init__.py",
       "type": "Python Module",
-      "last_modified": "2024-07-16T12:30:59.232944",
-      "content_preview": "from .utils import (     get_project_context,     print_error,     print_success,     print_info,   ...",
+      "last_modified": "2024-07-16T20:30:30.953548",
+      "content_preview": "from .utils import (\n    get_project_context,\n    print_error,\n    print_success,\n    print_info,\n  ...",
       "description": "Initialization module for the utils package in the DRD project. It imports and re-exports various utility functions from submodules, including project context retrieval, console output formatting, API interaction utilities, and project guideline fetching. This module serves as a central point for accessing utility functions across the DRD application.",
       "exports": "fun:get_project_context,fun:print_error,fun:print_success,fun:print_info,fun:print_step,fun:print_debug,fun:print_warning,fun:call_dravid_api_with_pagination,fun:call_dravid_vision_api_with_pagination,fun:fetch_project_guidelines,class:Loader,fun:run_with_loader"
     },
@@ -268,11 +268,11 @@
     },
     {
       "filename": "src/drd/utils/utils.py",
-      "type": "Python",
-      "last_modified": "2024-07-16T12:30:32.473782",
-      "content_preview": "import click from colorama import Fore, Style import json import os import time import threading  ME...",
-      "description": "This file contains utility functions for the DRD project, including color-coded console output, project context retrieval, file operations, and a loading animation. It provides essential tools for user interaction, error handling, and project management within the CLI application.",
-      "exports": "fun:get_project_context,fun:print_error,fun:print_success,fun:print_info,fun:print_warning,fun:print_debug,fun:print_step,fun:fetch_project_guidelines,fun:run_with_loader,class:Loader"
+      "type": "Python Utility Module",
+      "last_modified": "2024-07-16T20:30:36.995967",
+      "content_preview": "import click\nfrom colorama import Fore, Style\nimport json\nimport os\n\nMETADATA_FILE = 'drd.json'\n\n\nde...",
+      "description": "This file contains utility functions for the DRD project, including color-coded console output, project context retrieval, file operations, and project guideline fetching. It provides essential tools for user interaction, error handling, and project management within the CLI application. The module defines constants for metadata file names and implements functions for formatted console output using colorama. It also includes functions for reading project metadata and guidelines from files.",
+      "exports": "fun:get_project_context,fun:print_error,fun:print_success,fun:print_info,fun:print_warning,fun:print_debug,fun:print_step,fun:fetch_project_guidelines,var:METADATA_FILE"
     },
     {
       "filename": "src/drd/cli/query/tests/test_file_operations.py",
@@ -424,6 +424,14 @@
       "last_modified": "2024-07-16T14:50:27.810193",
       "content_preview": "import traceback\nimport click\nfrom ...utils.api_utils import call_dravid_api_with_pagination\nfrom .....",
       "description": "This file contains the dynamic command handler for the DRD project's CLI query functionality. It includes functions for executing various types of commands (shell, file operations, metadata updates), handling errors with the Dravid API, and updating file metadata. The module integrates closely with the project's executor, metadata manager, and API utilities. It plays a crucial role in processing and executing commands generated from user queries or error resolution attempts."
+    },
+    {
+      "filename": "src/drd/utils/loader.py",
+      "type": "Python Module",
+      "last_modified": "2024-07-16T20:30:42.897795",
+      "content_preview": "import click\nimport time\nimport threading\n\n\nclass Loader:\n    def __init__(self, message=\"Processing...",
+      "description": "This file defines a Loader class and a run_with_loader function for creating loading animations in CLI applications. The Loader class uses threading to display a spinning animation alongside a message, providing visual feedback during long-running operations. The run_with_loader function is a utility that wraps a given function with a loading animation. This module is part of the utils package in the DRD project, enhancing the user experience by providing visual feedback during processing tasks.",
+      "exports": "class:Loader,fun:run_with_loader"
     }
   ],
   "dev_server": {
