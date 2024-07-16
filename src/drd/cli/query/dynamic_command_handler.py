@@ -100,7 +100,7 @@ def handle_metadata_operation(cmd, metadata_manager):
 def update_file_metadata(cmd, metadata_manager, executor):
     project_context = metadata_manager.get_project_context()
     folder_structure = executor.get_folder_structure()
-    file_type, description = generate_file_description(
+    file_type, description, exports = generate_file_description(
         cmd['filename'],
         cmd.get('content', ''),
         project_context,
@@ -110,7 +110,8 @@ def update_file_metadata(cmd, metadata_manager, executor):
         cmd['filename'],
         file_type,
         cmd.get('content', ''),
-        description
+        description,
+        exports
     )
 
 

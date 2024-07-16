@@ -1,6 +1,6 @@
 {
   "project_name": "drd",
-  "last_updated": "2024-07-16T12:49:35.517165",
+  "last_updated": "2024-07-16T14:50:27.811772",
   "files": [
     {
       "filename": "CONTRIBUTING.md",
@@ -177,14 +177,6 @@
       "content_preview": "from .cli.main import dravid_cli  if __name__ == \"__main__\":     dravid_cli() ",
       "description": "Main entry point for the DRD (Dravid) CLI application. This file imports the dravid_cli function from the cli.main module and executes it when the script is run directly. It serves as the starting point for the CLI tool, connecting the user interface with the underlying functionality of the DRD project.",
       "exports": "None"
-    },
-    {
-      "filename": "src/drd/cli/query/error_handling.py",
-      "type": "Python Module",
-      "last_modified": "2024-07-16T11:39:41.450600",
-      "content_preview": "import traceback import click from ...utils.api_utils import call_dravid_api_with_pagination from .....",
-      "description": "This module handles error resolution in the DRD project's query functionality. It uses the Dravid API to analyze errors, suggest fixes, and apply them. The module includes functions for error handling, parsing API responses, and executing fix commands. It interacts with other project components such as metadata management, API utilities, and command execution.",
-      "exports": "fun:handle_error_with_dravid,fun:apply_fix_commands"
     },
     {
       "filename": "src/drd/api/__init__.py",
@@ -425,6 +417,13 @@
       "content_preview": "import click from dotenv import load_dotenv from colorama import init from .commands import dravid_c...",
       "description": "Main CLI entry point for the DRD project. Defines the command-line interface using Click, sets up various options and arguments for different functionalities like querying, image handling, debugging, hot-fixing, metadata management, and asking questions. Utilizes environment variables and integrates with other modules in the project.",
       "exports": "fun:dravid_cli"
+    },
+    {
+      "filename": "src/drd/cli/query/dynamic_command_handler.py",
+      "type": "Python Module",
+      "last_modified": "2024-07-16T14:50:27.810193",
+      "content_preview": "import traceback\nimport click\nfrom ...utils.api_utils import call_dravid_api_with_pagination\nfrom .....",
+      "description": "This file contains the dynamic command handler for the DRD project's CLI query functionality. It includes functions for executing various types of commands (shell, file operations, metadata updates), handling errors with the Dravid API, and updating file metadata. The module integrates closely with the project's executor, metadata manager, and API utilities. It plays a crucial role in processing and executing commands generated from user queries or error resolution attempts."
     }
   ],
   "dev_server": {

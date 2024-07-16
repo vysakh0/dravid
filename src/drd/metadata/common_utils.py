@@ -3,7 +3,8 @@ import re
 from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
 from ..prompts.file_metada_desc_prompts import get_file_metadata_prompt
-from ..utils import print_info
+from ..prompts.metadata_update_prompts import get_file_suggestion_prompt
+from ..utils import print_info, print_error
 
 
 def parse_gitignore(gitignore_path):
@@ -67,15 +68,60 @@ def generate_file_description(filename, content, project_context, folder_structu
     metadata_query = get_file_metadata_prompt(
         filename, content, project_context, folder_structure)
     print_info(
-        f"Get description.. of {filename} to update metadainfo for future reference")
+        f"Getting description of {filename} to update metadata for future reference")
     print_info("LLM calls to be made: 1")
     response = call_dravid_api_with_pagination(
         metadata_query, include_context=True)
+    print_info(f"Raw response: {response}")  # Add this line for debugging
     try:
         root = extract_and_parse_xml(response)
-        file_type = root.find('.//type').text.strip()
-        description = root.find('.//description').text.strip()
-        return file_type, description
+
+        metadata = root.find('.//metadata')
+        if metadata is None:
+            raise ValueError("Metadata section not found in the response")
+
+        type_element = metadata.find('type')
+        description_element = metadata.find('description')
+        exports_element = metadata.find('exports')
+
+        file_type = type_element.text.strip(
+        ) if type_element is not None and type_element.text else "unknown"
+        description = description_element.text.strip(
+        ) if description_element is not None and description_element.text else "No description available"
+        exports = exports_element.text.strip(
+        ) if exports_element is not None and exports_element.text else ""
+
+        print_info(
+            f"Generated metadata for {filename}: Type: {file_type}, Description: {description[:50]}..., Exports: {exports[:50]}...")
+        return file_type, description, exports
     except Exception as e:
-        print(f"Error parsing metadata response: {e}")
-        return "unknown", "Error generating description"
+        print_error(f"Error parsing metadata response for {filename}: {e}")
+        print_error(f"Raw response: {response}")
+        return "unknown", f"Error generating description: {str(e)}", ""
+
+
+def find_file_with_dravid(filename, project_context, folder_structure, max_retries=2, current_retry=0):
+    if os.path.exists(filename):
+        return filename
+
+    if current_retry >= max_retries:
+        print_error(f"File not found after {max_retries} retries: {filename}")
+        return None
+
+    query = get_file_suggestion_prompt(
+        filename, project_context, folder_structure)
+    response = call_dravid_api_with_pagination(query, include_context=True)
+
+    try:
+        root = extract_and_parse_xml(response)
+        suggested_file = root.find('.//file').text
+        if suggested_file and suggested_file.strip():
+            print_info(
+                f"Dravid suggested an alternative file: {suggested_file}")
+            return find_file_with_dravid(suggested_file.strip(), project_context, folder_structure, max_retries, current_retry + 1)
+        else:
+            print_info("Dravid couldn't suggest an alternative file.")
+            return None
+    except Exception as e:
+        print_error(f"Error parsing dravid's response: {str(e)}")
+        return None
