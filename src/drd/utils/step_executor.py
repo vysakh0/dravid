@@ -219,14 +219,18 @@ class Executor:
             raise Exception(error_message)
 
     def _update_env_from_command(self, command):
-        # Check if the command is setting an environment variable
-        if '=' in command and not command.startswith(('export ', 'set ')):
-            key, value = command.split('=', 1)
-            self.env[key.strip()] = value.strip().strip('"\'')
-        elif command.startswith(('export ', 'set ')):
-            # Handle export and set commands
-            parts = command.split(None, 2)
-            if len(parts) == 3:
-                _, key, value = parts
-                key = key.split('=')[0]  # Handle cases like "export FOO=bar"
-                self.env[key] = value.strip().strip('"\'')
+        if '=' in command:
+            if command.startswith('export '):
+                # Handle export command
+                _, var_assignment = command.split(None, 1)
+                key, value = var_assignment.split('=', 1)
+                self.env[key.strip()] = value.strip().strip('"\'')
+            elif command.startswith('set '):
+                # Handle set command
+                _, var_assignment = command.split(None, 1)
+                key, value = var_assignment.split('=', 1)
+                self.env[key.strip()] = value.strip().strip('"\'')
+            else:
+                # Handle simple assignment
+                key, value = command.split('=', 1)
+                self.env[key.strip()] = value.strip().strip('"\'')

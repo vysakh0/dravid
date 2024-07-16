@@ -6,14 +6,6 @@ import os
 METADATA_FILE = 'drd.json'
 
 
-def get_project_context():
-    if os.path.exists(METADATA_FILE):
-        with open(METADATA_FILE, 'r') as f:
-            metadata = json.load(f)
-        return json.dumps(metadata, indent=2)
-    return "{}"
-
-
 def print_error(message):
     click.echo(f"{Fore.RED}✘ {message}{Style.RESET_ALL}")
 
@@ -37,13 +29,3 @@ def print_debug(message):
 def print_step(step_number, total_steps, message):
     click.echo(
         f"{Fore.CYAN}[{step_number}/{total_steps}] {message}{Style.RESET_ALL}")
-
-
-def fetch_project_guidelines(project_dir):
-    guidelines_path = os.path.join(project_dir, 'project_guidelines.txt')
-    project_guidelines = ""
-    if os.path.exists(guidelines_path):
-        with open(guidelines_path, 'r') as guidelines_file:
-            project_guidelines = guidelines_file.read()
-        print_info("Project guidelines found and included in the context.")
-    return project_guidelines
