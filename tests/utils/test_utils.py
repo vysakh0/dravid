@@ -6,14 +6,12 @@ from io import StringIO
 from colorama import Fore, Style
 
 from drd.utils.utils import (
-    get_project_context,
     print_error,
     print_success,
     print_info,
     print_warning,
     print_debug,
     print_step,
-    fetch_project_guidelines
 )
 
 
