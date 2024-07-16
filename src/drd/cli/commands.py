@@ -1,9 +1,10 @@
 import click
 import sys
 import os
+import asyncio
 from dotenv import load_dotenv
 from .query import execute_dravid_command
-from ..prompts.claude_instructions import get_instruction_prompt
+from ..prompts.instructions import get_instruction_prompt
 from .monitor import run_dev_server_with_monitoring
 from ..metadata.initializer import initialize_project_metadata
 from ..metadata.updater import update_metadata_with_dravid
@@ -31,7 +32,7 @@ def dravid_cli_logic(query, image, debug, monitor_fix, meta_add, meta_init, ask,
     elif meta_add:
         update_metadata_with_dravid(meta_add, os.getcwd())
     elif meta_init:
-        initialize_project_metadata(os.getcwd())
+        asyncio.run(initialize_project_metadata(os.getcwd()))
     elif version:
         click.echo(f"Dravid CLI version {VERSION}")
         return

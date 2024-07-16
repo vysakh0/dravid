@@ -2,6 +2,7 @@ import os
 import re
 from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
+from ..prompts.file_metada_desc_prompts import get_file_metadata_prompt
 
 
 def parse_gitignore(gitignore_path):
@@ -35,7 +36,6 @@ def get_folder_structure(start_path, ignore_patterns):
         folder_name = os.path.basename(root)
         rel_path = os.path.relpath(root, start_path)
         rel_path = '' if rel_path == '.' else rel_path
-
         if not should_ignore(rel_path, ignore_patterns):
             structure.append(f"{indent}{folder_name}/")
             sub_indent = ' ' * 4 * (level + 1)
@@ -43,10 +43,8 @@ def get_folder_structure(start_path, ignore_patterns):
                 file_path = os.path.join(rel_path, file)
                 if not should_ignore(file_path, ignore_patterns):
                     structure.append(f"{sub_indent}{file}")
-
         dirs[:] = [d for d in dirs if not should_ignore(
             os.path.join(rel_path, d), ignore_patterns)]
-
     return '\n'.join(structure)
 
 
@@ -65,25 +63,8 @@ def get_ignore_patterns(current_dir):
 
 
 def generate_file_description(filename, content, project_context, folder_structure):
-    metadata_query = f"""
-{project_context}
-Current folder structure:
-{folder_structure}
-File: {filename}
-Content:
-{content}
-You're the project context maintainer, your role is to keep relevant meta info about the entire project so it can be used
-by an AI coding assistant in future for reference.
-Now based on the file content, project context, and the current folder structure, please generate appropriate metadata for this file.
-Respond with an XML structure containing the metadata:
-<response>
-  <metadata>
-    <type>file_type</type>
-    <description>Description based on the file's contents, project context, folder structure for </description>
-  </metadata>
-</response>
-Respond strictly only with xml response as it will be used for parsing, no other extra words.
-"""
+    metadata_query = get_file_metadata_prompt(
+        filename, content, project_context, folder_structure)
     response = call_dravid_api_with_pagination(
         metadata_query, include_context=True)
     try:
