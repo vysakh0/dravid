@@ -50,7 +50,8 @@ Your responses should follow this XML format:
       <filename>drd.json</filename>
       <content>
         <![CDATA[
-        content to append or replace
+          def myapp():
+            return 10
         ]]>
       </content>
     </step>
