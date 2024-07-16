@@ -3,7 +3,7 @@ from ...api.dravid_api import stream_dravid_api, call_dravid_vision_api
 from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
-from .error_handling import handle_error_with_dravid
+from .dynamic_command_handler import handle_error_with_dravid, execute_commands
 from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader, print_debug, print_warning
 from ...utils.file_utils import get_file_content
 from ...metadata.common_utils import generate_file_description
@@ -74,63 +74,36 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
                 if debug:
                     print_debug(f"Received {len(new_commands)} new command(s)")
 
-            if not commands:
-                print_error(
-                    "Failed to parse Claude's response or no commands to execute.")
-                return
+        if not commands:
+            print_error(
+                "Failed to parse Claude's response or no commands to execute.")
+            return
 
-            print_info(
-                f"Parsed {len(commands)} commands from Claude's response.")
+        print_info(
+            f"Parsed {len(commands)} commands from Claude's response.")
 
-        for i, cmd in enumerate(commands):
-            if cmd['type'] == 'explanation':
-                print_info(f"Explanation: {cmd['content']}")
-                continue
+        # Execute commands using the new execute_commands function
+        success, step_completed, error_message, all_outputs = execute_commands(
+            commands, executor, metadata_manager, debug=debug)
 
-            print_step(i+1, len(commands),
-                       f"Processing {cmd['type']} command...")
-
-            max_retries = 3
-            for attempt in range(max_retries):
-                if cmd['type'] == 'metadata':
-                    if cmd['operation'] == 'UPDATE_DEV_SERVER':
-                        metadata_manager.update_dev_server_info(
-                            cmd['start_command'],
-                            cmd['framework'],
-                            cmd['language']
-                        )
-                        print_success(
-                            "Updated dev server info in project metadata.")
-                        break
-                    elif cmd['operation'] == 'UPDATE_FILE':
-                        if metadata_manager.update_metadata_from_file(cmd['filename']):
-                            print_success(
-                                f"Updated metadata for file: {cmd['filename']}")
-                        else:
-                            print_error(
-                                f"Failed to update metadata for file: {cmd['filename']}")
-                        break
-                else:
-                    result = handle_command(cmd, executor, metadata_manager)
-                    if isinstance(result, tuple) and not result[0]:
-                        error = result[1]
-                        print_info(
-                            f"Error occurred (Attempt {attempt+1}/{max_retries}). Attempting to fix with Claude's assistance.")
-                        if handle_error_with_dravid(error, cmd, executor, metadata_manager):
-                            print_info(
-                                "Fix applied successfully. Retrying the original command.")
-                        else:
-                            print_error(
-                                f"Unable to fix the error after attempt {attempt+1}.")
-                            if attempt == max_retries - 1:
-                                print_info(
-                                    "Max retries reached. Skipping this command.")
-                                break
-                    else:
-                        break  # Command executed successfully
+        if not success:
+            print_error(f"Failed to execute command at step {step_completed}.")
+            print_error(f"Error message: {error_message}")
+            print_info("Attempting to fix the error...")
+            if handle_error_with_dravid(Exception(error_message), commands[step_completed-1], executor, metadata_manager, debug=debug):
+                print_info(
+                    "Fix applied successfully. Continuing with the remaining commands.")
+                # Re-execute the remaining commands
+                remaining_commands = commands[step_completed:]
+                success, _, error_message, additional_outputs = execute_commands(
+                    remaining_commands, executor, metadata_manager, debug=debug)
+                all_outputs += "\n" + additional_outputs
             else:
                 print_error(
-                    f"Failed to execute command after {max_retries} attempts. Skipping and moving to the next command.")
+                    "Unable to fix the error. Skipping this command and continuing with the next.")
+
+        print_info("Execution details:")
+        click.echo(all_outputs)
 
         print_success("Dravid CLI tool execution completed.")
     except Exception as e:
@@ -138,52 +111,3 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         if debug:
             import traceback
             traceback.print_exc()
-
-
-def handle_command(cmd, executor, metadata_manager):
-    try:
-        if cmd['type'] == 'shell':
-            output = executor.execute_shell_command(cmd['command'])
-            if output is not None:
-                print_success(f"Executed shell command: {cmd['command']}")
-                if output:
-                    click.echo(f"Command output:\n{output}")
-            else:
-                raise Exception(
-                    f"Shell command execution failed: {cmd['command']}")
-        elif cmd['type'] == 'file':
-            operation_performed = executor.perform_file_operation(
-                cmd['operation'],
-                cmd['filename'],
-                cmd.get('content'),
-                force=True
-            )
-
-            if operation_performed:
-                project_context = metadata_manager.get_project_context()
-                folder_structure = executor.get_folder_structure()
-                file_type, description = run_with_loader(
-                    lambda: generate_file_description(
-                        cmd['filename'],
-                        cmd.get('content', ''),
-                        project_context,
-                        folder_structure
-                    ),
-                    f"Generating description for {cmd['filename']}"
-                )
-                metadata_manager.update_file_metadata(
-                    cmd['filename'],
-                    file_type,
-                    cmd.get('content', ''),
-                    description
-                )
-                print_success(
-                    f"Performed {cmd['operation']} operation on file: {cmd['filename']}")
-                print_info(f"Generated description: {description}")
-            else:
-                raise Exception(
-                    f"File operation failed: {cmd['operation']} on {cmd['filename']}")
-        return True
-    except Exception as e:
-        print_error(f"Error in handle_command: {str(e)}")
-        return False, e
