@@ -28,6 +28,10 @@ def print_info(message):
     click.echo(f"{Fore.YELLOW}ℹ {message}{Style.RESET_ALL}")
 
 
+def print_warning(message):
+    click.echo(f"{Fore.YELLOW}⚠ {message}{Style.RESET_ALL}")
+
+
 def print_debug(message):
     click.echo(click.style(f"DEBUG: {message}", fg="cyan"))
 

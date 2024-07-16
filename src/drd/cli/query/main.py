@@ -3,8 +3,8 @@ from ...api.dravid_api import stream_dravid_api, call_dravid_vision_api
 from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
-from ...prompts.error_handling import handle_error_with_dravid
-from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader, print_debug
+from .error_handling import handle_error_with_dravid
+from ...utils import print_error, print_success, print_info, print_step, fetch_project_guidelines, run_with_loader, print_debug, print_warning
 from ...utils.file_utils import get_file_content
 from ...metadata.common_utils import generate_file_description
 from .file_operations import get_files_to_modify
@@ -13,10 +13,10 @@ from .image_handler import handle_image_query
 
 def execute_dravid_command(query, image_path, debug, instruction_prompt):
     print_info("Starting Dravid CLI tool..")
-    print_error("Please make sure you are in a fresh directory.")
-    print_info(
+    print_warning("Please make sure you are in a fresh directory.")
+    print_warning(
         "If it is an existing project, please ensure you're in a git branch")
-    print_error("Use Ctrl+C if you're not")
+    print_warning("Use Ctrl+C to exit if you're not")
 
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)
