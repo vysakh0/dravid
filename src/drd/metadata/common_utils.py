@@ -22,7 +22,13 @@ def parse_gitignore(gitignore_path):
                         pattern += '.*'
                     else:
                         pattern = '.*' + pattern
-                    ignore_patterns.append(re.compile(pattern))
+                    try:
+                        ignore_patterns.append(re.compile(pattern))
+                        print(f"Added pattern: {pattern}")  # Debug print
+                    except re.error as e:
+                        # Debug print
+                        print(f"Error compiling pattern '{pattern}': {e}")
+    print(f"Total patterns: {len(ignore_patterns)}")  # Debug print
     return ignore_patterns
 
 
