@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dravid"
-version = "0.9.0"
+version = "0.10.0"
 description = "A CLI coding super-framework using AI"
 authors = ["Vysakh Sreenivasan <srvysakh@gmail.com>"]
 license = "MIT"
