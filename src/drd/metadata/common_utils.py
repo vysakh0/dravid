@@ -3,6 +3,7 @@ import re
 from ..api.dravid_api import call_dravid_api_with_pagination
 from ..api.dravid_parser import extract_and_parse_xml
 from ..prompts.file_metada_desc_prompts import get_file_metadata_prompt
+from ..utils import print_info
 
 
 def parse_gitignore(gitignore_path):
@@ -65,6 +66,9 @@ def get_ignore_patterns(current_dir):
 def generate_file_description(filename, content, project_context, folder_structure):
     metadata_query = get_file_metadata_prompt(
         filename, content, project_context, folder_structure)
+    print_info(
+        f"Get description.. of {filename} to update metadainfo for future reference")
+    print_info("LLM calls to be made: 1")
     response = call_dravid_api_with_pagination(
         metadata_query, include_context=True)
     try:

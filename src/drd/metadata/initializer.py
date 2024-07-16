@@ -75,6 +75,7 @@ async def initialize_project_metadata(current_dir):
         print_success(f"Read {len(files_to_process)} files")
 
         # Process files asynchronously
+        print_info("Processing file metadata...")
         processed_files = await process_files(files_to_process, json.dumps(metadata), folder_structure)
 
         for filename, file_type, description, exports in processed_files:
@@ -114,12 +115,4 @@ async def initialize_project_metadata(current_dir):
 
 
 def initialize_project_metadata_sync(current_dir):
-    """
-    Synchronous wrapper for initialize_project_metadata.
-    This function can be imported and used in other parts of the code.
-    """
     asyncio.run(initialize_project_metadata(current_dir))
-
-
-if __name__ == "__main__":
-    initialize_project_metadata_sync(os.getcwd())

@@ -28,6 +28,7 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
     )
 
     print_info("Sending error information to dravid for analysis...")
+    print_info("LLM calls to be made: 1")
     response = call_dravid_api_with_pagination(
         error_query, include_context=True)
 

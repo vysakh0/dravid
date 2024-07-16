@@ -26,6 +26,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
 
         if project_context:
             print_info("Identifying related files to the query...")
+            print_info("LLM calls to be made: 1")
             files_to_modify = run_with_loader(
                 lambda: get_files_to_modify(query, project_context),
                 "Analyzing project files"
@@ -58,6 +59,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         print_info("Preparing to send query to Claude API...")
         if image_path:
             print_info(f"Processing image: {image_path}")
+            print_info("LLM calls to be made: 1")
             commands = run_with_loader(
                 lambda: call_dravid_vision_api(
                     full_query, image_path, include_context=True, instruction_prompt=instruction_prompt),
@@ -65,6 +67,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             )
         else:
             print_info("Streaming response from Claude API...")
+            print_info("LLM calls to be made: 1")
             commands = []
             for new_commands in stream_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt, debug=debug):
                 commands.extend(new_commands)
