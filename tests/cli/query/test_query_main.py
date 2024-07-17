@@ -31,11 +31,23 @@ class TestExecuteDravidCommand(unittest.TestCase):
         mock_metadata_manager.return_value = self.metadata_manager
         self.metadata_manager.get_project_context.return_value = "Test project context"
         mock_get_files.return_value = ["file1.py", "file2.py"]
-        mock_stream_api.return_value = [
-            [{'type': 'shell', 'command': 'echo "Hello"'}],
-            [{'type': 'file', 'operation': 'CREATE',
-                'filename': 'test.txt', 'content': 'Test content'}]
-        ]
+
+        mock_stream_api.return_value = """
+        <response>
+            <steps>
+                <step>
+                    <type>shell</type>
+                    <command> echo "hello" </command>
+                </step>
+                <step>
+                    <type>file</type>
+                    <operation>CREATE</operation>
+                    <filename>text.txt</filename>
+                    <content>Test content</content>
+                </step>
+            </steps>
+        </response>
+        """
         mock_execute_commands.return_value = (
             True, 2, None, "All commands executed successfully")
         mock_run_with_loader.side_effect = lambda f, *args, **kwargs: f()
@@ -44,8 +56,7 @@ class TestExecuteDravidCommand(unittest.TestCase):
                                self.debug, self.instruction_prompt)
 
         mock_print_debug.assert_has_calls([
-            call("Received 1 new command(s)"),
-            call("Received 1 new command(s)")
+            call("Received 2 new command(s)")
         ])
 
     @patch('drd.cli.query.main.Executor')
@@ -64,8 +75,17 @@ class TestExecuteDravidCommand(unittest.TestCase):
         mock_metadata_manager.return_value = self.metadata_manager
         self.metadata_manager.get_project_context.return_value = "Test project context"
         mock_get_files.return_value = ["file1.py", "file2.py"]
-        mock_stream_api.return_value = [
-            [{'type': 'shell', 'command': 'echo "Hello"'}]]
+        mock_stream_api.return_value = """
+        <response>
+            <explanation>Test explanation</explanation>
+            <steps>
+                <step>
+                    <type>shell</type>
+                    <command> echo "hello" </command>
+                </step>
+            </steps>
+        </response>
+        """
         mock_execute_commands.return_value = (
             False, 1, "Command failed", "Error output")
         mock_handle_error.return_value = True

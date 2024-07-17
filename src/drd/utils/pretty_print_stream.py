@@ -1,9 +1,10 @@
 import re
 import click
+import re
+import click
 
 
 def pretty_print_xml_stream(chunk, state):
-
     state['buffer'] += chunk
 
     max_iterations = 1000
@@ -58,13 +59,14 @@ def pretty_print_xml_stream(chunk, state):
                             click.echo(f" {operation} {filename}")
 
                         # Process CDATA content
-                        cdata_match = re.search(
-                            r'<!\[CDATA\[(.*?)\]\]>', step_content, re.DOTALL)
-                        if cdata_match:
-                            cdata_content = cdata_match.group(1).strip()
-                            click.echo(click.style(
-                                "\nFile Content:", fg="cyan", bold=True))
-                            click.echo(cdata_content)
+                        cdata_start = step_content.find("<![CDATA[")
+                        if cdata_start != -1:
+                            cdata_end = step_content.rfind("]]>")
+                            if cdata_end != -1:
+                                cdata_content = step_content[cdata_start+9:cdata_end]
+                                click.echo(click.style(
+                                    "\nFile Content:", fg="cyan", bold=True))
+                                click.echo(cdata_content)
                     elif step_type == 'shell':
                         command_match = re.search(
                             r'<\s*command\s*>(.*?)<\s*/\s*command\s*>', step_content, re.DOTALL | re.IGNORECASE)
@@ -80,6 +82,21 @@ def pretty_print_xml_stream(chunk, state):
 
     if iteration_count == max_iterations:
         print("Debug: Max iterations reached, possible infinite loop detected")
+
+
+def stream_and_print_commands(chunks):
+    state = {
+        'buffer': '',
+        'in_step': False,
+    }
+
+    for chunk in chunks:
+        pretty_print_xml_stream(chunk, state)
+
+    if state['buffer'].strip():
+        click.echo(f"\nRemaining Content: {state['buffer'].strip()}")
+
+    click.echo()  # Final newline
 
 
 def stream_and_print_commands(chunks):

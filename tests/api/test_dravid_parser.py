@@ -1,13 +1,10 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import xml.etree.ElementTree as ET
+from lxml import etree
 from drd.api.dravid_parser import (
     extract_outermost_xml,
-    escape_nested_cdata,
-    escape_special_characters,
     extract_and_parse_xml,
     parse_dravid_response,
-    pretty_print_commands
 )
 
 
@@ -22,24 +19,10 @@ class TestDravidParser(unittest.TestCase):
         with self.assertRaises(ValueError):
             extract_outermost_xml("No XML here")
 
-    def test_escape_nested_cdata(self):
-        xml = "<![CDATA[Test]]>"
-        result = escape_nested_cdata(xml)
-        self.assertEqual(result, "<![CDATA[Test]]>")
-
-        xml_with_nested = "<![CDATA[Test ]]> nested ]]>"
-        result = escape_nested_cdata(xml_with_nested)
-        self.assertEqual(result, "<![CDATA[Test ]]]]><![CDATA[> nested ]]>")
-
-    def test_escape_special_characters(self):
-        text = "Test & < >"
-        result = escape_special_characters(text)
-        self.assertEqual(result, "Test &amp; &lt; &gt;")
-
     def test_extract_and_parse_xml(self):
         response = "<response><content>Test</content></response>"
         result = extract_and_parse_xml(response)
-        self.assertIsInstance(result, ET.Element)
+        self.assertIsInstance(result, etree._Element)
         self.assertEqual(result.tag, "response")
         self.assertEqual(result.find("content").text, "Test")
 
@@ -70,19 +53,172 @@ class TestDravidParser(unittest.TestCase):
         self.assertEqual(result[2], {"type": "file", "operation": "CREATE",
                          "filename": "test.txt", "content": "Test content"})
 
-    @patch('drd.api.dravid_parser.click.echo')
-    @patch('drd.api.dravid_parser.highlight')
-    def test_pretty_print_commands(self, mock_highlight, mock_echo):
-        commands = [
-            {"type": "explanation", "content": "Test explanation"},
-            {"type": "shell", "command": 'echo "Hello"'},
-            {"type": "file", "operation": "CREATE",
-                "filename": "test.txt", "content": "Test content"}
-        ]
-        mock_highlight.return_value = "Highlighted content"
+    def test_nested_cdata(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>index.html</filename>
+            <content>
+              <![CDATA[
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Welcome to MyApp</title>
+                </head>
+                <body>
+                    <h1>Welcome to MyApp</h1>
+                    <p>This is the landing page for our simple web project.</p>
+                    <nav>
+                        <ul>
+                            <li><a href="hello.html">Hello Page</a></li>
+                            <li><a href="about.html">About Page</a></li>
+                        </ul>
+                    </nav>
+                </body>
+                </html>
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = extract_and_parse_xml(response)
+        self.assertIsInstance(result, etree._Element)
+        self.assertEqual(result.tag, "response")
+        content = result.find(".//content").text
+        self.assertIn("<!DOCTYPE html>", content)
+        self.assertNotIn("CDATA", content)
+        self.assertNotIn("]]", content)
+        self.assertIn("<html lang=\"en\">", content)
 
-        pretty_print_commands(commands)
+    def test_nested_tags_in_cdata(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>script.js</filename>
+            <content>
+              <![CDATA[
+                function createElement() {
+                  const div = document.createElement('div');
+                  div.innerHTML = '<p>This is a <strong>nested</strong> element</p>';
+                  return div;
+                }
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = extract_and_parse_xml(response)
+        self.assertIsInstance(result, etree._Element)
+        content = result.find(".//content").text
+        self.assertIn(
+            "<p>This is a <strong>nested</strong> element</p>", content)
 
-        self.assertEqual(mock_echo.call_count, 10)
+    def test_malformed_xml(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>index.html</filename>
+            <content>
+              <![CDATA[
+                <div>
+                  <p>This tag is not closed
+                </div>
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = extract_and_parse_xml(response)
+        self.assertIsInstance(result, etree._Element)
 
-        self.assertEqual(mock_highlight.call_count, 2)
+    # def test_cdata_within_cdata(self):
+    #     response = """
+    #     <response>
+    #       <step>
+    #         <type>file</type>
+    #         <operation>CREATE</operation>
+    #         <filename>nested_cdata.txt</filename>
+    #         <content>
+    #           <![CDATA[
+    #             This is outer CDATA
+    #             <![CDATA[
+    #               This is inner CDATA
+    #             ]]>
+    #             Back to outer CDATA
+    #           ]]>
+    #         </content>
+    #       </step>
+    #     </response>
+    #     """
+    #     result = extract_and_parse_xml(response)
+    #     self.assertIsInstance(result, etree._Element)
+    #     content = result.find(".//content").text
+    #     self.assertIn("This is outer CDATA", content)
+    #     self.assertIn("<![CDATA[", content)
+    #     self.assertIn("This is inner CDATA", content)
+    #     self.assertIn("]]>", content)
+    #     self.assertIn("Back to outer CDATA", content)
+
+    def test_malformed_html_in_cdata(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>index.html</filename>
+            <content>
+              <![CDATA[
+                <div>
+                  <p>This tag is not closed
+                </div>
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = extract_and_parse_xml(response)
+        self.assertIsInstance(result, etree._Element)
+        content = result.find(".//content").text
+        self.assertIn("<div>", content)
+        self.assertIn("<p>This tag is not closed", content)
+        self.assertIn("</div>", content)
+
+    # def test_parse_dravid_response_with_nested_cdata(self):
+    #     response = """
+    #     <response>
+    #       <explanation>Creating a file with nested CDATA</explanation>
+    #       <steps>
+    #         <step>
+    #           <type>file</type>
+    #           <operation>CREATE</operation>
+    #           <filename>nested_cdata.txt</filename>
+    #           <content>
+    #             <![CDATA[
+    #               Outer CDATA
+    #               <![CDATA[
+    #                 Inner CDATA
+    #               ]]>
+    #               Still outer CDATA
+    #             ]]>
+    #           </content>
+    #         </step>
+    #       </steps>
+    #     </response>
+    #     """
+    #     result = parse_dravid_response(response)
+    #     self.assertEqual(len(result), 2)  # Explanation + 1 step
+    #     self.assertEqual(result[0]['type'], 'explanation')
+    #     self.assertEqual(result[1]['type'], 'file')
+    #     self.assertIn('Outer CDATA', result[1]['content'])
+    #     self.assertIn('<![CDATA[', result[1]['content'])
+    #     self.assertIn('Inner CDATA', result[1]['content'])
+    #     self.assertIn(']]>', result[1]['content'])
+    #     self.assertIn('Still outer CDATA', result[1]['content'])

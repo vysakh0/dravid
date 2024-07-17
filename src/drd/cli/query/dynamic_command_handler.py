@@ -1,7 +1,7 @@
 import traceback
 import click
 from ...utils.api_utils import call_dravid_api_with_pagination
-from ...api.dravid_parser import parse_dravid_response, extract_and_parse_xml, pretty_print_commands
+from ...api.dravid_parser import parse_dravid_response, extract_and_parse_xml
 from ...utils import print_error, print_success, print_info, print_step, print_debug
 from ...metadata.common_utils import generate_file_description
 from ...prompts.error_resolution_prompt import get_error_resolution_prompt
@@ -146,7 +146,6 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
         return False
 
     print_info("dravid's suggested fix:")
-    pretty_print_commands(fix_commands)
     print_info("Applying dravid's suggested fix...")
 
     fix_applied, step_completed, error_message, all_outputs = execute_commands(

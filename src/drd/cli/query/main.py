@@ -1,6 +1,5 @@
 import click
 from ...api.dravid_api import stream_dravid_api, call_dravid_vision_api
-from ...api.dravid_parser import pretty_print_commands
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from .dynamic_command_handler import handle_error_with_dravid, execute_commands
@@ -8,7 +7,7 @@ from ...utils import print_error, print_success, print_info, print_step, print_d
 from ...utils.file_utils import get_file_content, fetch_project_guidelines
 from ...metadata.common_utils import generate_file_description
 from .file_operations import get_files_to_modify
-from .image_handler import handle_image_query
+from ...api.dravid_parser import parse_dravid_response
 
 
 def execute_dravid_command(query, image_path, debug, instruction_prompt):
@@ -68,11 +67,11 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         else:
             print_info("Streaming response from Claude API...")
             print_info("LLM calls to be made: 1")
-            commands = []
-            for new_commands in stream_dravid_api(full_query, include_context=True, instruction_prompt=instruction_prompt, debug=debug):
-                commands.extend(new_commands)
-                if debug:
-                    print_debug(f"Received {len(new_commands)} new command(s)")
+            xml_result = stream_dravid_api(
+                full_query, include_context=True, instruction_prompt=instruction_prompt, debug=debug)
+            commands = parse_dravid_response(xml_result)
+            if debug:
+                print_debug(f"Received {len(commands)} new command(s)")
 
         if not commands:
             print_error(

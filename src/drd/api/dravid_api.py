@@ -10,7 +10,6 @@ import re
 
 def stream_dravid_api(query, include_context=False, instruction_prompt=None, debug=False):
     xml_buffer = ""
-    in_response = False
     loader = Loader("Preparing response from Claude API")
     loader.start()
     state = {
@@ -23,48 +22,12 @@ def stream_dravid_api(query, include_context=False, instruction_prompt=None, deb
             if debug:
                 print_debug(f"Raw chunk received: {chunk}")
 
-            if not in_response:
-                in_response = True
-
-            if in_response:
-                pretty_print_xml_stream(chunk, state)
-                xml_buffer += chunk
-
-                commands = parse_streaming_xml(xml_buffer)
-                if commands:
-                    yield commands
-                    # Keep any partial XML in the buffer
-                    last_end = xml_buffer.rfind('</step>')
-                    if last_end != -1:
-                        xml_buffer = xml_buffer[last_end + 7:]
-                    else:
-                        xml_buffer = ""
-
-            if '</response>' in chunk:
-                if debug:
-                    print_debug("Response end detected")
-                break
+            pretty_print_xml_stream(chunk, state)
+            xml_buffer += chunk
     finally:
         loader.stop()
 
-
-def parse_streaming_xml(xml_buffer):
-    commands = []
-    for match in re.finditer(r'<step>(.*?)</step>', xml_buffer, re.DOTALL):
-        step_content = match.group(1)
-        command = parse_step(step_content)
-        if command:
-            commands.append(command)
-    return commands
-
-
-def parse_step(step_content):
-    command = {}
-    for tag in ['type', 'operation', 'filename', 'content', 'command']:
-        match = re.search(f'<{tag}>(.*?)</{tag}>', step_content, re.DOTALL)
-        if match:
-            command[tag] = match.group(1).strip()
-    return command if command else None
+    return xml_buffer
 
 
 def call_dravid_api(query, include_context=False, instruction_prompt=None):

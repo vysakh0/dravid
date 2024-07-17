@@ -270,3 +270,76 @@ def test_split_cdata(capsys):
     captured = capsys.readouterr()
     assert "File Operation: CREATE test.txt" in captured.out
     assert "This is a test file with multiple lines" in captured.out
+
+
+def test_nested_cdata(capsys):
+    chunks = [
+        "<response>",
+        "<steps>",
+        "<step><type>file</type><operation>CREATE</operation><filename>nested_cdata.xml</filename>",
+        "<content><![CDATA[",
+        "<outer>",
+        "  <inner><![CDATA[This is nested CDATA content]]></inner>",
+        "  <another>Regular content</another>",
+        "</outer>",
+        "]]></content></step>",
+        "</steps>",
+        "</response>"
+    ]
+    stream_and_print_commands(chunks)
+    captured = capsys.readouterr()
+    assert "File Operation: CREATE nested_cdata.xml" in captured.out
+    assert "<outer>" in captured.out
+    assert "<inner><![CDATA[This is nested CDATA content]]></inner>" in captured.out
+    assert "<another>Regular content</another>" in captured.out
+    assert "</outer>" in captured.out
+
+
+def test_multiple_nested_cdata(capsys):
+    chunks = [
+        "<response>",
+        "<steps>",
+        "<step><type>file</type><operation>UPDATE</operation><filename>complex_cdata.xml</filename>",
+        "<content><![CDATA[",
+        "<root>",
+        "  <elem1><![CDATA[First nested CDATA]]></elem1>",
+        "  <elem2><![CDATA[Second nested CDATA with ]]> symbol]]></elem2>",
+        "  <elem3>Normal content with <![CDATA[inline CDATA]]></elem3>",
+        "</root>",
+        "]]></content></step>",
+        "</steps>",
+        "</response>"
+    ]
+    stream_and_print_commands(chunks)
+    captured = capsys.readouterr()
+    assert "File Operation: UPDATE complex_cdata.xml" in captured.out
+    assert "<root>" in captured.out
+    assert "<elem1><![CDATA[First nested CDATA]]></elem1>" in captured.out
+    assert "<elem2><![CDATA[Second nested CDATA with ]]> symbol]]></elem2>" in captured.out
+    assert "<elem3>Normal content with <![CDATA[inline CDATA]]></elem3>" in captured.out
+    assert "</root>" in captured.out
+
+
+def test_cdata_with_xml_like_content(capsys):
+    chunks = [
+        "<response>",
+        "<steps>",
+        "<step><type>file</type><operation>CREATE</operation><filename>xml_in_cdata.xml</filename>",
+        "<content><![CDATA[",
+        "<config>",
+        "  <setting key='value'>",
+        "    <![CDATA[This is <not> parsed as XML]]>",
+        "  </setting>",
+        "</config>",
+        "]]></content></step>",
+        "</steps>",
+        "</response>"
+    ]
+    stream_and_print_commands(chunks)
+    captured = capsys.readouterr()
+    assert "File Operation: CREATE xml_in_cdata.xml" in captured.out
+    assert "<config>" in captured.out
+    assert "<setting key='value'>" in captured.out
+    assert "<![CDATA[This is <not> parsed as XML]]>" in captured.out
+    assert "</setting>" in captured.out
+    assert "</config>" in captured.out

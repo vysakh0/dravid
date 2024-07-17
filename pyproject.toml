@@ -17,6 +17,7 @@ Pillow = "^9.0.0"
 
 pigments = "^1.6"
 pygments = "^2.18.0"
+lxml = "^5.2.2"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.0"
 black = "^21.5b0"
