@@ -12,3 +12,4 @@ testapp
 myfrontendapp
 nodsam
 .python-version
+.coverage
