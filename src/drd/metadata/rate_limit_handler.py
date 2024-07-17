@@ -1,3 +1,4 @@
+import functools
 import sys
 import asyncio
 import time
