@@ -11,7 +11,7 @@ import click
 
 API_URL = 'https://api.anthropic.com/v1/messages'
 MODEL = 'claude-3-5-sonnet-20240620'
-MAX_TOKENS = 4000
+MAX_TOKENS = 8000
 
 
 def get_api_key() -> str:
@@ -25,6 +25,7 @@ def get_headers(api_key: str) -> Dict[str, str]:
     return {
         'x-api-key': api_key,
         'Content-Type': 'application/json',
+        "Anthropic-Beta": "max-tokens-3-5-sonnet-2024-07-15",
         'Anthropic-Version': '2023-06-01'
     }
 

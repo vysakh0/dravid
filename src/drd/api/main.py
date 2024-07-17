@@ -8,30 +8,28 @@ import xml.etree.ElementTree as ET
 
 
 def stream_dravid_api(query, include_context=False, instruction_prompt=None, print_chunk=False):
-    xml_buffer = ""
-    loader = Loader("Gathering responses from Claude API...")
-    loader.start()
-    state = {
-        'buffer': '',
-        'in_step': False,
-    }
     if print_chunk:
-        loader.stop()
-        print_info("CLAUDE: ")
-    try:
+        print_info("DRAVID: ")
         for chunk in stream_claude_response(query, instruction_prompt):
-            if print_chunk:
-                click.echo(chunk, nl=False)
-            else:
-                pretty_print_xml_stream(chunk, state)
-            xml_buffer += chunk
-    finally:
-        loader.stop()
-
-    if not print_chunk:
-        return xml_buffer
-    else:
+            click.echo(chunk, nl=False)
         return None
+    else:
+        xml_buffer = ""
+        loader = Loader("Gathering responses from Claude API...")
+        state = {
+            'buffer': '',
+            'in_step': False,
+        }
+        try:
+            for chunk in stream_claude_response(query, instruction_prompt):
+                if print_chunk:
+                    click.echo(chunk, nl=False)
+                else:
+                    pretty_print_xml_stream(chunk, state)
+                xml_buffer += chunk
+        finally:
+            loader.stop()
+        return xml_buffer
 
 
 def call_dravid_api(query, include_context=False, instruction_prompt=None):

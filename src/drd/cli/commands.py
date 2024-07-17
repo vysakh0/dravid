@@ -11,7 +11,7 @@ from ..metadata.updater import update_metadata_with_dravid
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.10.0"  # Update this as you release new versions
+VERSION = "0.11.0"  # Update this as you release new versions
 
 
 def handle_query_command(query, image, debug):
