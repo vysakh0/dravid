@@ -11,3 +11,4 @@ testapp
 .pytest_cache
 myfrontendapp
 nodsam
+.python-version

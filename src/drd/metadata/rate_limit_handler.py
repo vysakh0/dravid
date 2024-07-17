@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import time
 from ..api.main import call_dravid_api_with_pagination
@@ -31,13 +32,21 @@ class RateLimiter:
 rate_limiter = RateLimiter(MAX_CALLS_PER_MINUTE, RATE_LIMIT_PERIOD)
 
 
+def to_thread(func, *args, **kwargs):
+    if sys.version_info >= (3, 9):
+        return asyncio.to_thread(func, *args, **kwargs)
+    else:
+        loop = asyncio.get_event_loop()
+        return loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
+
+
 async def process_single_file(filename, content, project_context, folder_structure):
     metadata_query = get_file_metadata_prompt(
         filename, content, project_context, folder_structure)
     try:
         async with rate_limiter.semaphore:
             await rate_limiter.acquire()
-            response = await asyncio.to_thread(call_dravid_api_with_pagination, metadata_query, include_context=True)
+            response = await to_thread(call_dravid_api_with_pagination, metadata_query, include_context=True)
 
         root = extract_and_parse_xml(response)
         type_elem = root.find('.//type')
