@@ -39,19 +39,32 @@ Your responses should follow this XML format:
     </step>
     <step>
       <type>metadata</type>
-      <operation>UPDATE_DEV_SERVER</operation>
-      <start_command>npm run dev</start_command>
-      <framework>nextjs</framework>
-      <language>javascript</language>
-    </step>
-    <step>
-      <type>metadata</type>
       <operation>UPDATE_FILE</operation>
       <filename>drd.json</filename>
       <content>
         <![CDATA[
-          def myapp():
-            return 10
+          {
+  "project_name": "pyser",
+  "files": [
+    {
+      "filename": "app.py",
+      "type": "Python",
+      "description": "...",
+      "exports": "None"
+    },
+    {
+      "filename": "drd.json",
+      "type": "json",
+      "description": "",
+      "exports": "None
+    }
+  ],
+  "dev_server": {
+    "start_command": "python start",
+    "framework": "flask",
+    "language": "python"
+  }
+}
         ]]>
       </content>
     </step>
@@ -99,8 +112,4 @@ instead of rm -rf or destructive commands.
 For eg, if you need to install python, use something like pyenv and related steps.
 23. When it is a shell command avoid using && instead suggest as a separate step as it has to be executed sequentially
 24. For any of the tags if there is no relevant content you can use None for eg: <start_command>None</start_command>
-25. metadata type with UPDATE_FILE can only for drd.json, no other files. Strictly follow the pattern the parsing code depends on it
-if it is type: shell, then there is always command, if it is metadata, it can either be UPDATE_DEV_SERVER or UPDATE_FILE (file is drd.json),
-if it is any other file other than drd.json, it is always type: file, operation: CREATE | UPDATE | DELETE with filename
-and content as given in the example.
 """

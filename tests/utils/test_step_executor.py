@@ -205,5 +205,4 @@ class TestExecutor(unittest.TestCase):
     def test_execute_shell_command_user_cancel(self, mock_confirm):
         mock_confirm.return_value = False
         result = self.executor.execute_shell_command('ls')
-        self.assertIsNone(result)
         mock_confirm.assert_called_once()

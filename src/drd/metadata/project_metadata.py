@@ -67,11 +67,36 @@ class ProjectMetadataManager:
     def get_dev_server_info(self):
         return self.metadata['dev_server']
 
-    def update_metadata_from_file(self, filename):
-        if os.path.exists(filename):
-            with open(filename, 'r') as f:
+    def update_metadata_from_file(self):
+        if os.path.exists(self.metadata_file):
+            with open(self.metadata_file, 'r') as f:
                 content = f.read()
-            file_type = filename.split('.')[-1]
-            self.update_file_metadata(filename, file_type, content)
-            return True
+            try:
+                new_metadata = json.loads(content)
+
+                # Update dev server info if present
+                if 'dev_server' in new_metadata:
+                    self.metadata['dev_server'] = new_metadata['dev_server']
+
+                # Update other metadata fields
+                for key, value in new_metadata.items():
+                    if key != 'files':  # We'll handle files separately
+                        self.metadata[key] = value
+
+                # Update file metadata
+                if 'files' in new_metadata:
+                    for file_entry in new_metadata['files']:
+                        filename = file_entry['filename']
+                        file_type = filename.split('.')[-1]
+                        file_content = file_entry.get('content', '')
+                        description = file_entry.get('description', '')
+                        exports = file_entry.get('exports', '')
+                        self.update_file_metadata(
+                            filename, file_type, file_content, description, exports)
+
+                self.save_metadata()
+                return True
+            except json.JSONDecodeError:
+                print(f"Error: Invalid JSON content in {self.metadata_file}")
+                return False
         return False

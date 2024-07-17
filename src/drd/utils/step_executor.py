@@ -146,7 +146,7 @@ class Executor:
 
         if not click.confirm(f"{Fore.YELLOW}Confirm execution [y/N]:{Style.RESET_ALL}", default=False):
             print_info("Command execution cancelled by user.")
-            return None
+            return 'Skipping this step...'
 
         click.echo(
             f"{Fore.YELLOW}Executing shell command: {command}{Style.RESET_ALL}")

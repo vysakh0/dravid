@@ -97,6 +97,80 @@ class TestProjectMetadataManager(unittest.TestCase):
         mock_update.assert_called_once_with(
             "test.py", "py", 'print("Hello, World!")')
 
+    @patch('os.path.exists')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch.object(ProjectMetadataManager, 'save_metadata')
+    def test_update_metadata_from_file(self, mock_save, mock_file, mock_exists):
+        mock_exists.return_value = True
 
-if __name__ == '__main__':
-    unittest.main()
+        # Initial metadata
+        initial_metadata = {
+            "project_name": "old_project",
+            "last_updated": "",
+            "files": [],
+            "dev_server": {
+                "start_command": "",
+                "framework": "",
+                "language": ""
+            }
+        }
+        self.manager.metadata = initial_metadata
+
+        # New metadata to be updated
+        new_metadata = {
+            "project_name": "pyserv",
+            "last_updated": "2023-07-18T10:00:00",
+            "files": [
+                {
+                    "filename": "app.py",
+                    "content": "from flask import Flask\n\napp = Flask(__name__)",
+                    "description": "Main application file",
+                    "exports": "app"
+                },
+                {
+                    "filename": "requirements.txt",
+                    "content": "Flask==2.3.2\nuvicorn==0.22.0",
+                    "description": "Project dependencies"
+                }
+            ],
+            "dev_server": {
+                "start_command": "uvicorn app:app --reload",
+                "framework": "flask",
+                "language": "python"
+            }
+        }
+
+        # Mock the file read operation to return the new metadata
+        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(
+            new_metadata)
+
+        # Call the method to update metadata
+        result = self.manager.update_metadata_from_file()
+
+        # Assert that the update was successful
+        self.assertTrue(result)
+
+        # Assert that the metadata has been updated correctly
+        self.assertEqual(self.manager.metadata['project_name'], "pyserv")
+        self.assertEqual(len(self.manager.metadata['files']), 2)
+        self.assertEqual(
+            self.manager.metadata['dev_server']['start_command'], "uvicorn app:app --reload")
+        self.assertEqual(
+            self.manager.metadata['dev_server']['framework'], "flask")
+        self.assertEqual(
+            self.manager.metadata['dev_server']['language'], "python")
+
+        # Check file metadata
+        app_py = next(
+            f for f in self.manager.metadata['files'] if f['filename'] == 'app.py')
+        self.assertEqual(app_py['description'], "Main application file")
+        self.assertEqual(app_py['exports'], "app")
+        self.assertTrue(app_py['content_preview'].startswith(
+            "from flask import Flask"))
+
+        requirements_txt = next(
+            f for f in self.manager.metadata['files'] if f['filename'] == 'requirements.txt')
+        self.assertEqual(
+            requirements_txt['description'], "Project dependencies")
+        self.assertTrue(
+            requirements_txt['content_preview'].startswith("Flask==2.3.2"))

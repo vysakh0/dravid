@@ -80,30 +80,15 @@ def handle_file_operation(cmd, executor, metadata_manager):
 
 
 def handle_metadata_operation(cmd, metadata_manager):
-    if cmd['operation'] == 'UPDATE_DEV_SERVER':
-        start_command = cmd.get('start_command')
-        framework = cmd.get('framework')
-        language = cmd.get('language')
-
-        if not start_command:
-            print_info(
-                "No start command provided. Dev server info will be updated without a start command.")
-
-        metadata_manager.update_dev_server_info(
-            start_command,
-            framework,
-            language
-        )
-        print_success("Updated dev server info in project metadata.")
-        return "Updated dev server info"
-
-    elif cmd['operation'] == 'UPDATE_FILE':
+    if cmd['operation'] == 'UPDATE_FILE':
         if metadata_manager.update_metadata_from_file(cmd['filename']):
             print_success(f"Updated metadata for file: {cmd['filename']}")
             return f"Updated metadata for {cmd['filename']}"
         else:
             raise Exception(
                 f"Failed to update metadata for file: {cmd['filename']}")
+    else:
+        raise Exception(f"Unknown operation: {cmd['operation']}")
 
 
 def update_file_metadata(cmd, metadata_manager, executor):

@@ -27,8 +27,6 @@ class TestDynamicCommandHandler(unittest.TestCase):
             {'type': 'shell', 'command': 'echo "Hello"'},
             {'type': 'file', 'operation': 'CREATE',
                 'filename': 'test.txt', 'content': 'Test content'},
-            {'type': 'metadata', 'operation': 'UPDATE_DEV_SERVER',
-                'start_command': 'npm start', 'framework': 'React', 'language': 'JavaScript'}
         ]
 
         with patch('drd.cli.query.dynamic_command_handler.handle_shell_command', return_value="Shell output") as mock_shell, \
@@ -39,13 +37,12 @@ class TestDynamicCommandHandler(unittest.TestCase):
                 commands, self.executor, self.metadata_manager, debug=True)
 
         self.assertTrue(success)
-        self.assertEqual(steps_completed, 4)
+        self.assertEqual(steps_completed, 3)
         self.assertIsNone(error)
         self.assertIn("Explanation - Test explanation", output)
         self.assertIn("Shell command - echo \"Hello\"", output)
         self.assertIn("File operation - CREATE - test.txt", output)
-        self.assertIn("Metadata operation - UPDATE_DEV_SERVER", output)
-        mock_print_debug.assert_called_with("Completed step 4/4")
+        mock_print_debug.assert_called_with("Completed step 3/3")
 
     @patch('drd.cli.query.dynamic_command_handler.print_info')
     @patch('drd.cli.query.dynamic_command_handler.print_success')
@@ -81,19 +78,6 @@ class TestDynamicCommandHandler(unittest.TestCase):
             'CREATE', 'test.txt', 'Test content', force=True)
         mock_update_metadata.assert_called_once_with(
             cmd, self.metadata_manager, self.executor)
-
-    @patch('drd.cli.query.dynamic_command_handler.print_success')
-    def test_handle_metadata_operation_update_dev_server(self, mock_print_success):
-        cmd = {'operation': 'UPDATE_DEV_SERVER', 'start_command': 'npm start',
-               'framework': 'React', 'language': 'JavaScript'}
-
-        output = handle_metadata_operation(cmd, self.metadata_manager)
-
-        self.assertEqual(output, "Updated dev server info")
-        self.metadata_manager.update_dev_server_info.assert_called_once_with(
-            'npm start', 'React', 'JavaScript')
-        mock_print_success.assert_called_once_with(
-            "Updated dev server info in project metadata.")
 
     @patch('drd.cli.query.dynamic_command_handler.generate_file_description')
     def test_update_file_metadata(self, mock_generate_description):
@@ -133,51 +117,3 @@ class TestDynamicCommandHandler(unittest.TestCase):
         mock_execute_commands.assert_called_once()
         mock_print_success.assert_called_with(
             "All fix steps successfully applied.")
-
-    @patch('drd.cli.query.dynamic_command_handler.print_success')
-    def test_handle_metadata_operation_update_dev_server_with_start_command(self, mock_print_success):
-        cmd = {'operation': 'UPDATE_DEV_SERVER', 'start_command': 'npm start',
-               'framework': 'React', 'language': 'JavaScript'}
-        metadata_manager = MagicMock()
-
-        output = handle_metadata_operation(cmd, metadata_manager)
-
-        self.assertEqual(output, "Updated dev server info")
-        metadata_manager.update_dev_server_info.assert_called_once_with(
-            'npm start', 'React', 'JavaScript')
-        mock_print_success.assert_called_once_with(
-            "Updated dev server info in project metadata.")
-
-    @patch('drd.cli.query.dynamic_command_handler.print_success')
-    @patch('drd.cli.query.dynamic_command_handler.print_info')
-    def test_handle_metadata_operation_update_dev_server_without_start_command(self, mock_print_info, mock_print_success):
-        cmd = {'operation': 'UPDATE_DEV_SERVER',
-               'framework': 'React', 'language': 'JavaScript'}
-        metadata_manager = MagicMock()
-
-        output = handle_metadata_operation(cmd, metadata_manager)
-
-        self.assertEqual(output, "Updated dev server info")
-        metadata_manager.update_dev_server_info.assert_called_once_with(
-            None, 'React', 'JavaScript')
-        mock_print_info.assert_called_once_with(
-            "No start command provided. Dev server info will be updated without a start command.")
-        mock_print_success.assert_called_once_with(
-            "Updated dev server info in project metadata.")
-
-    @patch('drd.cli.query.dynamic_command_handler.print_success')
-    @patch('drd.cli.query.dynamic_command_handler.print_info')
-    def test_handle_metadata_operation_update_dev_server_with_empty_start_command(self, mock_print_info, mock_print_success):
-        cmd = {'operation': 'UPDATE_DEV_SERVER', 'start_command': '',
-               'framework': 'React', 'language': 'JavaScript'}
-        metadata_manager = MagicMock()
-
-        output = handle_metadata_operation(cmd, metadata_manager)
-
-        self.assertEqual(output, "Updated dev server info")
-        metadata_manager.update_dev_server_info.assert_called_once_with(
-            '', 'React', 'JavaScript')
-        mock_print_info.assert_called_once_with(
-            "No start command provided. Dev server info will be updated without a start command.")
-        mock_print_success.assert_called_once_with(
-            "Updated dev server info in project metadata.")
