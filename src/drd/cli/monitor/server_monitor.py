@@ -39,8 +39,15 @@ class DevServerMonitor:
                 raise ValueError("Server start command not found in metadata")
 
         click.echo(f"Starting server with command: {start_command}")
+        self._start_process(start_command)
+
+        self.monitor_thread = threading.Thread(
+            target=self._monitor_output, daemon=True)
+        self.monitor_thread.start()
+
+    def _start_process(self, command):
         self.process = subprocess.Popen(
-            start_command,
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             stdin=subprocess.PIPE,
@@ -51,13 +58,16 @@ class DevServerMonitor:
             cwd=self.project_dir
         )
 
-        self.monitor_thread = threading.Thread(
-            target=self._monitor_output, daemon=True)
-        self.monitor_thread.start()
-
     def _monitor_output(self):
         error_buffer = []
         while not self.should_stop.is_set():
+            if self.process.poll() is not None:
+                if not self.restart_requested.is_set():
+                    print_info(
+                        "Server process ended unexpectedly. Restarting...")
+                    self._perform_restart()
+                continue
+
             ready, _, _ = select.select(
                 [self.process.stdout, sys.stdin], [], [], 0.1)
 
@@ -76,9 +86,6 @@ class DevServerMonitor:
                             handler(full_error, self)
                             error_buffer.clear()
                             break
-                else:
-                    # Process has ended
-                    break
 
             if sys.stdin in ready:
                 input_line = sys.stdin.readline()
@@ -106,7 +113,16 @@ class DevServerMonitor:
             self.process.wait()
         time.sleep(2)  # Give some time for the old process to fully terminate
         print_info("Server stopped. Starting again...")
-        self.start()
+        if self.custom_command:
+            self._start_process(self.custom_command)
+        else:
+            dev_server_info = self.metadata_manager.get_dev_server_info()
+            start_command = dev_server_info.get('start_command')
+            if not start_command:
+                raise ValueError("Server start command not found in metadata")
+            self._start_process(start_command)
+
+        self.restart_requested.clear()
         print_success("Server restarted successfully.")
         print_info("Waiting for server output...")
 
@@ -127,9 +143,9 @@ def run_dev_server_with_monitoring(custom_command: str = None):
     try:
         monitor.start()
         print_info("Server monitor started. Press Ctrl+C to stop.")
-        while monitor.process.poll() is None:
+        while not monitor.should_stop.is_set():
             time.sleep(1)  # Keep the main thread alive
-        print_info("Server process has ended.")
+        print_info("Server monitor has ended.")
     except KeyboardInterrupt:
         print_info("Stopping server...")
     finally:

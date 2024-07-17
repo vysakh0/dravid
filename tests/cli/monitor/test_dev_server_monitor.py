@@ -63,24 +63,52 @@ class TestDevServerMonitor(unittest.TestCase):
         # Check if a thread was created with _monitor_output as its target
         mock_thread.assert_called_once()
         thread_call_args = mock_thread.call_args[1]
-        self.assertEqual(thread_call_args['target'], monitor._monitor_output)
-        self.assertTrue(thread_call_args['daemon'])
+        assert thread_call_args['target'] == monitor._monitor_output
+        assert thread_call_args['daemon'] is True
+
+        # Verify the initial Popen call
+        assert len(mock_popen.mock_calls) > 0
+        initial_call = mock_popen.mock_calls[0]
+        # This is the method name, which should be empty for a constructor call
+        assert initial_call[0] == ''
+        assert initial_call[1][0] == mock_metadata_manager(
+        ).get_dev_server_info().get()
+        assert initial_call[2]['stdout'] == -1  # subprocess.PIPE
+        assert initial_call[2]['stderr'] == -2  # subprocess.STDOUT
+        assert initial_call[2]['stdin'] == -1   # subprocess.PIPE
+        assert initial_call[2]['text'] is True
+        assert initial_call[2]['bufsize'] == 1
+        assert initial_call[2]['universal_newlines'] is True
+        assert initial_call[2]['shell'] is True
+        assert initial_call[2]['cwd'] == monitor.project_dir
 
         # Simulate a restart
         monitor.request_restart()
         monitor._perform_restart()
 
         # Check if Popen was called twice (initial start and restart)
-        self.assertEqual(mock_popen.call_count, 2)
+        assert mock_popen.call_count == 2
 
         # Verify that sleep was called during restart
         mock_sleep.assert_called_with(2)
 
-        # Verify that the monitor thread was started twice
-        self.assertEqual(mock_thread.call_count, 2)
+        # Verify that the monitor thread was started only once
+        assert mock_thread.call_count == 1
 
-        # Check if terminate was called once (for restart)
-        mock_process.terminate.assert_called_once()
+        # Verify that the restart_requested flag is cleared after restart
+        assert monitor.restart_requested.is_set() is False
+
+        # Verify the calls made during restart
+        restart_calls = [
+            call().terminate(),
+            call().wait(),
+            call(
+                mock_metadata_manager().get_dev_server_info().get(),
+                stdout=-1, stderr=-2, stdin=-1,
+                text=True, bufsize=1, universal_newlines=True, shell=True, cwd=monitor.project_dir
+            )
+        ]
+        mock_popen.assert_has_calls(restart_calls, any_order=False)
 
     @patch('drd.cli.monitor.server_monitor.ProjectMetadataManager')
     @patch('drd.cli.monitor.server_monitor.subprocess.Popen')
