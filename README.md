@@ -1,5 +1,10 @@
 # Dravid (DRD) - AI-Powered CLI Coding Framework
 
+![PyPI](https://img.shields.io/pypi/v/dravid.svg)
+![Build Status](https://github.com/vysakh0/dravid/actions/workflows/main.yml/badge.svg)
+![Coverage Status](https://codecov.io/gh/vysakh0/dravid/branch/main/graph/badge.svg)
+![License](https://img.shields.io/github/license/vysakh0/dravid.svg)
+
 Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow user instructions until the job is done, even if it means fixing errors, including installation issues. It can generate code and fix errors autonomously until the intended result is achieved.
 
 ### Security and Sandbox (important note)

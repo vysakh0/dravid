@@ -12,7 +12,6 @@ from drd.api.claude_api import (
     call_claude_api_with_pagination,
     call_claude_vision_api_with_pagination,
     stream_claude_response,
-    parse_paginated_response
 )
 
 
@@ -123,14 +122,3 @@ class TestApiUtils(unittest.TestCase):
 
         result = list(stream_claude_response(self.query))
         self.assertEqual(result, ["Test", " stream"])
-
-    def test_parse_paginated_response_xml(self):
-        xml_response = "<response><step><type>test</type><content>Test content</content></step></response>"
-        parsed = parse_paginated_response(xml_response)
-        self.assertEqual(parsed, [{'type': 'test', 'content': 'Test content'}])
-
-    def test_parse_paginated_response_text(self):
-        text_response = "Regular text response"
-        parsed = parse_paginated_response(text_response)
-        self.assertEqual(
-            parsed, [{'type': 'explanation', 'content': 'Regular text response'}])

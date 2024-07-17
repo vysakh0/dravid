@@ -150,17 +150,3 @@ def stream_claude_response(query: str, instruction_prompt: Optional[str] = None)
                     yield chunk
                 elif data['type'] == 'message_stop':
                     break
-
-
-def parse_paginated_response(response: str) -> List[Dict[str, Any]]:
-    # First, try to extract the XML content
-    xml_start = response.find('<response>')
-    # +11 to include '</response>'
-    xml_end = response.rfind('</response>') + 11
-
-    if xml_start != -1 and xml_end != -1:
-        xml_content = response[xml_start:xml_end]
-        return parse_dravid_response(xml_content)
-    else:
-        # If no XML is found, treat the response as regular text
-        return [{'type': 'explanation', 'content': response.strip()}]
