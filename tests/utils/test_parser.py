@@ -56,7 +56,7 @@ class TestDravidParser(unittest.TestCase):
         self.assertEqual(result[2], {"type": "file", "operation": "CREATE",
                          "filename": "test.txt", "content": "Test content"})
 
-    def test_nested_cdata(self):
+    def test_extract_and_parse_xml_with_html(self):
         response = """
         <response>
           <step>
@@ -75,6 +75,7 @@ class TestDravidParser(unittest.TestCase):
                 <body>
                     <h1>Welcome to MyApp</h1>
                     <p>This is the landing page for our simple web project.</p>
+                    
                     <nav>
                         <ul>
                             <li><a href="hello.html">Hello Page</a></li>
@@ -96,6 +97,73 @@ class TestDravidParser(unittest.TestCase):
         self.assertNotIn("CDATA", content)
         self.assertNotIn("]]", content)
         self.assertIn("<html lang=\"en\">", content)
+
+    # TODO:  nested <![CDATA[This is doubly nested CDATA content]]>
+    def test_nested_cdata(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>index.html</filename>
+            <content>
+              <![CDATA[
+                <!DOCTYPE html>
+                <html lang="en">
+                    <![CDATA[ hello ]]
+                </body>
+                </html>
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = extract_and_parse_xml(response)
+        self.assertIsInstance(result, etree._Element)
+        self.assertEqual(result.tag, "response")
+        content = result.find(".//content").text
+        self.assertIn("<!DOCTYPE html>", content)
+        self.assertIn("<![CDATA[ hello ]]", content)
+        self.assertIn("<html lang=\"en\">", content)
+
+    def test_nested_react_cdata(self):
+        response = """
+        <response>
+          <step>
+            <type>file</type>
+            <operation>CREATE</operation>
+            <filename>index.html</filename>
+            <content>
+              <![CDATA[
+                    import Image from 'next/image'
+    
+                    export default function Home() {
+                      return (
+                        <main className="flex min-h-screen flex-col items-center justify-between p-24">
+                          <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
+                            <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
+                                href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
+                          </div>
+                          </div>
+                        </main>
+                      )
+                    }
+              ]]>
+            </content>
+          </step>
+        </response>
+        """
+        result = parse_dravid_response(response)
+        self.assertEqual(len(result), 1)  # One step
+        self.assertEqual(result[0]['type'], 'file')
+        self.assertEqual(result[0]['operation'], 'CREATE')
+        self.assertEqual(result[0]['filename'], 'index.html')
+        self.assertIn('export default function Home', result[0]['content'])
+        self.assertNotIn("<![CDATA[", result[0]['content'])
+        self.assertNotIn("]]>", result[0]['content'])
+        self.assertIn("import Image from 'next/image'", result[0]['content'])
+        self.assertIn(
+            'className="flex min-h-screen flex-col items-center justify-between p-24"', result[0]['content'])
 
     def test_nested_tags_in_cdata(self):
         response = """

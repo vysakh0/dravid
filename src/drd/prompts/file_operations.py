@@ -37,5 +37,5 @@ Respond with an XML structure containing the suggested file path:
 <response>
   <file>suggested/path/to/file.ext</file>
 </response>
-If you can't suggest an alternative, respond with an empty <file> tag.
+If you can't suggest an alternative, respond with empty <file> tag.
 """

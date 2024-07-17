@@ -5,7 +5,7 @@ import click
 from colorama import Fore, Style
 import time
 import re
-from .utils import print_error, print_success, print_info, print_warning
+from .utils import print_error, print_success, print_info, print_warning, create_confirmation_box
 from ..metadata.common_utils import get_ignore_patterns, get_folder_structure
 
 
@@ -51,16 +51,23 @@ class Executor:
         full_path = os.path.abspath(os.path.join(self.current_dir, filename))
 
         if not self.is_safe_path(full_path):
-            error_message = f"File operation not allowed outside of the project directory: {filename}"
-            print_error(error_message)
-            return False
+            confirmation_box = create_confirmation_box(
+                filename, f"File operation is being carried out outside of the project directory. {operation.lower()} this file")
+            print(confirmation_box)
+            if not click.confirm(f"{Fore.YELLOW}Confirm {operation.lower()} [y/N]:{Style.RESET_ALL}", default=False):
+                print_info(f"File {operation.lower()} cancelled by user.")
+                return False
 
         print_info(f"File: {filename}")
         if content:
             print_info(f"Content preview: {content[:100]}...")
 
         if operation in ['DELETE', 'UPDATE']:
-            if not click.confirm(f"Allow Dravid to {operation.lower()} the file '{filename}'?", default=False):
+            confirmation_box = create_confirmation_box(
+                filename, f"{operation.lower()} this file")
+            print(confirmation_box)
+
+            if not click.confirm(f"{Fore.YELLOW}Confirm {operation.lower()} [y/N]:{Style.RESET_ALL}", default=False):
                 print_info(f"File {operation.lower()} cancelled by user.")
                 return False
 
@@ -133,7 +140,11 @@ class Executor:
         if not self.is_safe_command(command):
             print_warning(f"Please verify the command once: {command}")
 
-        if not click.confirm(f"Do you want to execute the following command?\n{command}", default=False):
+        confirmation_box = create_confirmation_box(
+            command, "execute this command")
+        print(confirmation_box)
+
+        if not click.confirm(f"{Fore.YELLOW}Confirm execution [y/N]:{Style.RESET_ALL}", default=False):
             print_info("Command execution cancelled by user.")
             return None
 

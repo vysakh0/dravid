@@ -27,69 +27,38 @@ def extract_and_parse_xml(response: str) -> etree.Element:
         raise
 
 
-def parse_element_content(element: etree.Element) -> str:
-    if element.text:
-        content = element.text
-    else:
-        content = ''
-
-    for child in element:
-        if isinstance(child.tag, str):
-            if child.tag == 'content':
-                child_content = etree.tostring(
-                    child, encoding='unicode', method='xml')
-                # Extract content between <content> tags
-                match = re.search(r'<content>(.*?)</content>',
-                                  child_content, re.DOTALL)
-                if match:
-                    content += match.group(1).strip()
-                else:
-                    content += child_content
-            else:
-                content += etree.tostring(child,
-                                          encoding='unicode', method='xml')
-        elif child.tag is etree.CDATA:
-            content += f'<![CDATA[{child.text}]]>'
-        if child.tail:
-            content += child.tail
-
-    return content.strip()
-
-
 def parse_dravid_response(response: str) -> List[Dict[str, Any]]:
     try:
-        xml_content = extract_outermost_xml(response)
+        root = extract_and_parse_xml(response)
         commands = []
 
         # Extract explanation
-        explanation_match = re.search(
-            r'<explanation>(.*?)</explanation>', xml_content, re.DOTALL)
-        if explanation_match:
+        explanation = root.find('explanation')
+        if explanation is not None and explanation.text:
             commands.append({
                 'type': 'explanation',
-                'content': explanation_match.group(1).strip()
+                'content': explanation.text.strip()
             })
 
         # Extract steps
-        steps = re.findall(r'<step>(.*?)</step>', xml_content, re.DOTALL)
-        for step in steps:
+        for step in root.findall('.//step'):
             command = {}
             for tag in ['type', 'operation', 'filename', 'content', 'command']:
-                match = re.search(f'<{tag}>(.*?)</{tag}>', step, re.DOTALL)
-                if match:
-                    content = match.group(1)
+                element = step.find(tag)
+                if element is not None:
                     if tag == 'content':
-                        # Preserve CDATA content without parsing
-                        cdata_match = re.search(
-                            r'<!\[CDATA\[(.*?)\]\]>', content, re.DOTALL)
-                        if cdata_match:
-                            content = f'<![CDATA[{cdata_match.group(1)}]]>'
-                    command[tag] = content.strip()
-            commands.append(command)
+                        # Use tostring to preserve CDATA and nested elements
+                        command[tag] = etree.tostring(
+                            element, encoding='unicode', method='text').strip()
+                    else:
+                        command[tag] = element.text.strip(
+                        ) if element.text else ''
+            if command:
+                commands.append(command)
 
         return commands
     except Exception as e:
-        print(f"Error parsing dravid response: {e}")
+        print_error(f"Error parsing dravid response: {e}")
         print("Original response:")
         print(response)
         return []

@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 def stream_dravid_api(query, include_context=False, instruction_prompt=None, print_chunk=False):
     xml_buffer = ""
-    loader = Loader("Preparing response from Claude API")
+    loader = Loader("Gathering responses from Claude API...")
     loader.start()
     state = {
         'buffer': '',

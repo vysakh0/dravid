@@ -98,4 +98,5 @@ instead of rm -rf or destructive commands.
 22. When installing new languages try to install through a version manager
 For eg, if you need to install python, use something like pyenv and related steps.
 23. When it is a shell command avoid using && instead suggest as a separate step as it has to be executed sequentially
+24. For any of the tags if there is no relevant content you can use None like <tagname>None</tagname>
 """
