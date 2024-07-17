@@ -40,7 +40,8 @@ class TestDravidAPI(unittest.TestCase):
 
         # Ensure the loader was started and stopped in both cases
         self.assertEqual(mock_loader.return_value.start.call_count, 2)
-        self.assertEqual(mock_loader.return_value.stop.call_count, 2)
+        # for chunk=true it gets stopped in the beginning
+        self.assertEqual(mock_loader.return_value.stop.call_count, 3)
 
         # Test with include_context and instruction_prompt
         stream_dravid_api("test query", include_context=True,
