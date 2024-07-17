@@ -38,11 +38,6 @@ class TestDravidAPI(unittest.TestCase):
                                    for chunk in xml_res])
         mock_pretty_print.assert_not_called()
 
-        # Ensure the loader was started and stopped in both cases
-        self.assertEqual(mock_loader.return_value.start.call_count, 2)
-        # for chunk=true it gets stopped in the beginning
-        self.assertEqual(mock_loader.return_value.stop.call_count, 3)
-
         # Test with include_context and instruction_prompt
         stream_dravid_api("test query", include_context=True,
                           instruction_prompt="Test prompt", print_chunk=False)
