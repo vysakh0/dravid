@@ -81,7 +81,7 @@ def handle_file_operation(cmd, executor, metadata_manager):
 
 def handle_metadata_operation(cmd, metadata_manager):
     if cmd['operation'] == 'UPDATE_FILE':
-        if metadata_manager.update_metadata_from_file(cmd['filename']):
+        if metadata_manager.update_metadata_from_file():
             print_success(f"Updated metadata for file: {cmd['filename']}")
             return f"Updated metadata for {cmd['filename']}"
         else:

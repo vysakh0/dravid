@@ -88,16 +88,6 @@ class TestProjectMetadataManager(unittest.TestCase):
         self.assertEqual(info, self.manager.metadata['dev_server'])
 
     @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open, read_data='print("Hello, World!")')
-    @patch.object(ProjectMetadataManager, 'update_file_metadata')
-    def test_update_metadata_from_file(self, mock_update, mock_file, mock_exists):
-        mock_exists.return_value = True
-        result = self.manager.update_metadata_from_file("test.py")
-        self.assertTrue(result)
-        mock_update.assert_called_once_with(
-            "test.py", "py", 'print("Hello, World!")')
-
-    @patch('os.path.exists')
     @patch('builtins.open', new_callable=mock_open)
     @patch.object(ProjectMetadataManager, 'save_metadata')
     def test_update_metadata_from_file(self, mock_save, mock_file, mock_exists):
