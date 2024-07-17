@@ -37,8 +37,7 @@ async def process_single_file(filename, content, project_context, folder_structu
     try:
         async with rate_limiter.semaphore:
             await rate_limiter.acquire()
-            response = call_dravid_api_with_pagination(
-                metadata_query, include_context=True)
+            response = await asyncio.to_thread(call_dravid_api_with_pagination, metadata_query, include_context=True)
 
         root = extract_and_parse_xml(response)
         type_elem = root.find('.//type')
@@ -63,15 +62,19 @@ async def process_files(files, project_context, folder_structure):
     total_files = len(files)
     print_info(
         f"Processing {total_files} files to construct metadata per file")
-    print_info(f"LLM call to be made: {total_files}")
+    print_info(f"LLM calls to be made: {total_files}")
 
-    tasks = [process_single_file(filename, content, project_context, folder_structure)
-             for filename, content in files]
+    async def process_batch(batch):
+        tasks = [process_single_file(filename, content, project_context, folder_structure)
+                 for filename, content in batch]
+        return await asyncio.gather(*tasks)
 
+    batch_size = MAX_CONCURRENT_REQUESTS
     results = []
-    for completed in asyncio.as_completed(tasks):
-        result = await completed
-        results.append(result)
+    for i in range(0, total_files, batch_size):
+        batch = files[i:i+batch_size]
+        batch_results = await process_batch(batch)
+        results.extend(batch_results)
         print_info(f"Progress: {len(results)}/{total_files} files processed")
 
     return results

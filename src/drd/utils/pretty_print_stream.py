@@ -1,7 +1,5 @@
 import re
 import click
-import re
-import click
 
 
 def pretty_print_xml_stream(chunk, state):
@@ -82,21 +80,6 @@ def pretty_print_xml_stream(chunk, state):
 
     if iteration_count == max_iterations:
         print("Debug: Max iterations reached, possible infinite loop detected")
-
-
-def stream_and_print_commands(chunks):
-    state = {
-        'buffer': '',
-        'in_step': False,
-    }
-
-    for chunk in chunks:
-        pretty_print_xml_stream(chunk, state)
-
-    if state['buffer'].strip():
-        click.echo(f"\nRemaining Content: {state['buffer'].strip()}")
-
-    click.echo()  # Final newline
 
 
 def stream_and_print_commands(chunks):

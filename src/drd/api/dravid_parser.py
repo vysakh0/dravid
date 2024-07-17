@@ -12,15 +12,9 @@ def extract_outermost_xml(response: str) -> str:
     raise ValueError("No valid XML response found")
 
 
-def escape_nested_cdata(xml_content: str) -> str:
-    # Simplified function: just return the content as is
-    return xml_content
-
-
 def extract_and_parse_xml(response: str) -> etree.Element:
     try:
         xml_content = extract_outermost_xml(response)
-        xml_content = escape_nested_cdata(xml_content)
         parser = etree.XMLParser(recover=True)
         return etree.fromstring(xml_content.encode('utf-8'), parser=parser)
     except etree.XMLSyntaxError as e:

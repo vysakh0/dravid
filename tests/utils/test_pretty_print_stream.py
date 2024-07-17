@@ -343,3 +343,42 @@ def test_cdata_with_xml_like_content(capsys):
     assert "<![CDATA[This is <not> parsed as XML]]>" in captured.out
     assert "</setting>" in captured.out
     assert "</config>" in captured.out
+
+
+def test_cdata_with_instruction_like_content(capsys):
+    chunks = [
+        "<response>",
+        "<steps>",
+        "<step><type>file</type><operation>CREATE</operation><filename>xml_in_cdata.xml</filename>",
+        "<content><![CDATA[",
+        "<response >",
+        "<explanation> This is an explanation of file operation.</explanation>",
+        "<steps>",
+        "<step>",
+        "      <type>file</type>",
+        "      <operation>UPDATE</operation>",
+        "      <filename>path/to/existing/file.ext</filename>",
+        "      <content>",
+        "        <![CDATA[",
+        "          <html> <body>This is the content of the file</body> </html>",
+        "        ]]>",
+        "      </content>",
+        "    </step>",
+        "</steps>",
+        "</response>",
+        "]]></content></step>",
+        "</steps>",
+        "</response>"
+    ]
+    stream_and_print_commands(chunks)
+    captured = capsys.readouterr()
+    assert "File Operation: CREATE xml_in_cdata.xml" in captured.out
+    assert "<response >" in captured.out
+    assert "<explanation> This is an explanation of file operation.</explanation>" in captured.out
+    assert "<type>file</type>" in captured.out
+    assert "<operation>UPDATE</operation>" in captured.out
+    assert "<filename>path/to/existing/file.ext</filename>" in captured.out
+    assert "<![CDATA[" in captured.out
+    assert "<html> <body>This is the content of the file</body> </html>" in captured.out
+    assert "]]>" in captured.out
+    assert "</response>" in captured.out
