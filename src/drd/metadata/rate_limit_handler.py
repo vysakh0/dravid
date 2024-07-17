@@ -1,7 +1,7 @@
 import asyncio
 import time
 from ..api.dravid_api import call_dravid_api_with_pagination
-from ..api.dravid_parser import extract_and_parse_xml
+from ..utils.parser import extract_and_parse_xml
 from ..prompts.file_metada_desc_prompts import get_file_metadata_prompt
 from ..utils.utils import print_info, print_error, print_success, print_warning
 

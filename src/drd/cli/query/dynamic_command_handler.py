@@ -1,7 +1,7 @@
 import traceback
 import click
 from ...utils.api_utils import call_dravid_api_with_pagination
-from ...api.dravid_parser import parse_dravid_response, extract_and_parse_xml
+from ...utils.parser import parse_dravid_response, extract_and_parse_xml
 from ...utils import print_error, print_success, print_info, print_step, print_debug
 from ...metadata.common_utils import generate_file_description
 from ...prompts.error_resolution_prompt import get_error_resolution_prompt

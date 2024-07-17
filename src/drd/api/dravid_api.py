@@ -2,7 +2,7 @@ from ..utils.api_utils import call_dravid_api_with_pagination, call_dravid_visio
 from ..utils import print_error, print_info, print_debug
 from ..utils.loader import Loader
 from ..utils.pretty_print_stream import pretty_print_xml_stream
-from .dravid_parser import parse_dravid_response
+from ..utils.parser import parse_dravid_response
 import xml.etree.ElementTree as ET
 import click
 import re

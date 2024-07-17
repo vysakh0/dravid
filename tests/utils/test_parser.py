@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from lxml import etree
-from drd.api.dravid_parser import (
+from drd.utils.parser import (
     extract_outermost_xml,
     extract_and_parse_xml,
     parse_dravid_response,
@@ -139,34 +139,6 @@ class TestDravidParser(unittest.TestCase):
         result = extract_and_parse_xml(response)
         self.assertIsInstance(result, etree._Element)
 
-    # def test_cdata_within_cdata(self):
-    #     response = """
-    #     <response>
-    #       <step>
-    #         <type>file</type>
-    #         <operation>CREATE</operation>
-    #         <filename>nested_cdata.txt</filename>
-    #         <content>
-    #           <![CDATA[
-    #             This is outer CDATA
-    #             <![CDATA[
-    #               This is inner CDATA
-    #             ]]>
-    #             Back to outer CDATA
-    #           ]]>
-    #         </content>
-    #       </step>
-    #     </response>
-    #     """
-    #     result = extract_and_parse_xml(response)
-    #     self.assertIsInstance(result, etree._Element)
-    #     content = result.find(".//content").text
-    #     self.assertIn("This is outer CDATA", content)
-    #     self.assertIn("<![CDATA[", content)
-    #     self.assertIn("This is inner CDATA", content)
-    #     self.assertIn("]]>", content)
-    #     self.assertIn("Back to outer CDATA", content)
-
     def test_malformed_html_in_cdata(self):
         response = """
         <response>
@@ -191,34 +163,42 @@ class TestDravidParser(unittest.TestCase):
         self.assertIn("<p>This tag is not closed", content)
         self.assertIn("</div>", content)
 
-    # def test_parse_dravid_response_with_nested_cdata(self):
-    #     response = """
-    #     <response>
-    #       <explanation>Creating a file with nested CDATA</explanation>
-    #       <steps>
-    #         <step>
-    #           <type>file</type>
-    #           <operation>CREATE</operation>
-    #           <filename>nested_cdata.txt</filename>
-    #           <content>
-    #             <![CDATA[
-    #               Outer CDATA
-    #               <![CDATA[
-    #                 Inner CDATA
-    #               ]]>
-    #               Still outer CDATA
-    #             ]]>
-    #           </content>
-    #         </step>
-    #       </steps>
-    #     </response>
-    #     """
-    #     result = parse_dravid_response(response)
-    #     self.assertEqual(len(result), 2)  # Explanation + 1 step
-    #     self.assertEqual(result[0]['type'], 'explanation')
-    #     self.assertEqual(result[1]['type'], 'file')
-    #     self.assertIn('Outer CDATA', result[1]['content'])
-    #     self.assertIn('<![CDATA[', result[1]['content'])
-    #     self.assertIn('Inner CDATA', result[1]['content'])
-    #     self.assertIn(']]>', result[1]['content'])
-    #     self.assertIn('Still outer CDATA', result[1]['content'])
+    def test_complex_cdata_content(self):
+        response = """
+        <response>
+          <explanation>This is an explanation with CDATA content</explanation>
+          <steps>
+            <step>
+              <type>file</type>
+              <operation>CREATE</operation>
+              <filename>complex_cdata.xml</filename>
+              <content><![CDATA[
+                <response>
+                  <explanation>Nested explanation</explanation>
+                  <steps>
+                    <step>
+                      <type>file</type>
+                      <operation>UPDATE</operation>
+                      <filename>nested_file.txt</filename>
+                      <content><![CDATA[This is doubly nested CDATA content]]></content>
+                    </step>
+                  </steps>
+                </response>
+              ]]></content>
+            </step>
+          </steps>
+        </response>
+        """
+        result = parse_dravid_response(response)
+        self.assertEqual(len(result), 2)  # Explanation + 1 step
+        self.assertEqual(result[0]['type'], 'explanation')
+        self.assertEqual(result[0]['content'],
+                         'This is an explanation with CDATA content')
+        self.assertEqual(result[1]['type'], 'file')
+        self.assertEqual(result[1]['operation'], 'CREATE')
+        self.assertEqual(result[1]['filename'], 'complex_cdata.xml')
+        self.assertIn('<response>', result[1]['content'])
+        self.assertIn(
+            '<explanation>Nested explanation</explanation>', result[1]['content'])
+        self.assertIn(
+            '<![CDATA[This is doubly nested CDATA content]]>', result[1]['content'])

@@ -1,6 +1,6 @@
 import traceback
 from ...api.dravid_api import call_dravid_api_with_pagination
-from ...api.dravid_parser import parse_dravid_response
+from ...utils.parser import parse_dravid_response
 from ...utils.step_executor import Executor
 from ...utils.utils import print_error, print_success, print_info
 from ...prompts.monitor_error_resolution import get_error_resolution_prompt

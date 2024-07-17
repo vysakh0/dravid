@@ -7,7 +7,7 @@ from ...utils import print_error, print_success, print_info, print_step, print_d
 from ...utils.file_utils import get_file_content, fetch_project_guidelines
 from ...metadata.common_utils import generate_file_description
 from .file_operations import get_files_to_modify
-from ...api.dravid_parser import parse_dravid_response
+from ...utils.parser import parse_dravid_response
 
 
 def execute_dravid_command(query, image_path, debug, instruction_prompt):

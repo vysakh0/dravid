@@ -4,7 +4,7 @@ import os
 import json
 import base64
 from typing import Dict, Any, Optional, List
-from ..api.dravid_parser import extract_and_parse_xml, parse_dravid_response
+from .parser import extract_and_parse_xml, parse_dravid_response
 from typing import Dict, Any, Optional, List, Generator
 import xml.etree.ElementTree as ET
 from .utils import print_info, print_error
