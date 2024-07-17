@@ -16,8 +16,10 @@ jobs:
           pip install poetry
           poetry install
       - name: Run tests
-        run: poetry run pytest --cov=dravid --cov-report=term-missing
+        run: poetry run pytest --cov=drd --cov-report=xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests

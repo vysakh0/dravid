@@ -13,3 +13,4 @@ myfrontendapp
 nodsam
 .python-version
 .coverage
+coverage.xml
