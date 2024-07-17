@@ -133,3 +133,51 @@ class TestDynamicCommandHandler(unittest.TestCase):
         mock_execute_commands.assert_called_once()
         mock_print_success.assert_called_with(
             "All fix steps successfully applied.")
+
+    @patch('drd.cli.query.dynamic_command_handler.print_success')
+    def test_handle_metadata_operation_update_dev_server_with_start_command(self, mock_print_success):
+        cmd = {'operation': 'UPDATE_DEV_SERVER', 'start_command': 'npm start',
+               'framework': 'React', 'language': 'JavaScript'}
+        metadata_manager = MagicMock()
+
+        output = handle_metadata_operation(cmd, metadata_manager)
+
+        self.assertEqual(output, "Updated dev server info")
+        metadata_manager.update_dev_server_info.assert_called_once_with(
+            'npm start', 'React', 'JavaScript')
+        mock_print_success.assert_called_once_with(
+            "Updated dev server info in project metadata.")
+
+    @patch('drd.cli.query.dynamic_command_handler.print_success')
+    @patch('drd.cli.query.dynamic_command_handler.print_info')
+    def test_handle_metadata_operation_update_dev_server_without_start_command(self, mock_print_info, mock_print_success):
+        cmd = {'operation': 'UPDATE_DEV_SERVER',
+               'framework': 'React', 'language': 'JavaScript'}
+        metadata_manager = MagicMock()
+
+        output = handle_metadata_operation(cmd, metadata_manager)
+
+        self.assertEqual(output, "Updated dev server info")
+        metadata_manager.update_dev_server_info.assert_called_once_with(
+            None, 'React', 'JavaScript')
+        mock_print_info.assert_called_once_with(
+            "No start command provided. Dev server info will be updated without a start command.")
+        mock_print_success.assert_called_once_with(
+            "Updated dev server info in project metadata.")
+
+    @patch('drd.cli.query.dynamic_command_handler.print_success')
+    @patch('drd.cli.query.dynamic_command_handler.print_info')
+    def test_handle_metadata_operation_update_dev_server_with_empty_start_command(self, mock_print_info, mock_print_success):
+        cmd = {'operation': 'UPDATE_DEV_SERVER', 'start_command': '',
+               'framework': 'React', 'language': 'JavaScript'}
+        metadata_manager = MagicMock()
+
+        output = handle_metadata_operation(cmd, metadata_manager)
+
+        self.assertEqual(output, "Updated dev server info")
+        metadata_manager.update_dev_server_info.assert_called_once_with(
+            '', 'React', 'JavaScript')
+        mock_print_info.assert_called_once_with(
+            "No start command provided. Dev server info will be updated without a start command.")
+        mock_print_success.assert_called_once_with(
+            "Updated dev server info in project metadata.")

@@ -46,3 +46,41 @@ def create_confirmation_box(message, action):
 {box_bottom}{Style.RESET_ALL}
 """
     return confirmation_box
+
+
+def print_command_details(commands):
+    for index, cmd in enumerate(commands, start=1):
+        cmd_type = cmd.get('type', 'Unknown')
+        print_info(f"Command {index} - Type: {cmd_type}")
+
+        if cmd_type == 'shell':
+            print_info(f"  Command: {cmd.get('command', 'N/A')}")
+
+        elif cmd_type == 'explanation':
+            print_info(f"  Explanation: {cmd.get('content', 'N/A')}")
+
+        elif cmd_type == 'file':
+            operation = cmd.get('operation', 'N/A')
+            filename = cmd.get('filename', 'N/A')
+            content_preview = cmd.get('content', 'N/A')
+            if len(content_preview) > 50:
+                content_preview = content_preview[:50] + "..."
+            print_info(f"  Operation: {operation}")
+            print_info(f"  Filename: {filename}")
+            print_info(f"  Content: {content_preview}")
+
+        elif cmd_type == 'metadata':
+            operation = cmd.get('operation', 'N/A')
+            print_info(f"  Operation: {operation}")
+            if operation == 'UPDATE_DEV_SERVER':
+                print_info(
+                    f"  Start Command: {cmd.get('start_command', 'N/A')}")
+                print_info(f"  Framework: {cmd.get('framework', 'N/A')}")
+                print_info(f"  Language: {cmd.get('language', 'N/A')}")
+            elif operation in ['UPDATE_FILE', 'UPDATE']:
+                print_info(f"  Filename: {cmd.get('filename', 'N/A')}")
+                print_info(f"  Language: {cmd.get('language', 'N/A')}")
+                print_info(f"  Description: {cmd.get('description', 'N/A')}")
+
+        else:
+            print_warning(f"  Unknown command type: {cmd_type}")

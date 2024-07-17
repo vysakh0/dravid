@@ -1,6 +1,6 @@
 # File: prompts/error_resolution_prompt.py
 
-def get_error_resolution_prompt(error_type, error_message, error_trace, line, project_context):
+def get_error_resolution_prompt(error_type, error_message, error_trace, line, project_context, file_context=None):
     return f"""
     # Error Context
     An error occurred while running the server:
@@ -12,9 +12,12 @@ def get_error_resolution_prompt(error_type, error_message, error_trace, line, pr
     {line}
     Project context:
     {project_context}
+
+    File context: {file_context}
     # Instructions for dravid: Error Resolution Assistant
     Analyze the error above and provide steps to fix it.
     This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
+    Make sure you dont try for drastic changes, just the needed and precise fix. 
     When there is file content to be shown, make sure to give full content don't say "rest of the thing remain same".
     Your response should be in strictly XML format with no other extra messages. Use the following format:
     <response>

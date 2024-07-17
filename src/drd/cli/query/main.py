@@ -70,6 +70,9 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             xml_result = stream_dravid_api(
                 full_query, include_context=True, instruction_prompt=instruction_prompt, print_chunk=False)
             commands = parse_dravid_response(xml_result)
+            print_debug("commands")
+            print_info(commands)
+            # return None
             if debug:
                 print_debug(f"Received {len(commands)} new command(s)")
 
