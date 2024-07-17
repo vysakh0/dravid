@@ -1,17 +1,16 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import os
-import json
 import xml.etree.ElementTree as ET
 from io import BytesIO
 
-from drd.utils.api_utils import (
+from drd.api.claude_api import (
     get_api_key,
     get_headers,
     make_api_call,
     parse_response,
-    call_dravid_api_with_pagination,
-    call_dravid_vision_api_with_pagination,
+    call_claude_api_with_pagination,
+    call_claude_vision_api_with_pagination,
     stream_claude_response,
     parse_paginated_response
 )
@@ -57,16 +56,16 @@ class TestApiUtils(unittest.TestCase):
         parsed = parse_response(xml_response)
         self.assertEqual(parsed, xml_response)
 
-    @patch('drd.utils.api_utils.click.echo')
+    @patch('drd.api.claude_api.click.echo')
     def test_parse_response_invalid_xml(self, mock_echo):
         invalid_xml = "Not XML"
         parsed = parse_response(invalid_xml)
         self.assertEqual(parsed, invalid_xml)
         mock_echo.assert_called_once()
 
-    @patch('drd.utils.api_utils.get_api_key')
-    @patch('drd.utils.api_utils.make_api_call')
-    def test_call_dravid_api_with_pagination(self, mock_make_api_call, mock_get_api_key):
+    @patch('drd.api.claude_api.get_api_key')
+    @patch('drd.api.claude_api.make_api_call')
+    def test_call_claude_api_with_pagination(self, mock_make_api_call, mock_get_api_key):
         mock_get_api_key.return_value = self.api_key
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -75,14 +74,14 @@ class TestApiUtils(unittest.TestCase):
         }
         mock_make_api_call.return_value = mock_response
 
-        response = call_dravid_api_with_pagination(self.query)
+        response = call_claude_api_with_pagination(self.query)
         self.assertEqual(response, "<response>Test response</response>")
 
-    @patch('drd.utils.api_utils.get_api_key')
-    @patch('drd.utils.api_utils.make_api_call')
-    @patch('drd.utils.api_utils.mimetypes.guess_type')
+    @patch('drd.api.claude_api.get_api_key')
+    @patch('drd.api.claude_api.make_api_call')
+    @patch('drd.api.claude_api.mimetypes.guess_type')
     @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data=b'test image data')
-    def test_call_dravid_vision_api_with_pagination(self, mock_open, mock_guess_type, mock_make_api_call, mock_get_api_key):
+    def test_call_claude_vision_api_with_pagination(self, mock_open, mock_guess_type, mock_make_api_call, mock_get_api_key):
         mock_get_api_key.return_value = self.api_key
         mock_guess_type.return_value = ('image/jpeg', None)
         mock_response = MagicMock()
@@ -92,7 +91,7 @@ class TestApiUtils(unittest.TestCase):
         }
         mock_make_api_call.return_value = mock_response
 
-        response = call_dravid_vision_api_with_pagination(
+        response = call_claude_vision_api_with_pagination(
             self.query, self.image_path)
         self.assertEqual(response, "<response>Test vision response</response>")
 
@@ -110,8 +109,8 @@ class TestApiUtils(unittest.TestCase):
         self.assertEqual(call_args['messages'][0]
                          ['content'][1]['text'], self.query)
 
-    @patch('drd.utils.api_utils.get_api_key')
-    @patch('drd.utils.api_utils.make_api_call')
+    @patch('drd.api.claude_api.get_api_key')
+    @patch('drd.api.claude_api.make_api_call')
     def test_stream_claude_response(self, mock_make_api_call, mock_get_api_key):
         mock_get_api_key.return_value = self.api_key
         mock_response = MagicMock()

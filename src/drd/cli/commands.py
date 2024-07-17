@@ -8,7 +8,6 @@ from ..prompts.instructions import get_instruction_prompt
 from .monitor import run_dev_server_with_monitoring
 from ..metadata.initializer import initialize_project_metadata
 from ..metadata.updater import update_metadata_with_dravid
-from ..utils.api_utils import stream_claude_response
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 

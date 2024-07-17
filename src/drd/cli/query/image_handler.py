@@ -1,4 +1,4 @@
-from ...api.dravid_api import call_dravid_vision_api_with_pagination
+from ...api.main import call_dravid_vision_api_with_pagination
 
 
 def handle_image_query(query, image_path, instruction_prompt=None):

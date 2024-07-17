@@ -1,5 +1,5 @@
 import click
-from ...api.dravid_api import stream_dravid_api, call_dravid_vision_api
+from ...api.main import stream_dravid_api, call_dravid_vision_api
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from .dynamic_command_handler import handle_error_with_dravid, execute_commands
@@ -68,7 +68,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
             print_info("Streaming response from Claude API...")
             print_info("LLM calls to be made: 1")
             xml_result = stream_dravid_api(
-                full_query, include_context=True, instruction_prompt=instruction_prompt, debug=debug)
+                full_query, include_context=True, instruction_prompt=instruction_prompt, print_chunk=False)
             commands = parse_dravid_response(xml_result)
             if debug:
                 print_debug(f"Received {len(commands)} new command(s)")

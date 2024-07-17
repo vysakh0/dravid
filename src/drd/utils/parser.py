@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from lxml import etree
 from typing import List, Dict, Any
 import re
+from .utils import print_error
 
 
 def extract_outermost_xml(response: str) -> str:
@@ -92,3 +93,23 @@ def parse_dravid_response(response: str) -> List[Dict[str, Any]]:
         print("Original response:")
         print(response)
         return []
+
+
+def parse_file_list_response(response: str):
+    try:
+        root = extract_and_parse_xml(response)
+        files = root.findall('.//file')
+        return [file.text.strip() for file in files if file.text]
+    except Exception as e:
+        print_error(f"Error parsing file list response: {e}")
+        return None
+
+
+def parse_find_file_response(response: str):
+    try:
+        root = extract_and_parse_xml(response)
+        file_element = root.find('.//file')
+        return file_element.text.strip() if file_element is not None and file_element.text else None
+    except Exception as e:
+        print_error(f"Error parsing dravid's response: {str(e)}")
+        return None

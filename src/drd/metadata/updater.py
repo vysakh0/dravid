@@ -1,5 +1,5 @@
 import os
-from ..api.dravid_api import call_dravid_api_with_pagination
+from ..api.main import call_dravid_api_with_pagination
 from ..utils.parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
 from ..utils import print_error, print_success, print_info, print_warning

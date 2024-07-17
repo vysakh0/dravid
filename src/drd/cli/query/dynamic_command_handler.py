@@ -1,7 +1,6 @@
 import traceback
 import click
-from ...utils.api_utils import call_dravid_api_with_pagination
-from ...utils.parser import parse_dravid_response, extract_and_parse_xml
+from ...api.main import call_dravid_api
 from ...utils import print_error, print_success, print_info, print_step, print_debug
 from ...metadata.common_utils import generate_file_description
 from ...prompts.error_resolution_prompt import get_error_resolution_prompt
@@ -135,12 +134,10 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
 
     print_info("Sending error information to dravid for analysis...")
     print_info("LLM calls to be made: 1")
-    response = call_dravid_api_with_pagination(
-        error_query, include_context=True)
 
     try:
-        root = extract_and_parse_xml(response)
-        fix_commands = parse_dravid_response(response)
+        fix_commands = call_dravid_api(
+            error_query, include_context=True)
     except ValueError as e:
         print_error(f"Error parsing dravid's response: {str(e)}")
         return False

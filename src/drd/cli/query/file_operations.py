@@ -3,7 +3,7 @@ from ...api import call_dravid_api_with_pagination
 from ...utils import print_error, print_info
 from ...metadata.project_metadata import ProjectMetadataManager
 from ...prompts.file_operations import get_files_to_modify_prompt, find_file_prompt
-from ...utils.file_utils import parse_file_list_response,  parse_find_file_response
+from ...utils.parser import parse_file_list_response,  parse_find_file_response
 
 
 def get_files_to_modify(query, project_context):

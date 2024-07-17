@@ -4,10 +4,9 @@ import os
 import json
 import base64
 from typing import Dict, Any, Optional, List
-from .parser import extract_and_parse_xml, parse_dravid_response
+from ..utils.parser import extract_and_parse_xml, parse_dravid_response
 from typing import Dict, Any, Optional, List, Generator
 import xml.etree.ElementTree as ET
-from .utils import print_info, print_error
 import click
 
 API_URL = 'https://api.anthropic.com/v1/messages'
@@ -46,7 +45,7 @@ def parse_response(response: str) -> str:
         return response
 
 
-def call_dravid_api_with_pagination(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+def call_claude_api_with_pagination(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     api_key = get_api_key()
     headers = get_headers(api_key)
     full_response = ""
@@ -75,7 +74,7 @@ def call_dravid_api_with_pagination(query: str, include_context: bool = False, i
     return parse_response(full_response)
 
 
-def call_dravid_vision_api_with_pagination(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+def call_claude_vision_api_with_pagination(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     api_key = get_api_key()
     headers = get_headers(api_key)
 

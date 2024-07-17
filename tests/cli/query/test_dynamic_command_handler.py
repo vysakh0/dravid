@@ -113,20 +113,15 @@ class TestDynamicCommandHandler(unittest.TestCase):
     @patch('drd.cli.query.dynamic_command_handler.print_error')
     @patch('drd.cli.query.dynamic_command_handler.print_info')
     @patch('drd.cli.query.dynamic_command_handler.print_success')
-    @patch('drd.cli.query.dynamic_command_handler.call_dravid_api_with_pagination')
-    @patch('drd.cli.query.dynamic_command_handler.extract_and_parse_xml')
-    @patch('drd.cli.query.dynamic_command_handler.parse_dravid_response')
+    @patch('drd.cli.query.dynamic_command_handler.call_dravid_api')
     @patch('drd.cli.query.dynamic_command_handler.execute_commands')
     @patch('drd.cli.query.dynamic_command_handler.click.echo')
-    def test_handle_error_with_dravid(self, mock_echo, mock_execute_commands,  mock_parse_response,
-                                      mock_extract_xml, mock_call_api, mock_print_success, mock_print_info, mock_print_error):
+    def test_handle_error_with_dravid(self, mock_echo, mock_execute_commands,
+                                      mock_call_api, mock_print_success, mock_print_info, mock_print_error):
         error = Exception("Test error")
         cmd = {'type': 'shell', 'command': 'echo "Hello"'}
 
-        mock_call_api.return_value = "<response><fix><step><type>shell</type><command>echo 'Fixed'</command></step></fix></response>"
-        mock_extract_xml.return_value = ET.fromstring(
-            mock_call_api.return_value)
-        mock_parse_response.return_value = [
+        mock_call_api.return_value = [
             {'type': 'shell', 'command': "echo 'Fixed'"}]
         mock_execute_commands.return_value = (True, 1, None, "Fix applied")
 

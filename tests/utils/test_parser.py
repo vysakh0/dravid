@@ -1,10 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
+import xml.etree.ElementTree as ET
 from lxml import etree
 from drd.utils.parser import (
     extract_outermost_xml,
     extract_and_parse_xml,
     parse_dravid_response,
+    parse_file_list_response,
+    parse_find_file_response
 )
 
 
@@ -202,3 +205,45 @@ class TestDravidParser(unittest.TestCase):
             '<explanation>Nested explanation</explanation>', result[1]['content'])
         self.assertIn(
             '<![CDATA[This is doubly nested CDATA content]]>', result[1]['content'])
+
+    @patch('drd.utils.parser.extract_and_parse_xml')
+    def test_parse_file_list_response_success(self, mock_extract_and_parse_xml):
+        mock_root = ET.Element('response')
+        ET.SubElement(mock_root, 'file').text = 'file1.txt'
+        ET.SubElement(mock_root, 'file').text = 'file2.txt'
+        mock_extract_and_parse_xml.return_value = mock_root
+
+        response = "<response><file>file1.txt</file><file>file2.txt</file></response>"
+        result = parse_file_list_response(response)
+
+        self.assertEqual(result, ['file1.txt', 'file2.txt'])
+
+    @patch('drd.utils.parser.extract_and_parse_xml')
+    @patch('drd.utils.utils.print_error')
+    def test_parse_file_list_response_error(self, mock_print_error, mock_extract_and_parse_xml):
+        mock_extract_and_parse_xml.side_effect = Exception("Test error")
+
+        response = "<response><file>found_file.txt</file></response>"
+        result = parse_file_list_response(response)
+        self.assertIsNone(result)
+
+    @patch('drd.utils.parser.extract_and_parse_xml')
+    @patch('drd.utils.utils.print_error')
+    def test_parse_find_file_response_error(self, mock_print_error, mock_extract_and_parse_xml):
+        mock_extract_and_parse_xml.side_effect = Exception("Test error")
+
+        response = "<response><>xml</invalid>"
+        result = parse_find_file_response(response)
+
+        self.assertIsNone(result)
+
+    @patch('drd.utils.parser.extract_and_parse_xml')
+    def test_parse_find_file_response_success(self, mock_extract_and_parse_xml):
+        mock_root = ET.Element('response')
+        ET.SubElement(mock_root, 'file').text = 'found_file.txt'
+        mock_extract_and_parse_xml.return_value = mock_root
+
+        response = "<response><file>found_file.txt</file></response>"
+        result = parse_find_file_response(response)
+
+        self.assertEqual(result, 'found_file.txt')

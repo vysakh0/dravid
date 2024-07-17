@@ -1,6 +1,6 @@
 import click
 import sys
-from ..utils.api_utils import stream_claude_response, call_dravid_api_with_pagination
+from ..api import stream_dravid_api, call_dravid_api_with_pagination
 from ..utils.utils import print_error, print_info
 from ..metadata.project_metadata import ProjectMetadataManager
 import os
@@ -48,5 +48,4 @@ def handle_ask_command(ask, file, debug):
         print_error("Please provide a question using --ask or through stdin")
         return
 
-    for chunk in stream_claude_response(context):
-        click.echo(chunk, nl=False)
+    stream_dravid_api(context, print_chunk=True)

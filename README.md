@@ -3,6 +3,7 @@
 Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow user instructions until the job is done, even if it means fixing errors, including installation issues. It can generate code and fix errors autonomously until the intended result is achieved.
 
 ### Security and Sandbox (important note)
+
 - Always try in a new directory for a fresh project.
 - For existing projects, create a separate git branch or a sandbox environment. Monitor the generated commands. Git add or commit when you get results.
 - Your file content will be sent to the CLAUDE API LLM for response. Do not include sensitive files in the project.
@@ -423,7 +424,7 @@ poetry run drd "create a simple elixir project"
 To run the test suite:
 
 ```
-poetry run test
+poetry run pytest
 ```
 
 ## License
