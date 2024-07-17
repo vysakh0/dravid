@@ -5,7 +5,7 @@ import click
 from colorama import Fore, Style
 import time
 import re
-from .utils import print_error, print_success, print_info
+from .utils import print_error, print_success, print_info, print_warning
 from ..metadata.common_utils import get_ignore_patterns, get_folder_structure
 
 
@@ -58,6 +58,11 @@ class Executor:
         print_info(f"File: {filename}")
         if content:
             print_info(f"Content preview: {content[:100]}...")
+
+        if operation in ['DELETE', 'UPDATE']:
+            if not click.confirm(f"Allow Dravid to {operation.lower()} the file '{filename}'?", default=False):
+                print_info(f"File {operation.lower()} cancelled by user.")
+                return False
 
         if operation == 'CREATE':
             if os.path.exists(full_path) and not force:
@@ -126,9 +131,11 @@ class Executor:
 
     def execute_shell_command(self, command, timeout=300):  # 5 minutes timeout
         if not self.is_safe_command(command):
-            error_message = f"Command not allowed for security reasons: {command}"
-            print_error(error_message)
-            raise Exception(error_message)
+            print_warning(f"Please verify the command once: {command}")
+
+        if not click.confirm(f"Do you want to execute the following command?\n{command}", default=False):
+            print_info("Command execution cancelled by user.")
+            return None
 
         click.echo(
             f"{Fore.YELLOW}Executing shell command: {command}{Style.RESET_ALL}")

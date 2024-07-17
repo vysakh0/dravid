@@ -136,3 +136,74 @@ class TestExecutor(unittest.TestCase):
             'export EXPORT_QUOTE="exported quoted value"')
         self.assertEqual(
             self.executor.env['EXPORT_QUOTE'], 'exported quoted value')
+
+    @patch('os.path.exists')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('click.confirm')
+    def test_perform_file_operation_create(self, mock_confirm, mock_file, mock_exists):
+        mock_exists.return_value = False
+        mock_confirm.return_value = True
+        result = self.executor.perform_file_operation(
+            'CREATE', 'test.txt', 'content')
+        self.assertTrue(result)
+        mock_file.assert_called_with(os.path.join(
+            self.executor.current_dir, 'test.txt'), 'w')
+        mock_file().write.assert_called_with('content')
+        mock_confirm.assert_not_called()  # CREATE operation doesn't require confirmation
+
+    @patch('os.path.exists')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('click.confirm')
+    def test_perform_file_operation_update(self, mock_confirm, mock_file, mock_exists):
+        mock_exists.return_value = True
+        mock_confirm.return_value = True
+        result = self.executor.perform_file_operation(
+            'UPDATE', 'test.txt', 'new content')
+        self.assertTrue(result)
+        mock_file.assert_called_with(os.path.join(
+            self.executor.current_dir, 'test.txt'), 'w')
+        mock_file().write.assert_called_with('new content')
+        mock_confirm.assert_called_once()
+
+    @patch('os.path.exists')
+    @patch('os.path.isfile')
+    @patch('os.remove')
+    @patch('click.confirm')
+    def test_perform_file_operation_delete(self, mock_confirm, mock_remove, mock_isfile, mock_exists):
+        mock_exists.return_value = True
+        mock_isfile.return_value = True
+        mock_confirm.return_value = True
+        result = self.executor.perform_file_operation('DELETE', 'test.txt')
+        self.assertTrue(result)
+        mock_remove.assert_called_with(os.path.join(
+            self.executor.current_dir, 'test.txt'))
+        mock_confirm.assert_called_once()
+
+    @patch('click.confirm')
+    def test_perform_file_operation_user_cancel(self, mock_confirm):
+        mock_confirm.return_value = False
+        result = self.executor.perform_file_operation(
+            'UPDATE', 'test.txt', 'content')
+        self.assertFalse(result)
+        mock_confirm.assert_called_once()
+
+    @patch('subprocess.Popen')
+    @patch('click.confirm')
+    def test_execute_shell_command(self, mock_confirm, mock_popen):
+        mock_confirm.return_value = True
+        mock_process = MagicMock()
+        mock_process.poll.side_effect = [None, 0]
+        mock_process.stdout.readline.return_value = 'output line'
+        mock_process.communicate.return_value = ('', '')
+        mock_popen.return_value = mock_process
+
+        result = self.executor.execute_shell_command('ls')
+        self.assertEqual(result, 'output line')
+        mock_confirm.assert_called_once()
+
+    @patch('click.confirm')
+    def test_execute_shell_command_user_cancel(self, mock_confirm):
+        mock_confirm.return_value = False
+        result = self.executor.execute_shell_command('ls')
+        self.assertIsNone(result)
+        mock_confirm.assert_called_once()
