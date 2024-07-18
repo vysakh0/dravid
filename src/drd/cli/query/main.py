@@ -77,6 +77,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
         if not commands:
             print_error(
                 "Failed to parse Claude's response or no commands to execute.")
+            print("Actual result:", xml_result)
             return
 
         print_info(

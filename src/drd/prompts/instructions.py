@@ -78,7 +78,7 @@ Try to pass the current directory for the project creating script generators.
 3. Use relative paths for all file operations.
 4. Do not use 'cd' commands. All operations should be relative to the current directory.
 5. If a command fails due to existing files, provide alternative steps to handle the situation (e.g., suggesting file removal or using a different directory).
-6. Strictly generate XML only, no other extra words.
+6. Strictly generate XML only, no other preceding or follow up words. Any other info you want to mention, mention it inside explanation
 7. For file updates, especially configuration files like package.json, always provide the ENTIRE file content within the CDATA section.
 8. If you need to update a specific part of a file, first fetch the current content, then provide the fully updated content.
 9. Try to avoid sudo approach as much but as a last resort.
