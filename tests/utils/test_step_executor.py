@@ -44,17 +44,6 @@ class TestExecutor(unittest.TestCase):
         mock_file().write.assert_called_with('content')
 
     @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_perform_file_operation_update(self, mock_file, mock_exists):
-        mock_exists.return_value = True
-        result = self.executor.perform_file_operation(
-            'UPDATE', 'test.txt', 'new content')
-        self.assertTrue(result)
-        mock_file.assert_called_with(os.path.join(
-            self.executor.current_dir, 'test.txt'), 'w')
-        mock_file().write.assert_called_with('new content')
-
-    @patch('os.path.exists')
     @patch('os.path.isfile')
     @patch('os.remove')
     def test_perform_file_operation_delete(self, mock_remove, mock_isfile, mock_exists):
@@ -152,20 +141,6 @@ class TestExecutor(unittest.TestCase):
         mock_confirm.assert_not_called()  # CREATE operation doesn't require confirmation
 
     @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open)
-    @patch('click.confirm')
-    def test_perform_file_operation_update(self, mock_confirm, mock_file, mock_exists):
-        mock_exists.return_value = True
-        mock_confirm.return_value = True
-        result = self.executor.perform_file_operation(
-            'UPDATE', 'test.txt', 'new content')
-        self.assertTrue(result)
-        mock_file.assert_called_with(os.path.join(
-            self.executor.current_dir, 'test.txt'), 'w')
-        mock_file().write.assert_called_with('new content')
-        mock_confirm.assert_called_once()
-
-    @patch('os.path.exists')
     @patch('os.path.isfile')
     @patch('os.remove')
     @patch('click.confirm')
@@ -206,3 +181,45 @@ class TestExecutor(unittest.TestCase):
         mock_confirm.return_value = False
         result = self.executor.execute_shell_command('ls')
         mock_confirm.assert_called_once()
+
+    @patch('os.path.exists')
+    @patch('builtins.open', new_callable=mock_open, read_data="line 1\nline 2\nline 3\nline 4\nline 5\n")
+    @patch('click.confirm')
+    def test_perform_file_operation_update_with_line_specific_changes(self, mock_confirm, mock_file, mock_exists):
+        mock_exists.return_value = True
+        mock_confirm.return_value = True
+        changes = """
+        + 2: new line 2
+        - 4:
+        r 5: updated line 5
+        """
+        result = self.executor.perform_file_operation(
+            'UPDATE', 'test.py', content=changes)
+        self.assertTrue(result)
+        expected_content = "line 1\nnew line 2\nline 2\nline 3\nupdated line 5"
+        mock_file().write.assert_called_once_with(expected_content)
+
+    def test_apply_changes_with_line_specific_instructions(self):
+        original_content = "line 1\nline 2\nline 3\nline 4\nline 5\n"
+        changes = """
+        + 2: new line 2
+        - 4:
+        r 5: updated line 5
+        """
+        result = self.executor.apply_changes(original_content, changes)
+        expected = "line 1\nnew line 2\nline 2\nline 3\nupdated line 5"
+        self.assertEqual(result, expected)
+
+    def test_parse_change_instructions(self):
+        changes = """
+        + 2: new line 2
+        - 4:
+        r 5: updated line 5
+        """
+        result = self.executor.parse_change_instructions(changes)
+        expected = [
+            {'action': 'add', 'line': 2, 'content': 'new line 2'},
+            {'action': 'remove', 'line': 4},
+            {'action': 'replace', 'line': 5, 'content': 'updated line 5'}
+        ]
+        self.assertEqual(result, expected)

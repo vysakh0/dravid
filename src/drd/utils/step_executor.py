@@ -90,8 +90,19 @@ class Executor:
                 print_info(f"File does not exist: {filename}")
                 return False
             try:
+                with open(full_path, 'r') as f:
+                    original_content = f.read()
+
+                if content:
+                    updated_content = self.apply_changes(
+                        original_content, content)
+                else:
+                    print_error(
+                        "No content or changes provided for update operation")
+                    return False
+
                 with open(full_path, 'w') as f:
-                    f.write(content)
+                    f.write(updated_content)
                 print_success(f"File updated successfully: {filename}")
                 return True
             except Exception as e:
@@ -114,6 +125,59 @@ class Executor:
         else:
             print_error(f"Unknown file operation: {operation}")
             return False
+
+    def apply_changes(self, original_content, changes):
+        if not changes:
+            return original_content
+
+        lines = original_content.splitlines()
+        change_instructions = self.parse_change_instructions(changes)
+
+        # Sort changes by line number in descending order to avoid index shifts
+        change_instructions.sort(key=lambda x: x['line'], reverse=True)
+
+        for change in change_instructions:
+            if change['action'] == 'add':
+                lines.insert(change['line'] - 1, change['content'])
+            elif change['action'] == 'remove':
+                if 0 <= change['line'] - 1 < len(lines):
+                    del lines[change['line'] - 1]
+                else:
+                    print_warning(
+                        f"Line {change['line']} does not exist in the file")
+            elif change['action'] == 'replace':
+                if 0 <= change['line'] - 1 < len(lines):
+                    lines[change['line'] - 1] = change['content']
+                else:
+                    print_warning(
+                        f"Line {change['line']} does not exist in the file")
+
+        return '\n'.join(lines)
+
+    def parse_change_instructions(self, changes):
+        instructions = []
+        for line in changes.strip().splitlines():
+            parts = line.strip().split(':', 1)
+            if len(parts) != 2:
+                print_warning(f"Invalid change instruction: {line}")
+                continue
+
+            action_line, content = parts
+            action, line_num = action_line.split()
+            line_num = int(line_num)
+
+            if action in ('+', 'add'):
+                instructions.append(
+                    {'action': 'add', 'line': line_num, 'content': content.strip()})
+            elif action in ('-', 'remove'):
+                instructions.append({'action': 'remove', 'line': line_num})
+            elif action in ('r', 'replace'):
+                instructions.append(
+                    {'action': 'replace', 'line': line_num, 'content': content.strip()})
+            else:
+                print_warning(f"Unknown action in change instruction: {line}")
+
+        return instructions
 
     def parse_json(self, json_string):
         try:

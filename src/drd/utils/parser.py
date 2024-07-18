@@ -43,10 +43,10 @@ def parse_dravid_response(response: str) -> List[Dict[str, Any]]:
         # Extract steps
         for step in root.findall('.//step'):
             command = {}
-            for tag in ['type', 'operation', 'filename', 'content', 'command']:
+            for tag in ['type', 'operation', 'filename', 'content', 'changes', 'command']:
                 element = step.find(tag)
                 if element is not None:
-                    if tag == 'content':
+                    if tag in ['content', 'changes']:
                         # Use tostring to preserve CDATA and nested elements
                         command[tag] = etree.tostring(
                             element, encoding='unicode', method='text').strip()

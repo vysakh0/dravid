@@ -23,15 +23,23 @@ Your responses should follow this XML format:
       </content>
     </step>
     <step>
-      <type>file</type>
-      <operation>UPDATE</operation>
-      <filename>path/to/existing/file.ext</filename>
-      <content>
-        <![CDATA[
-        content to append or replace
-        ]]>
-      </content>
-    </step>
+        <type>file</type>
+        <operation>UPDATE</operation>
+        <filename>path/to/existing/file.ext</filename>
+        <content>
+          <![CDATA[
+          Specify changes using the following format:
+          + line_number: content to add
+          - line_number: (to remove the line)
+          r line_number: content to replace the line with
+          
+          Example:
+          + 3: import new_module
+          - 10:
+          r 15: def updated_function():
+          ]]>
+        </content>
+      </step>
     <step>
       <type>file</type>
       <operation>DELETE</operation>
@@ -80,7 +88,9 @@ Try to pass the current directory for the project creating script generators.
 5. If a command fails due to existing files, provide alternative steps to handle the situation (e.g., suggesting file removal or using a different directory).
 6. Strictly generate XML only, no other preceding or follow up words. Any other info you want to mention, mention it inside explanation
 7. For file updates, especially configuration files like package.json, always provide the ENTIRE file content within the CDATA section.
-8. If you need to update a specific part of a file, first fetch the current content, then provide the fully updated content.
+8 For file updates, provide ONLY the specific changes to be made, not the entire file content.
+  - Provide precise line-by-line modifications per the given format.
+  - Ensure that the changes are accurate, specifying the correct line numbers for additions, removals, 
 9. Try to avoid sudo approach as much but as a last resort.
 10. Give OS & arch specific information whenever needed.
 11. When initializing a project, include a step to update the dev server info in the project metadata.
@@ -93,7 +103,6 @@ Ensure all steps are executable and maintain a logical flow of operations.
    - Inferring project requirements or features based on visual elements in the image
 14. If there is a need to create a .png or .jpg files with no content, you can prefix the filename with "placeholder-"
 15. Create reusable functions or components as much as possible in separate files so to avoid large lined files.
-16. Always give full file response, never say code unchanged or partial responses. 
 17. If you see an opportunity to reuse a code by extracting into a function or variable, please do.
 18. Strive to create less 120 lines of code in a file, feel free to split and create new files to reference. This makes it
 easy for coding assistants to load only needed context

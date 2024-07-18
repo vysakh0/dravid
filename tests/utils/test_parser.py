@@ -315,3 +315,34 @@ class TestDravidParser(unittest.TestCase):
         result = parse_find_file_response(response)
 
         self.assertEqual(result, 'found_file.txt')
+
+    def test_parse_dravid_response_with_changes(self):
+        response = """
+        <response>
+          <explanation>Update file content</explanation>
+          <steps>
+            <step>
+              <type>file</type>
+              <operation>UPDATE</operation>
+              <filename>test.py</filename>
+              <changes>
+                <![CDATA[
+                - old_function()
+                + new_function()
+                + additional_line()
+                ]]>
+              </changes>
+            </step>
+          </steps>
+        </response>
+        """
+        result = parse_dravid_response(response)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0]['type'], 'explanation')
+        self.assertEqual(result[0]['content'], 'Update file content')
+        self.assertEqual(result[1]['type'], 'file')
+        self.assertEqual(result[1]['operation'], 'UPDATE')
+        self.assertEqual(result[1]['filename'], 'test.py')
+        self.assertIn('- old_function()', result[1]['changes'])
+        self.assertIn('+ new_function()', result[1]['changes'])
+        self.assertIn('+ additional_line()', result[1]['changes'])
