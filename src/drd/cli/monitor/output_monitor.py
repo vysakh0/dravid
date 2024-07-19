@@ -1,17 +1,19 @@
+import re
 import threading
 import time
-import re
 import select
-import sys
-from ...utils import print_info
+from ...utils import print_info, print_error
+
+MAX_RETRIES = 3
 
 
 class OutputMonitor:
     def __init__(self, monitor):
         self.monitor = monitor
         self.thread = None
-        self.last_output_time = time.time()
+        self.last_output_time = None
         self.idle_prompt_shown = False
+        self.retry_count = 0
 
     def start(self):
         self.thread = threading.Thread(
@@ -29,15 +31,23 @@ class OutputMonitor:
     def _monitor_output(self):
         error_buffer = []
         iteration = 0
-        self.last_output_time = time.time()  # Initialize last_output_time here
+        self.last_output_time = time.time()
         while not self.monitor.should_stop.is_set():
             iteration += 1
 
             if self.monitor.process.poll() is not None and not self.monitor.processing_input.is_set():
                 if not self.monitor.restart_requested.is_set():
-                    print_info(
-                        "Server process ended unexpectedly. Restarting...")
-                    self.monitor.perform_restart()
+                    print_info("Server process ended unexpectedly.")
+                    if self.retry_count < MAX_RETRIES:
+                        print_info(
+                            f"Restarting... (Attempt {self.retry_count + 1}/{MAX_RETRIES})")
+                        self.monitor.perform_restart()
+                        self.retry_count += 1
+                    else:
+                        print_error(
+                            f"Server failed to start after {MAX_RETRIES} attempts. Exiting.")
+                        self.monitor.stop()
+                        break
                 continue
 
             ready, _, _ = select.select(
@@ -52,6 +62,7 @@ class OutputMonitor:
                         error_buffer.pop(0)
                     self.last_output_time = time.time()
                     self.idle_prompt_shown = False
+                    self.retry_count = 0  # Reset retry count on successful output
 
                     if not self.monitor.processing_input.is_set():
                         self._check_for_errors(line, error_buffer)
