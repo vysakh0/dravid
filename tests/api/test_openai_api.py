@@ -48,8 +48,6 @@ class TestOpenAIApiUtils(unittest.TestCase):
     def test_get_client_azure(self):
         client = get_client()
         self.assertIsInstance(client, AzureOpenAI)
-        # Note: We can't directly access these attributes in the new OpenAI client
-        # Instead, we can check if the client was initialized correctly
         self.assertTrue(isinstance(client, AzureOpenAI))
 
     @patch.dict(os.environ, {
