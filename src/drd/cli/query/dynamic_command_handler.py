@@ -19,30 +19,31 @@ def execute_commands(commands, executor, metadata_manager, is_fix=False, debug=F
             print_info(f"Explanation: {cmd['content']}")
             all_outputs.append(
                 f"Step {i}/{total_steps}: Explanation - {cmd['content']}")
-            continue
+        else:
+            try:
+                if cmd['type'] == 'shell':
+                    output = handle_shell_command(cmd, executor)
+                elif cmd['type'] == 'file':
+                    output = handle_file_operation(
+                        cmd, executor, metadata_manager)
+                elif cmd['type'] == 'metadata':
+                    output = handle_metadata_operation(cmd, metadata_manager)
 
-        try:
-            if cmd['type'] == 'shell':
-                output = handle_shell_command(cmd, executor)
-                all_outputs.append(
-                    f"Step {i}/{total_steps}: Shell command - {cmd['command']}\nOutput: {output}")
-            elif cmd['type'] == 'file':
-                output = handle_file_operation(cmd, executor, metadata_manager)
-                all_outputs.append(
-                    f"Step {i}/{total_steps}: File operation - {cmd['operation']} - {cmd['filename']} - {output}")
-            elif cmd['type'] == 'metadata':
-                output = handle_metadata_operation(cmd, metadata_manager)
-                all_outputs.append(
-                    f"Step {i}/{total_steps}: Metadata operation - {cmd['operation']} - {output}")
+                if isinstance(output, str) and output.startswith("Skipping"):
+                    print_info(f"Step {i}/{total_steps}: {output}")
+                    all_outputs.append(f"Step {i}/{total_steps}: {output}")
+                else:
+                    all_outputs.append(
+                        f"Step {i}/{total_steps}: {cmd['type'].capitalize()} command - {cmd.get('command', '')} {cmd.get('operation', '')}\nOutput: {output}")
 
-            if debug:
-                print_debug(f"Completed step {i}/{total_steps}")
+            except Exception as e:
+                error_message = f"Step {i}/{total_steps}: Error executing {step_description}: {cmd}\nError details: {str(e)}"
+                print_error(error_message)
+                all_outputs.append(error_message)
+                return False, i, str(e), "\n".join(all_outputs)
 
-        except Exception as e:
-            error_message = f"Step {i}/{total_steps}: Error executing {step_description}: {cmd}\nError details: {str(e)}"
-            print_error(error_message)
-            all_outputs.append(error_message)
-            return False, i, str(e), "\n".join(all_outputs)
+        if debug:
+            print_debug(f"Completed step {i}/{total_steps}")
 
     return True, total_steps, None, "\n".join(all_outputs)
 
@@ -50,6 +51,9 @@ def execute_commands(commands, executor, metadata_manager, is_fix=False, debug=F
 def handle_shell_command(cmd, executor):
     print_info(f"Executing shell command: {cmd['command']}")
     output = executor.execute_shell_command(cmd['command'])
+    if isinstance(output, str) and output.startswith("Skipping"):
+        print_info(output)
+        return output
     if output is None:
         raise Exception(f"Command failed: {cmd['command']}")
     print_success(f"Successfully executed: {cmd['command']}")
@@ -67,7 +71,10 @@ def handle_file_operation(cmd, executor, metadata_manager):
         cmd.get('content'),
         force=True
     )
-    if operation_performed:
+    if isinstance(operation_performed, str) and operation_performed.startswith("Skipping"):
+        print_info(operation_performed)
+        return operation_performed
+    elif operation_performed:
         print_success(
             f"Successfully performed {cmd['operation']} on file: {cmd['filename']}")
         if cmd['operation'] in ['CREATE', 'UPDATE']:

@@ -78,7 +78,7 @@ class Executor:
                     return True
                 else:
                     print_info("File creation cancelled by user.")
-                    return False
+                    return "Skipping this step"
             except Exception as e:
                 print_error(f"Error creating file: {str(e)}")
                 return False
@@ -107,7 +107,7 @@ class Executor:
                         return True
                     else:
                         print_info(f"File update cancelled by user.")
-                        return False
+                        return "Skipping this step"
                 else:
                     print_error(
                         "No content or changes provided for update operation")
@@ -134,7 +134,7 @@ class Executor:
                     return False
             else:
                 print_info("File deletion cancelled by user.")
-                return False
+                return "Skipping this step"
 
         else:
             print_error(f"Unknown file operation: {operation}")
