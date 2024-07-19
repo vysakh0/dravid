@@ -15,7 +15,6 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt):
     print_warning("Please make sure you are in a fresh directory.")
     print_warning(
         "If it is an existing project, please ensure you're in a git branch")
-    print_warning("Use Ctrl+C to exit if you're not")
 
     executor = Executor()
     metadata_manager = ProjectMetadataManager(executor.current_dir)

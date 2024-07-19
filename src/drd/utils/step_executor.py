@@ -6,6 +6,8 @@ from colorama import Fore, Style
 import time
 import re
 from .utils import print_error, print_success, print_info, print_warning, create_confirmation_box
+from .diff import preview_file_changes
+from .apply_file_changes import apply_changes
 from ..metadata.common_utils import get_ignore_patterns, get_folder_structure
 
 
@@ -56,20 +58,9 @@ class Executor:
             print(confirmation_box)
             if not click.confirm(f"{Fore.YELLOW}Confirm {operation.lower()} [y/N]:{Style.RESET_ALL}", default=False):
                 print_info(f"File {operation.lower()} cancelled by user.")
-                return False
+                return "Skipping this step"
 
         print_info(f"File: {filename}")
-        if content:
-            print_info(f"Content preview: {content[:100]}...")
-
-        if operation in ['DELETE', 'UPDATE']:
-            confirmation_box = create_confirmation_box(
-                filename, f"{operation.lower()} this file")
-            print(confirmation_box)
-
-            if not click.confirm(f"{Fore.YELLOW}Confirm {operation.lower()} [y/N]:{Style.RESET_ALL}", default=False):
-                print_info(f"File {operation.lower()} cancelled by user.")
-                return False
 
         if operation == 'CREATE':
             if os.path.exists(full_path) and not force:
@@ -77,10 +68,17 @@ class Executor:
                 return False
             try:
                 os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, 'w') as f:
-                    f.write(content)
-                print_success(f"File created successfully: {filename}")
-                return True
+                preview = preview_file_changes(
+                    operation, filename, new_content=content)
+                print(preview)
+                if click.confirm(f"{Fore.YELLOW}Confirm creation [y/N]:{Style.RESET_ALL}", default=False):
+                    with open(full_path, 'w') as f:
+                        f.write(content)
+                    print_success(f"File created successfully: {filename}")
+                    return True
+                else:
+                    print_info("File creation cancelled by user.")
+                    return False
             except Exception as e:
                 print_error(f"Error creating file: {str(e)}")
                 return False
@@ -94,17 +92,29 @@ class Executor:
                     original_content = f.read()
 
                 if content:
-                    updated_content = self.apply_changes(
-                        original_content, content)
+                    print(content, "the content that is sent")
+                    print(original_content, "the orignalcontent that is sent")
+                    updated_content = apply_changes(original_content, content)
+                    print(updated_content, "--")
+                    preview = preview_file_changes(
+                        operation, filename, new_content=updated_content, original_content=original_content)
+                    print(preview)
+                    confirmation_box = create_confirmation_box(
+                        filename, f"{operation.lower()} this file")
+                    print(confirmation_box)
+
+                    if click.confirm(f"{Fore.YELLOW}Confirm update [y/N]:{Style.RESET_ALL}", default=False):
+                        with open(full_path, 'w') as f:
+                            f.write(updated_content)
+                        print_success(f"File updated successfully: {filename}")
+                        return True
+                    else:
+                        print_info(f"File update cancelled by user.")
+                        return False
                 else:
                     print_error(
                         "No content or changes provided for update operation")
                     return False
-
-                with open(full_path, 'w') as f:
-                    f.write(updated_content)
-                print_success(f"File updated successfully: {filename}")
-                return True
             except Exception as e:
                 print_error(f"Error updating file: {str(e)}")
                 return False
@@ -114,70 +124,24 @@ class Executor:
                 print_info(
                     f"Delete operation is only allowed for files: {filename}")
                 return False
-            try:
-                os.remove(full_path)
-                print_success(f"File deleted successfully: {filename}")
-                return True
-            except Exception as e:
-                print_error(f"Error deleting file: {str(e)}")
+            confirmation_box = create_confirmation_box(
+                filename, f"{operation.lower()} this file")
+            print(confirmation_box)
+            if click.confirm(f"{Fore.YELLOW}Confirm deletion [y/N]:{Style.RESET_ALL}", default=False):
+                try:
+                    os.remove(full_path)
+                    print_success(f"File deleted successfully: {filename}")
+                    return True
+                except Exception as e:
+                    print_error(f"Error deleting file: {str(e)}")
+                    return False
+            else:
+                print_info("File deletion cancelled by user.")
                 return False
 
         else:
             print_error(f"Unknown file operation: {operation}")
             return False
-
-    def apply_changes(self, original_content, changes):
-        if not changes:
-            return original_content
-
-        lines = original_content.splitlines()
-        change_instructions = self.parse_change_instructions(changes)
-
-        # Sort changes by line number in descending order to avoid index shifts
-        change_instructions.sort(key=lambda x: x['line'], reverse=True)
-
-        for change in change_instructions:
-            if change['action'] == 'add':
-                lines.insert(change['line'] - 1, change['content'])
-            elif change['action'] == 'remove':
-                if 0 <= change['line'] - 1 < len(lines):
-                    del lines[change['line'] - 1]
-                else:
-                    print_warning(
-                        f"Line {change['line']} does not exist in the file")
-            elif change['action'] == 'replace':
-                if 0 <= change['line'] - 1 < len(lines):
-                    lines[change['line'] - 1] = change['content']
-                else:
-                    print_warning(
-                        f"Line {change['line']} does not exist in the file")
-
-        return '\n'.join(lines)
-
-    def parse_change_instructions(self, changes):
-        instructions = []
-        for line in changes.strip().splitlines():
-            parts = line.strip().split(':', 1)
-            if len(parts) != 2:
-                print_warning(f"Invalid change instruction: {line}")
-                continue
-
-            action_line, content = parts
-            action, line_num = action_line.split()
-            line_num = int(line_num)
-
-            if action in ('+', 'add'):
-                instructions.append(
-                    {'action': 'add', 'line': line_num, 'content': content.strip()})
-            elif action in ('-', 'remove'):
-                instructions.append({'action': 'remove', 'line': line_num})
-            elif action in ('r', 'replace'):
-                instructions.append(
-                    {'action': 'replace', 'line': line_num, 'content': content.strip()})
-            else:
-                print_warning(f"Unknown action in change instruction: {line}")
-
-        return instructions
 
     def parse_json(self, json_string):
         try:

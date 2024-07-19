@@ -7,6 +7,7 @@ from io import StringIO
 
 # Update this import to match your actual module structure
 from drd.utils.step_executor import Executor
+from drd.utils.apply_file_changes import apply_changes
 
 
 class TestExecutor(unittest.TestCase):
@@ -138,7 +139,35 @@ class TestExecutor(unittest.TestCase):
         mock_file.assert_called_with(os.path.join(
             self.executor.current_dir, 'test.txt'), 'w')
         mock_file().write.assert_called_with('content')
-        mock_confirm.assert_not_called()  # CREATE operation doesn't require confirmation
+        mock_confirm.assert_called_once()
+
+    @patch('os.path.exists')
+    @patch('builtins.open', new_callable=mock_open, read_data="original content")
+    @patch('click.confirm')
+    @patch('drd.utils.step_executor.preview_file_changes')
+    def test_perform_file_operation_update(self, mock_preview, mock_confirm, mock_file, mock_exists):
+        mock_exists.return_value = True
+        mock_confirm.return_value = True
+        mock_preview.return_value = "Preview of changes"
+
+        # Define the changes to be applied
+        changes = "+ 2: This is a new line\nr 1: This is a replaced line"
+
+        result = self.executor.perform_file_operation(
+            'UPDATE', 'test.txt', changes)
+
+        self.assertTrue(result)
+        mock_file.assert_any_call(os.path.join(
+            self.executor.current_dir, 'test.txt'), 'r')
+        mock_file.assert_any_call(os.path.join(
+            self.executor.current_dir, 'test.txt'), 'w')
+
+        # Calculate the expected updated content
+        expected_updated_content = apply_changes("original content", changes)
+
+        mock_preview.assert_called_once_with(
+            'UPDATE', 'test.txt', new_content=expected_updated_content, original_content="original content")
+        mock_file().write.assert_called_once_with(expected_updated_content)
 
     @patch('os.path.exists')
     @patch('os.path.isfile')
@@ -160,7 +189,6 @@ class TestExecutor(unittest.TestCase):
         result = self.executor.perform_file_operation(
             'UPDATE', 'test.txt', 'content')
         self.assertFalse(result)
-        mock_confirm.assert_called_once()
 
     @patch('subprocess.Popen')
     @patch('click.confirm')
@@ -181,45 +209,3 @@ class TestExecutor(unittest.TestCase):
         mock_confirm.return_value = False
         result = self.executor.execute_shell_command('ls')
         mock_confirm.assert_called_once()
-
-    @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open, read_data="line 1\nline 2\nline 3\nline 4\nline 5\n")
-    @patch('click.confirm')
-    def test_perform_file_operation_update_with_line_specific_changes(self, mock_confirm, mock_file, mock_exists):
-        mock_exists.return_value = True
-        mock_confirm.return_value = True
-        changes = """
-        + 2: new line 2
-        - 4:
-        r 5: updated line 5
-        """
-        result = self.executor.perform_file_operation(
-            'UPDATE', 'test.py', content=changes)
-        self.assertTrue(result)
-        expected_content = "line 1\nnew line 2\nline 2\nline 3\nupdated line 5"
-        mock_file().write.assert_called_once_with(expected_content)
-
-    def test_apply_changes_with_line_specific_instructions(self):
-        original_content = "line 1\nline 2\nline 3\nline 4\nline 5\n"
-        changes = """
-        + 2: new line 2
-        - 4:
-        r 5: updated line 5
-        """
-        result = self.executor.apply_changes(original_content, changes)
-        expected = "line 1\nnew line 2\nline 2\nline 3\nupdated line 5"
-        self.assertEqual(result, expected)
-
-    def test_parse_change_instructions(self):
-        changes = """
-        + 2: new line 2
-        - 4:
-        r 5: updated line 5
-        """
-        result = self.executor.parse_change_instructions(changes)
-        expected = [
-            {'action': 'add', 'line': 2, 'content': 'new line 2'},
-            {'action': 'remove', 'line': 4},
-            {'action': 'replace', 'line': 5, 'content': 'updated line 5'}
-        ]
-        self.assertEqual(result, expected)

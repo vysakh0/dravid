@@ -5,7 +5,10 @@ from .utils import print_info
 def get_file_content(filename):
     if os.path.exists(filename):
         with open(filename, 'r') as f:
-            return f.read()
+            lines = f.readlines()
+            numbered_lines = [
+                f"{i+1}: {line.rstrip()}" for i, line in enumerate(lines)]
+            return "\n".join(numbered_lines)
     return None
 
 
