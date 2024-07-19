@@ -1,3 +1,4 @@
+
 import threading
 import click
 import os
@@ -19,14 +20,13 @@ class InputHandler:
     def _handle_input(self):
         while not self.monitor.should_stop.is_set():
             user_input = input("> ").strip()
+            if user_input.lower() == 'exit':
+                print_info("Exiting server monitor...")
+                self.monitor.stop()
+                break
             self._process_input(user_input)
 
     def _process_input(self, user_input):
-        if user_input.lower() == 'exit':
-            print_info("Exiting server monitor...")
-            self.monitor.stop()
-            return
-
         if user_input.lower() == 'vision':
             self._handle_vision_input()
             return

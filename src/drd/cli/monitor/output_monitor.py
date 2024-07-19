@@ -18,9 +18,21 @@ class OutputMonitor:
             target=self._monitor_output, daemon=True)
         self.thread.start()
 
+    def _check_for_errors(self, line, error_buffer):
+        for error_pattern, handler in self.monitor.error_handlers.items():
+            if re.search(error_pattern, line, re.IGNORECASE):
+                full_error = ''.join(error_buffer)
+                handler(full_error, self.monitor)
+                error_buffer.clear()
+                break
+
     def _monitor_output(self):
         error_buffer = []
+        iteration = 0
+        self.last_output_time = time.time()  # Initialize last_output_time here
         while not self.monitor.should_stop.is_set():
+            iteration += 1
+
             if self.monitor.process.poll() is not None and not self.monitor.processing_input.is_set():
                 if not self.monitor.restart_requested.is_set():
                     print_info(
@@ -43,22 +55,18 @@ class OutputMonitor:
 
                     if not self.monitor.processing_input.is_set():
                         self._check_for_errors(line, error_buffer)
+                else:
+                    self._check_idle_state()
             else:
                 self._check_idle_state()
 
             if self.monitor.restart_requested.is_set() and not self.monitor.processing_input.is_set():
                 self.monitor.perform_restart()
 
-    def _check_for_errors(self, line, error_buffer):
-        for error_pattern, handler in self.monitor.error_handlers.items():
-            if re.search(error_pattern, line, re.IGNORECASE):
-                full_error = ''.join(error_buffer)
-                handler(full_error, self.monitor)
-                error_buffer.clear()
-                break
-
     def _check_idle_state(self):
-        if (time.time() - self.last_output_time > 5 and
+        current_time = time.time()
+        time_since_last_output = current_time - self.last_output_time
+        if (time_since_last_output > 5 and
             not self.idle_prompt_shown and
                 not self.monitor.processing_input.is_set()):
             print_info("\nNo more tasks to auto-process. What can I do next?")
