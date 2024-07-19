@@ -16,11 +16,11 @@ from ..query.main import execute_dravid_command
 
 
 class DevServerMonitor:
-    def __init__(self, project_dir: str, error_handlers: dict, custom_command: str = None):
+    def __init__(self, project_dir: str, error_handlers: dict, command: str):
         self.project_dir = project_dir
         self.metadata_manager = ProjectMetadataManager(project_dir)
         self.error_handlers = error_handlers
-        self.custom_command = custom_command
+        self.command = command
         self.process = None
         self.output_queue = Queue()
         self.should_stop = threading.Event()
@@ -34,16 +34,8 @@ class DevServerMonitor:
         self.should_stop.clear()
         self.restart_requested.clear()
 
-        if self.custom_command:
-            start_command = self.custom_command
-        else:
-            dev_server_info = self.metadata_manager.get_dev_server_info()
-            start_command = dev_server_info.get('start_command')
-            if not start_command:
-                raise ValueError("Server start command not found in metadata")
-
-        click.echo(f"Starting server with command: {start_command}")
-        self._start_process(start_command)
+        click.echo(f"Starting server with command: {self.command}")
+        self._start_process(self.command)
 
         self.monitor_thread = threading.Thread(
             target=self._monitor_output, daemon=True)
@@ -145,21 +137,14 @@ class DevServerMonitor:
             self.process.wait()
         time.sleep(2)  # Give some time for the old process to fully terminate
         print_info("Server stopped. Starting again...")
-        if self.custom_command:
-            self._start_process(self.custom_command)
-        else:
-            dev_server_info = self.metadata_manager.get_dev_server_info()
-            start_command = dev_server_info.get('start_command')
-            if not start_command:
-                raise ValueError("Server start command not found in metadata")
-            self._start_process(start_command)
+        self._start_process(self.command)
 
         self.restart_requested.clear()
         print_success("Server restarted successfully.")
         print_info("Waiting for server output...")
 
 
-def run_dev_server_with_monitoring(custom_command: str = None):
+def run_dev_server_with_monitoring(command: str):
     print_info("Starting server monitor...")
     error_handlers = {
         r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
@@ -167,7 +152,7 @@ def run_dev_server_with_monitoring(custom_command: str = None):
         r"(?:Error:|Failed to compile)": handle_general_error,
     }
     current_dir = os.getcwd()
-    monitor = DevServerMonitor(current_dir, error_handlers, custom_command)
+    monitor = DevServerMonitor(current_dir, error_handlers, command)
     try:
         monitor.start()
         print_info("Server monitor started. Press Ctrl+C to stop.")

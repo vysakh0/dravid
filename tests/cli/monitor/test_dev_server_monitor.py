@@ -16,15 +16,15 @@ class TestDevServerMonitor(unittest.TestCase):
             r"(?:SyntaxError|Expected|Unexpected token)": MagicMock(),
             r"(?:Error:|Failed to compile)": MagicMock(),
         }
+        self.test_command = "npm run dev"
 
     @patch('drd.cli.monitor.server_monitor.ProjectMetadataManager')
     @patch('drd.cli.monitor.server_monitor.subprocess.Popen')
     @patch('drd.cli.monitor.server_monitor.threading.Thread')
     @patch('drd.cli.monitor.server_monitor.select')
     def test_start_with_custom_command(self, mock_select, mock_thread, mock_popen, mock_metadata_manager):
-        custom_command = "npm run dev"
         monitor = DevServerMonitor(
-            self.project_dir, self.error_handlers, custom_command)
+            self.project_dir, self.error_handlers, self.test_command)
 
         mock_process = MagicMock()
         mock_process.stdout = MagicMock()
@@ -33,7 +33,7 @@ class TestDevServerMonitor(unittest.TestCase):
         monitor.start()
 
         mock_popen.assert_called_once_with(
-            custom_command,
+            self.test_command,
             stdout=unittest.mock.ANY,
             stderr=unittest.mock.ANY,
             stdin=unittest.mock.ANY,
@@ -50,7 +50,8 @@ class TestDevServerMonitor(unittest.TestCase):
     @patch('drd.cli.monitor.server_monitor.threading.Thread')
     @patch('drd.cli.monitor.server_monitor.time.sleep')
     def test_restart(self, mock_sleep, mock_thread, mock_popen, mock_metadata_manager):
-        monitor = DevServerMonitor(self.project_dir, self.error_handlers)
+        monitor = DevServerMonitor(
+            self.project_dir, self.error_handlers, self.test_command)
 
         mock_process = MagicMock()
         mock_process.stdout = MagicMock()
@@ -71,8 +72,7 @@ class TestDevServerMonitor(unittest.TestCase):
         initial_call = mock_popen.mock_calls[0]
         # This is the method name, which should be empty for a constructor call
         assert initial_call[0] == ''
-        assert initial_call[1][0] == mock_metadata_manager(
-        ).get_dev_server_info().get()
+        assert initial_call[1][0] == self.test_command
         assert initial_call[2]['stdout'] == -1  # subprocess.PIPE
         assert initial_call[2]['stderr'] == -2  # subprocess.STDOUT
         assert initial_call[2]['stdin'] == -1   # subprocess.PIPE
@@ -103,7 +103,7 @@ class TestDevServerMonitor(unittest.TestCase):
             call().terminate(),
             call().wait(),
             call(
-                mock_metadata_manager().get_dev_server_info().get(),
+                self.test_command,
                 stdout=-1, stderr=-2, stdin=-1,
                 text=True, bufsize=1, universal_newlines=True, shell=True, cwd=monitor.project_dir
             )
@@ -115,7 +115,8 @@ class TestDevServerMonitor(unittest.TestCase):
     @patch('drd.cli.monitor.server_monitor.threading.Thread')
     @patch('drd.cli.monitor.server_monitor.select.select')
     def test_stop(self, mock_select, mock_thread, mock_popen, mock_metadata_manager):
-        monitor = DevServerMonitor(self.project_dir, self.error_handlers)
+        monitor = DevServerMonitor(
+            self.project_dir, self.error_handlers, self.test_command)
 
         mock_process = MagicMock()
         mock_popen.return_value = mock_process
@@ -135,9 +136,11 @@ def test_run_dev_server_with_monitoring(mock_sleep, mock_print_info, mock_monito
     mock_monitor.return_value = mock_monitor_instance
     mock_monitor_instance.process.poll.return_value = None
 
-    run_dev_server_with_monitoring()
+    test_command = "npm run dev"
+    run_dev_server_with_monitoring(test_command)
 
-    mock_monitor.assert_called_once()
+    mock_monitor.assert_called_once_with(
+        unittest.mock.ANY, unittest.mock.ANY, test_command)
     mock_monitor_instance.start.assert_called_once()
     mock_monitor_instance.stop.assert_called_once()
     mock_print_info.assert_any_call(
