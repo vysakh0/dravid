@@ -101,7 +101,9 @@ class DevServerMonitor:
                 # Check if server has been idle for more than 5 seconds
                 if time.time() - self.last_output_time > 5 and not idle_prompt_shown and not self.processing_input.is_set():
                     print_info(
-                        "\n No more tasks to auto-process. What can I do next?:")
+                        "\n No more tasks to auto-process. What can I do next?")
+                    print_info("Type your instruction or question")
+                    print("> ", end="", flush=True)
                     idle_prompt_shown = True
 
             if self.restart_requested.is_set() and not self.processing_input.is_set():
