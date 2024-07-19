@@ -100,7 +100,8 @@ class DevServerMonitor:
             else:
                 # Check if server has been idle for more than 5 seconds
                 if time.time() - self.last_output_time > 5 and not idle_prompt_shown and not self.processing_input.is_set():
-                    print_info("\nServer is idle. Enter a command:")
+                    print_info(
+                        "\n No more tasks to auto-process. What can I do next?:")
                     idle_prompt_shown = True
 
             if self.restart_requested.is_set() and not self.processing_input.is_set():
@@ -114,7 +115,7 @@ class DevServerMonitor:
                 print_info(f"Processing input: {user_input}")
                 instruction_prompt = get_instruction_prompt()
                 execute_dravid_command(
-                    user_input, None, False, instruction_prompt)
+                    user_input, None, False, instruction_prompt, warn=False)
             except Exception as e:
                 print_error(f"Error processing input: {str(e)}")
             finally:

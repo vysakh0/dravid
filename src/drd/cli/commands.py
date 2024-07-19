@@ -11,7 +11,7 @@ from ..metadata.updater import update_metadata_with_dravid
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.11.0"  # Update this as you release new versions
+VERSION = "0.12.0"  # Update this as you release new versions
 
 
 def handle_query_command(query, image, debug):
@@ -22,7 +22,7 @@ def handle_query_command(query, image, debug):
             "Please provide a query, use --meta-add to update metadata, --meta-init to initialize project metadata, or --ask for open-ended questions.")
         return
     instruction_prompt = get_instruction_prompt()
-    execute_dravid_command(query, image, debug, instruction_prompt)
+    execute_dravid_command(query, image, debug, instruction_prompt, warn=True)
 
 
 def dravid_cli_logic(query, image, debug, monitor_fix, meta_add, meta_init, ask, file, version, monitor_command):
