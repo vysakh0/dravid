@@ -3,17 +3,22 @@ from unittest.mock import patch, MagicMock, call
 from drd.api.main import (
     stream_dravid_api,
     call_dravid_api,
-    call_dravid_vision_api
+    call_dravid_vision_api,
+    get_api_functions
 )
 
 
 class TestDravidAPI(unittest.TestCase):
 
-    @patch('drd.api.main.stream_claude_response')
+    @patch('drd.api.main.get_api_functions')
     @patch('drd.api.main.pretty_print_xml_stream')
     @patch('drd.api.main.Loader')
     @patch('click.echo')
-    def test_stream_dravid_api(self, mock_echo, mock_loader, mock_pretty_print, mock_stream_response):
+    def test_stream_dravid_api(self, mock_echo, mock_loader, mock_pretty_print, mock_get_api_functions):
+        mock_stream_response = MagicMock()
+        mock_get_api_functions.return_value = (
+            None, None, mock_stream_response)
+
         xml_res = [
             "<response><step><type>shell</type><command>echo 'test'</command></step>",
             "<step><type>file</type><operation>CREATE</operation><filename>test.txt</filename><content>Test content</content></step></response>"
@@ -43,9 +48,12 @@ class TestDravidAPI(unittest.TestCase):
                           instruction_prompt="Test prompt", print_chunk=False)
         mock_stream_response.assert_called_with("test query", "Test prompt")
 
-    @patch('drd.api.main.call_dravid_api_with_pagination')
+    @patch('drd.api.main.get_api_functions')
     @patch('drd.api.main.parse_dravid_response')
-    def test_call_dravid_api(self, mock_parse_response, mock_call_api):
+    def test_call_dravid_api(self, mock_parse_response, mock_get_api_functions):
+        mock_call_api = MagicMock()
+        mock_get_api_functions.return_value = (mock_call_api, None, None)
+
         mock_call_api.return_value = "<response><step><type>shell</type><command>echo 'test'</command></step></response>"
         mock_parse_response.return_value = [
             {'type': 'shell', 'command': "echo 'test'"}]
@@ -57,9 +65,14 @@ class TestDravidAPI(unittest.TestCase):
         mock_parse_response.assert_called_once_with(
             "<response><step><type>shell</type><command>echo 'test'</command></step></response>")
 
-    @patch('drd.api.main.call_claude_vision_api_with_pagination')
+    @patch('drd.api.main.get_api_functions')
     @patch('drd.api.main.parse_dravid_response')
-    def test_call_dravid_vision_api(self, mock_parse_response, mock_call_vision_api):
+    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data=b'test image data')
+    def test_call_dravid_vision_api(self, mock_open, mock_parse_response, mock_get_api_functions):
+        mock_call_vision_api = MagicMock()
+        mock_get_api_functions.return_value = (
+            None, mock_call_vision_api, None)
+
         mock_call_vision_api.return_value = "<response><step><type>shell</type><command>echo 'test'</command></step></response>"
         mock_parse_response.return_value = [
             {'type': 'shell', 'command': "echo 'test'"}]

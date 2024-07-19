@@ -92,10 +92,7 @@ class Executor:
                     original_content = f.read()
 
                 if content:
-                    print(content, "the content that is sent")
-                    print(original_content, "the orignalcontent that is sent")
                     updated_content = apply_changes(original_content, content)
-                    print(updated_content, "--")
                     preview = preview_file_changes(
                         operation, filename, new_content=updated_content, original_content=original_content)
                     print(preview)

@@ -55,7 +55,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
                 "No current project context found. Will create a new project in the current directory.")
             full_query = f"User query: {query}"
 
-        print_info("Preparing to send query to Claude API...")
+        print_info("Preparing to send query to LLM...")
         if image_path:
             print_info(f"Processing image: {image_path}")
             print_info("LLM calls to be made: 1")
@@ -65,7 +65,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
                 "Analyzing image and generating response"
             )
         else:
-            print_info("Streaming response from Claude API...")
+            print_info("Streaming response from LLM...")
             print_info("LLM calls to be made: 1")
             xml_result = stream_dravid_api(
                 full_query, include_context=True, instruction_prompt=instruction_prompt, print_chunk=False)
