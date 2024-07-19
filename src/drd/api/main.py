@@ -1,21 +1,22 @@
-import click
 import os
+import click
 from .claude_api import call_claude_api_with_pagination, call_claude_vision_api_with_pagination, stream_claude_response
-from .openai_api import call_openai_api_with_pagination, call_openai_vision_api_with_pagination, stream_openai_response
+from .openai_api import call_api_with_pagination, call_vision_api_with_pagination, stream_response
 from ..utils import print_debug, print_info
 from ..utils.loader import Loader
 from ..utils.pretty_print_stream import pretty_print_xml_stream
 from ..utils.parser import parse_dravid_response
 import xml.etree.ElementTree as ET
 
-LLM_PROVIDER = os.getenv('DRAVID_LLM', 'openai').lower()
-
 
 def get_api_functions():
-    if LLM_PROVIDER == 'claude':
+    llm_type = os.getenv('DRAVID_LLM', 'claude').lower()
+    if llm_type == 'claude':
         return call_claude_api_with_pagination, call_claude_vision_api_with_pagination, stream_claude_response
+    elif llm_type in ['openai', 'azure', 'custom']:
+        return call_api_with_pagination, call_vision_api_with_pagination, stream_response
     else:
-        return call_openai_api_with_pagination, call_openai_vision_api_with_pagination, stream_openai_response
+        raise ValueError(f"Unsupported LLM type: {llm_type}")
 
 
 def stream_dravid_api(query, include_context=False, instruction_prompt=None, print_chunk=False):

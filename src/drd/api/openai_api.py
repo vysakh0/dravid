@@ -2,23 +2,53 @@ import os
 import json
 import base64
 from typing import Dict, Any, Optional, List, Generator
-from openai import OpenAI
+from openai import OpenAI, AzureOpenAI
 from ..utils.parser import extract_and_parse_xml, parse_dravid_response
 import xml.etree.ElementTree as ET
 import click
 
-MODEL = "gpt-4o-2024-05-13"
+DEFAULT_MODEL = "gpt-4o-2024-05-13"
 MAX_TOKENS = 4000
 
 
-def get_api_key() -> str:
-    api_key = os.getenv('OPENAI_API_KEY')
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
-    return api_key
+def get_env_variable(name: str, default: Optional[str] = None) -> str:
+    value = os.getenv(name, default)
+    if value is None:
+        raise ValueError(f"{name} not found in environment variables")
+    return value
 
 
-client = OpenAI(api_key=get_api_key())
+def get_client():
+    llm_type = get_env_variable('DRAVID_LLM', 'openai').lower()
+
+    if llm_type == 'azure':
+        return AzureOpenAI(
+            api_key=get_env_variable("AZURE_OPENAI_API_KEY"),
+            api_version=get_env_variable("AZURE_OPENAI_API_VERSION"),
+            azure_endpoint=get_env_variable("AZURE_OPENAI_ENDPOINT")
+        )
+    elif llm_type in ['openai', 'custom']:
+        api_key = get_env_variable(
+            "OPENAI_API_KEY" if llm_type == 'openai' else "DRAVID_LLM_API_KEY")
+        api_base = get_env_variable(
+            "DRAVID_LLM_ENDPOINT", "https://api.openai.com/v1") if llm_type == 'custom' else None
+        return OpenAI(api_key=api_key, base_url=api_base)
+    else:
+        raise ValueError(f"Unsupported LLM type: {llm_type}")
+
+
+def get_model():
+    llm_type = get_env_variable('DRAVID_LLM', 'openai').lower()
+    if llm_type == 'azure':
+        return get_env_variable("AZURE_OPENAI_DEPLOYMENT_NAME")
+    elif llm_type == 'custom':
+        return get_env_variable("DRAVID_LLM_MODEL")
+    else:
+        return get_env_variable("OPENAI_MODEL", DEFAULT_MODEL)
+
+
+client = get_client()
+MODEL = get_model()
 
 
 def parse_response(response: str) -> str:
@@ -30,9 +60,8 @@ def parse_response(response: str) -> str:
         return response
 
 
-def call_openai_api_with_pagination(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+def call_api_with_pagination(query: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     full_response = ""
-
     messages = [
         {"role": "system", "content": instruction_prompt or ""},
         {"role": "user", "content": query}
@@ -44,7 +73,6 @@ def call_openai_api_with_pagination(query: str, include_context: bool = False, i
             messages=messages,
             max_tokens=MAX_TOKENS
         )
-
         full_response += response.choices[0].message.content
 
         if response.choices[0].finish_reason != 'length':
@@ -56,12 +84,11 @@ def call_openai_api_with_pagination(query: str, include_context: bool = False, i
     return parse_response(full_response)
 
 
-def call_openai_vision_api_with_pagination(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
+def call_vision_api_with_pagination(query: str, image_path: str, include_context: bool = False, instruction_prompt: Optional[str] = None) -> str:
     with open(image_path, "rb") as image_file:
         image_data = base64.b64encode(image_file.read()).decode('utf-8')
 
     full_response = ""
-
     messages = [
         {"role": "system", "content": instruction_prompt or ""},
         {
@@ -80,7 +107,6 @@ def call_openai_vision_api_with_pagination(query: str, image_path: str, include_
             messages=messages,
             max_tokens=MAX_TOKENS
         )
-
         full_response += response.choices[0].message.content
 
         if response.choices[0].finish_reason != 'length':
@@ -92,7 +118,7 @@ def call_openai_vision_api_with_pagination(query: str, image_path: str, include_
     return parse_response(full_response)
 
 
-def stream_openai_response(query: str, instruction_prompt: Optional[str] = None) -> Generator[str, None, None]:
+def stream_response(query: str, instruction_prompt: Optional[str] = None) -> Generator[str, None, None]:
     messages = [
         {"role": "system", "content": instruction_prompt or ""},
         {"role": "user", "content": query}
@@ -106,5 +132,5 @@ def stream_openai_response(query: str, instruction_prompt: Optional[str] = None)
     )
 
     for chunk in response:
-        if chunk.choices[0].delta.content is not None:
+        if chunk.choices and chunk.choices[0].delta.content is not None:
             yield chunk.choices[0].delta.content
