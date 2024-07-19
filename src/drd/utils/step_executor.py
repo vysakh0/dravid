@@ -176,9 +176,14 @@ class Executor:
         click.echo(
             f"{Fore.YELLOW}Executing shell command: {command}{Style.RESET_ALL}")
 
-        if command.strip().startswith(('source ', '.')):
+        if command.strip().startswith(('cd', 'chdir')):
+            return self._handle_cd_command(command)
+        elif command.strip().startswith(('source', '.')):
             return self._handle_source_command(command)
+        else:
+            return self._execute_single_command(command, timeout)
 
+    def _execute_single_command(self, command, timeout):
         try:
             process = subprocess.Popen(
                 command,
@@ -187,6 +192,7 @@ class Executor:
                 stderr=subprocess.PIPE,
                 text=True,
                 env=self.env,
+                cwd=self.current_dir
             )
 
             start_time = time.time()
@@ -216,7 +222,6 @@ class Executor:
                 print_error(error_message)
                 raise Exception(error_message)
 
-            # Update environment variables if the command was successful
             self._update_env_from_command(command)
 
             print_success("Command executed successfully.")
@@ -277,3 +282,20 @@ class Executor:
                 # Handle simple assignment
                 key, value = command.split('=', 1)
                 self.env[key.strip()] = value.strip().strip('"\'')
+
+    def _handle_cd_command(self, command):
+        _, path = command.split(None, 1)
+        new_dir = os.path.abspath(os.path.join(self.current_dir, path))
+        if self.is_safe_path(new_dir):
+            os.chdir(new_dir)
+            self.current_dir = new_dir
+            print_info(f"Changed directory to: {self.current_dir}")
+            return f"Changed directory to: {self.current_dir}"
+        else:
+            print_error(f"Cannot change to directory: {new_dir}")
+            return f"Failed to change directory to: {new_dir}"
+
+    def reset_directory(self):
+        os.chdir(self.initial_dir)
+        self.current_dir = self.initial_dir
+        print_info(f"Reset directory to: {self.current_dir}")

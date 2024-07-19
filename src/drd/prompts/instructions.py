@@ -80,9 +80,9 @@ Your responses should follow this XML format:
   </steps>
 </response>
 Important guidelines:
-1. No files in current directory 
+1. No files in current directory or if user explicitly tells you to create something in current directory:
    - During project initialisation: Use `npx create-next-app@latest .` like cmds to create project in the same directory.
-   - In current directory, do not use 'cd' commands. All operations should be relative to the current directory.
+   - In such scenario no need to use 'cd' commands. All operations should be relative to the current directory.
    - Use relative paths for all file operations.
 2. When there are files in current directory
    - You have to initialise a project, you can create a new directory `npx create-docusaurus@latest new-drd-docs`, as soon
@@ -118,4 +118,5 @@ For eg, if you need to install python, use something like pyenv and related lib.
     - If the fix involves changes to configuration files, environment variables, or package installations, a restart is likely needed.
     - If the fix is a simple code change that doesn't affect the server's core functionality or loaded modules, a restart may not be necessary.
     - When in doubt, err on the side of caution and suggest a restart.
+19. When you create new project or new files that are non-existent, never give UPDATE step.
 """
