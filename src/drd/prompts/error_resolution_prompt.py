@@ -19,9 +19,12 @@ Project context:
 
 # Instructions for dravid: Error Resolution Assistant
 Analyze the error above and provide steps to fix it. 
+This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
+Make sure you don't try for drastic changes, just the needed and precise fix. 
 Your response should be in strictly XML format with no other extra messages. Use the following format:
 <response>
 <explanation>A brief explanation of the steps, if necessary</explanation>
+<requires_restart>true/false</requires_restart>
 <steps>
     <step>
     <type>shell</type>
@@ -33,7 +36,8 @@ Your response should be in strictly XML format with no other extra messages. Use
     <filename>path/to/file.ext</filename>
     <content>
         <![CDATA[
-        file content here
+          def example():
+           re...
         ]]>
     </content>
     </step>
@@ -43,7 +47,15 @@ Your response should be in strictly XML format with no other extra messages. Use
     <filename>path/to/existing/file.ext</filename>
     <content>
         <![CDATA[
-        content to append or replace
+          Specify changes using the following format:
+          + line_number: content to add
+          - line_number: (to remove the line)
+          r line_number: content to replace the line with
+          
+          Example:
+          + 3: import new_module
+          - 10:
+          r 15: def updated_function():
         ]]>
     </content>
     </step>
@@ -99,4 +111,8 @@ or when some file conflicts for shell command to succeed then suggest a shell sc
 22. When suggesting a installation script for language related installation, prefer version manager.
 For eg, if you need to install python, use something like pyenv and related steps.
 23. When it is a shell command avoid using && instead suggest as a separate step as it has to be executed sequentially
+24: Include a <requires_restart> tag with a value of "true" or "false" to indicate whether the fix requires a server restart. Consider the following guidelines:
+    - If the fix involves changes to configuration files, environment variables, or package installations, a restart is likely needed.
+    - If the fix is a simple code change that doesn't affect the server's core functionality or loaded modules, a restart may not be necessary.
+    - When in doubt, err on the side of caution and suggest a restart.
 """

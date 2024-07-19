@@ -45,10 +45,18 @@ def monitoring_handle_error_with_dravid(error, line, monitor):
 
     print_info("Sending error information to Dravid for analysis...")
     try:
-        fix_commands = call_dravid_api(error_query, include_context=True)
+        commands = call_dravid_api(error_query, include_context=True)
     except ValueError as e:
         print_error(f"Error parsing dravid's response: {str(e)}")
         return False
+
+    requires_restart = False
+    fix_commands = []
+    for command in commands:
+        if command['type'] == 'requires_restart':
+            requires_restart = command['content'].lower() == 'true'
+        elif command['type'] != 'explanation':
+            fix_commands.append(command)
 
     print_info("Dravid's suggested fix:")
     print_command_details(fix_commands)
@@ -70,8 +78,22 @@ def monitoring_handle_error_with_dravid(error, line, monitor):
                 executor.perform_file_operation(
                     cmd['operation'], cmd['filename'], cmd.get('content'))
 
-        print_success("Fix applied. Requesting server restart...")
-        monitor.request_restart()
+        print_success("Fix applied.")
+
+        if requires_restart:
+            print_info("The applied fix requires a server restart.")
+            restart_input = monitor.get_user_input(
+                "Do you want to restart the server now? [y/N]: "
+            )
+            if restart_input.lower() == 'y':
+                print_info("Requesting server restart...")
+                monitor.request_restart()
+            else:
+                print_info(
+                    "Server restart postponed. You may need to restart manually if issues persist.")
+        else:
+            print_info("The applied fix does not require a server restart.")
+
         return True
     else:
         print_info("Fix not applied. Continuing with current state.")

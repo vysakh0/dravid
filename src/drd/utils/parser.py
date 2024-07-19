@@ -40,6 +40,12 @@ def parse_dravid_response(response: str) -> List[Dict[str, Any]]:
                 'content': explanation.text.strip()
             })
 
+        requires_restart = root.find('requires_restart')
+        if requires_restart is not None and requires_restart.text:
+            commands.append({
+                'type': 'requires_restart',
+                'content': requires_restart.text.strip()
+            })
         # Extract steps
         for step in root.findall('.//step'):
             command = {}
