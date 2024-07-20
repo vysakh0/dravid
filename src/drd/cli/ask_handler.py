@@ -36,7 +36,7 @@ def handle_ask_command(ask, file, debug):
             suggestion = suggest_file_alternative(file_path, project_metadata)
             print_info(f"Suggestion: {suggestion}")
             user_input = click.prompt(
-                "Do you want to proceed without this file? (y/n)", type=str)
+                "Do you want to proceed without this file?", type=str)
             if user_input.lower() != 'y':
                 return
 

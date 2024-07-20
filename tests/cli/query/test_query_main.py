@@ -98,7 +98,7 @@ class TestExecuteDravidCommand(unittest.TestCase):
             "Failed to execute command at step 1.")
         mock_handle_error.assert_called_once()
         mock_print_info.assert_any_call(
-            "Fix applied successfully. Continuing with the remaining commands.")
+            "Fix applied successfully. Continuing with the remaining commands.", indent=2)
 
     @patch('drd.cli.query.main.Executor')
     @patch('drd.cli.query.main.ProjectMetadataManager')
@@ -127,7 +127,8 @@ class TestExecuteDravidCommand(unittest.TestCase):
                                self.debug, self.instruction_prompt)
 
         mock_call_vision_api.assert_called_once()
-        mock_print_info.assert_any_call(f"Processing image: {self.image_path}")
+        mock_print_info.assert_any_call(
+            f"Processing image: {self.image_path}", indent=4)
 
     @patch('drd.cli.query.main.Executor')
     @patch('drd.cli.query.main.ProjectMetadataManager')

@@ -56,8 +56,6 @@ class TestDynamicCommandHandler(unittest.TestCase):
         self.assertEqual(output, "Hello")
         self.executor.execute_shell_command.assert_called_once_with(
             'echo "Hello"')
-        mock_print_info.assert_called_once_with(
-            'Executing shell command: echo "Hello"')
         mock_print_success.assert_called_once_with(
             'Successfully executed: echo "Hello"')
         mock_echo.assert_called_once_with('Command output:\nHello')
@@ -130,8 +128,6 @@ class TestDynamicCommandHandler(unittest.TestCase):
         self.assertEqual(output, "Skipping this step...")
         self.executor.execute_shell_command.assert_called_once_with(
             'echo "Hello"')
-        mock_print_info.assert_any_call(
-            'Executing shell command: echo "Hello"')
         mock_print_info.assert_any_call("Skipping this step...")
         mock_print_success.assert_not_called()
         mock_echo.assert_not_called()

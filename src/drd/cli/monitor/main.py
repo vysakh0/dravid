@@ -6,7 +6,6 @@ from ...utils import print_info
 
 
 def run_dev_server_with_monitoring(command: str):
-    print_info("Starting server monitor...")
     error_handlers = {
         r"(?:Cannot find module|Module not found|ImportError|No module named)": handle_module_not_found,
         r"(?:SyntaxError|Expected|Unexpected token)": handle_syntax_error,
@@ -16,7 +15,7 @@ def run_dev_server_with_monitoring(command: str):
     monitor = DevServerMonitor(current_dir, error_handlers, command)
     try:
         monitor.start()
-        print_info("Server monitor started. Press Ctrl+C to stop.")
+        print_info("👓 server monitor started. Press Ctrl+C to stop.")
         while not monitor.should_stop.is_set():
             pass
         print_info("Server monitor has ended.")

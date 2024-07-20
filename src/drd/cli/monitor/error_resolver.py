@@ -62,7 +62,7 @@ def monitoring_handle_error_with_dravid(error, line, monitor):
     print_command_details(fix_commands)
 
     user_input = monitor.get_user_input(
-        "Do you want to proceed with this fix? You will be able to stop anytime during the step. [y/N]: "
+        "Do you want to proceed with this fix? You will be able to stop anytime during the step. "
     )
 
     if user_input.lower() == 'y':

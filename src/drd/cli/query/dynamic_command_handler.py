@@ -12,11 +12,8 @@ def execute_commands(commands, executor, metadata_manager, is_fix=False, debug=F
 
     for i, cmd in enumerate(commands, 1):
         step_description = "fix" if is_fix else "command"
-        print_step(i, total_steps,
-                   f"Processing {cmd['type']} {step_description}...")
 
         if cmd['type'] == 'explanation':
-            print_info(f"Explanation: {cmd['content']}")
             all_outputs.append(
                 f"Step {i}/{total_steps}: Explanation - {cmd['content']}")
         else:
@@ -49,7 +46,6 @@ def execute_commands(commands, executor, metadata_manager, is_fix=False, debug=F
 
 
 def handle_shell_command(cmd, executor):
-    print_info(f"Executing shell command: {cmd['command']}")
     output = executor.execute_shell_command(cmd['command'])
     if isinstance(output, str) and output.startswith("Skipping"):
         print_info(output)
@@ -63,8 +59,6 @@ def handle_shell_command(cmd, executor):
 
 
 def handle_file_operation(cmd, executor, metadata_manager):
-    print_info(
-        f"Performing file operation: {cmd['operation']} on {cmd['filename']}")
     operation_performed = executor.perform_file_operation(
         cmd['operation'],
         cmd['filename'],
@@ -133,8 +127,8 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
         previous_context, cmd, error_type, error_message, error_trace, project_context
     )
 
-    print_info("Sending error information to dravid for analysis...")
-    print_info("LLM calls to be made: 1")
+    print_info(
+        "🏏 Sending error information to dravid for analysis(1 LLM call)...\n")
 
     try:
         fix_commands = call_dravid_api(
@@ -143,8 +137,8 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
         print_error(f"Error parsing dravid's response: {str(e)}")
         return False
 
-    print_info("dravid's suggested fix:")
-    print_info("Applying dravid's suggested fix...")
+    print_info("🩺 Dravid's suggested fix:", indent=2)
+    print_info("🔨 Applying dravid's suggested fix...", indent=2)
 
     fix_applied, step_completed, error_message, all_outputs = execute_commands(
         fix_commands, executor, metadata_manager, is_fix=True, debug=debug
@@ -152,13 +146,11 @@ def handle_error_with_dravid(error, cmd, executor, metadata_manager, depth=0, pr
 
     if fix_applied:
         print_success("All fix steps successfully applied.")
-        print_info("Fix application details:")
         click.echo(all_outputs)
         return True
     else:
         print_error(f"Failed to apply the fix at step {step_completed}.")
         print_error(f"Error message: {error_message}")
-        print_info("Fix application details:")
         click.echo(all_outputs)
 
         return handle_error_with_dravid(
