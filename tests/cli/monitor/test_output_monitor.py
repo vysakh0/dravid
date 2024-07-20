@@ -52,7 +52,7 @@ class TestOutputMonitor(unittest.TestCase):
         expected_calls = [
             call("\nNo more tasks to auto-process. What can I do next?"),
             call("\nAvailable actions:"),
-            call("1. Ask a question or give an instruction"),
+            call("1. Give a coding instruction to perform"),
             call("2. Process an image (type 'vision')"),
             call("3. Exit monitoring mode (type 'exit')"),
             call("\nType your choice or command:")
@@ -91,7 +91,7 @@ class TestOutputMonitor(unittest.TestCase):
         expected_calls = [
             call("\nNo more tasks to auto-process. What can I do next?"),
             call("\nAvailable actions:"),
-            call("1. Ask a question or give an instruction"),
+            call("1. Give a coding instruction to perform"),
             call("2. Process an image (type 'vision')"),
             call("3. Exit monitoring mode (type 'exit')"),
             call("\nType your choice or command:")

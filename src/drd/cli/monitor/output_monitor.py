@@ -86,7 +86,7 @@ class OutputMonitor:
 
     def _show_options(self):
         print_info("\nAvailable actions:")
-        print_info("1. Ask a question or give an instruction")
+        print_info("1. Give a coding instruction to perform")
         print_info("2. Process an image (type 'vision')")
         print_info("3. Exit monitoring mode (type 'exit')")
         print_info("\nType your choice or command:")
