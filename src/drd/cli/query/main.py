@@ -3,9 +3,8 @@ from ...api.main import stream_dravid_api, call_dravid_vision_api
 from ...utils.step_executor import Executor
 from ...metadata.project_metadata import ProjectMetadataManager
 from .dynamic_command_handler import handle_error_with_dravid, execute_commands
-from ...utils import print_error, print_success, print_info, print_step, print_debug, print_warning, run_with_loader
-from ...utils.file_utils import get_file_content, fetch_project_guidelines
-from ...metadata.common_utils import generate_file_description
+from ...utils import print_error, print_success, print_info, print_debug, print_warning, run_with_loader
+from ...utils.file_utils import get_file_content, fetch_project_guidelines, is_directory_empty
 from .file_operations import get_files_to_modify
 from ...utils.parser import parse_dravid_response
 
@@ -49,8 +48,9 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
             project_guidelines = fetch_project_guidelines(executor.current_dir)
             file_context = "\n".join(
                 [f"Current content of {file}:\n{content}" for file, content in file_contents.items()])
-            full_query = f"{project_context}\n\nProject Guidelines:\n{project_guidelines}\n\nCurrent file contents:\n{file_context}\n\nUser query: {query}"
+            full_query = f"{project_context}\n\nProject Guidelines:\n{project_guidelines}\n\nCurrent file contents:\n{file_context}\n\nCurrent directory is not empty.\n\nUser query: {query}"
         else:
+            is_empty = is_directory_empty(executor.current_dir)
             print_info(
                 "No current project context found. Will create a new project in the current directory.")
             full_query = f"User query: {query}"

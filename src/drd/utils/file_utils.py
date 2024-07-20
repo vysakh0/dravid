@@ -20,3 +20,7 @@ def fetch_project_guidelines(project_dir):
             project_guidelines = guidelines_file.read()
         print_info("Project guidelines found and included in the context.")
     return project_guidelines
+
+
+def is_directory_empty(path):
+    return len(os.listdir(path)) == 0
