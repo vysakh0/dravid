@@ -21,9 +21,11 @@ Project context:
 Analyze the error above and provide steps to fix it. 
 This is being run in a monitoring thread, so don't suggest server starting commands like npm run dev.
 Make sure you don't try for drastic changes, just the needed and precise fix. 
+You have to identify the root cause, and your proposed solution and make it part of the explanation tag
+and the actual code modifications or commands to run include it in the steps part.
 Your response should be in strictly XML format with no other extra messages. Use the following format:
 <response>
-<explanation>A brief explanation of the steps, if necessary</explanation>
+<explanation>Explanation: root cause in bullet points, proposed solution in bullet points </explanation>
 <requires_restart>true/false</requires_restart>
 <steps>
     <step>
