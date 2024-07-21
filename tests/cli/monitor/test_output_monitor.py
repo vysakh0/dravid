@@ -46,7 +46,7 @@ class TestOutputMonitor(unittest.TestCase):
         expected_calls = [
             call("\nAvailable actions:"),
             call("1. Give a coding instruction to perform"),
-            call("2. Process an image (type 'vision')"),
+            call("2. Same but with autocomplete for files (type 'p')"),
             call("3. Exit monitoring mode (type 'exit')"),
             call("\nType your choice or command:")
         ]
