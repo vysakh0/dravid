@@ -37,12 +37,7 @@ class DevServerMonitor:
             self.stop()
 
     def stop(self):
-        print_info("Stopping server monitor...")
-        self.should_stop.set()
-        if self.process:
-            self.process.terminate()
-            self.process.wait()
-        print_prompt("Server monitor stopped.")
+        self.graceful_shutdown()
 
     def request_restart(self):
         self.restart_requested.set()
@@ -88,6 +83,37 @@ class DevServerMonitor:
             print_error(f"Failed to start server process: {str(e)}")
             self.stop()
             return None
+
+    def graceful_shutdown(self):
+        print_info("Initiating graceful shutdown...")
+        self.should_stop.set()
+
+        # Stop input handler
+        if self.input_handler.thread and self.input_handler.thread.is_alive():
+            self.input_handler.thread.join(timeout=5)
+
+        # Stop output monitor
+        if self.output_monitor.thread and self.output_monitor.thread.is_alive():
+            self.output_monitor.thread.join(timeout=5)
+
+        # Terminate the process
+        if self.process:
+            print_info("Terminating server process...")
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                print_prompt("Process did not terminate in time, forcing...")
+                self.process.kill()
+
+        print_success("Shutdown complete.")
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.graceful_shutdown()
 
 
 def start_process(command, cwd):
