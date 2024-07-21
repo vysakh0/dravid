@@ -183,6 +183,7 @@ class Executor:
             return self._execute_single_command(command, timeout)
 
     def _execute_single_command(self, command, timeout):
+        output = []
         try:
             process = subprocess.Popen(
                 command,
@@ -195,7 +196,6 @@ class Executor:
             )
 
             start_time = time.time()
-            output = []
             while True:
                 return_code = process.poll()
                 if return_code is not None:

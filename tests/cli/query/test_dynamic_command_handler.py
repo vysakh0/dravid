@@ -191,3 +191,72 @@ class TestDynamicCommandHandler(unittest.TestCase):
             call("Completed step 2/3"),
             call("Completed step 3/3")
         ])
+
+    @patch('drd.cli.query.dynamic_command_handler.print_step')
+    @patch('drd.cli.query.dynamic_command_handler.print_info')
+    @patch('drd.cli.query.dynamic_command_handler.print_debug')
+    def test_execute_commands_with_no_output(self, mock_print_debug, mock_print_info, mock_print_step):
+        commands = [
+            {'type': 'shell', 'command': 'echo "Hello"'},
+            {'type': 'file', 'operation': 'CREATE',
+                'filename': 'test.txt', 'content': 'Test content'},
+        ]
+
+        with patch('drd.cli.query.dynamic_command_handler.handle_shell_command', return_value=None) as mock_shell, \
+                patch('drd.cli.query.dynamic_command_handler.handle_file_operation', return_value=None) as mock_file:
+
+            success, steps_completed, error, output = execute_commands(
+                commands, self.executor, self.metadata_manager, debug=True)
+
+        self.assertTrue(success)
+        self.assertEqual(steps_completed, 2)
+        self.assertIsNone(error)
+        self.assertIn("Shell command - echo \"Hello\"", output)
+        self.assertIn("File command -  CREATE", output)
+        mock_print_debug.assert_has_calls([
+            call("Completed step 1/2"),
+            call("Completed step 2/2")
+        ])
+
+    @patch('drd.cli.query.dynamic_command_handler.print_step')
+    @patch('drd.cli.query.dynamic_command_handler.print_info')
+    @patch('drd.cli.query.dynamic_command_handler.print_debug')
+    def test_execute_commands_with_requires_restart(self, mock_print_debug, mock_print_info, mock_print_step):
+        commands = [
+            {'type': 'requires_restart', 'content': 'Server needs to be restarted'},
+            {'type': 'shell', 'command': 'echo "Hello"'},
+        ]
+
+        with patch('drd.cli.query.dynamic_command_handler.handle_shell_command', return_value="Shell output") as mock_shell:
+
+            success, steps_completed, error, output = execute_commands(
+                commands, self.executor, self.metadata_manager, debug=True)
+
+        self.assertTrue(success)
+        self.assertEqual(steps_completed, 2)
+        self.assertIsNone(error)
+        self.assertIn("Requires_restart command - ", output)
+        self.assertIn("requires restart if the server is running", output)
+        self.assertIn("Shell command - echo \"Hello\"", output)
+        mock_print_debug.assert_has_calls([
+            call("Completed step 1/2"),
+            call("Completed step 2/2")
+        ])
+
+    @patch('drd.cli.query.dynamic_command_handler.print_error')
+    @patch('drd.cli.query.dynamic_command_handler.print_info')
+    @patch('drd.cli.query.dynamic_command_handler.print_debug')
+    def test_execute_commands_with_unknown_type(self, mock_print_debug, mock_print_info, mock_print_error):
+        commands = [
+            {'type': 'unknown', 'content': 'This is an unknown command type'},
+        ]
+
+        success, steps_completed, error, output = execute_commands(
+            commands, self.executor, self.metadata_manager, debug=True)
+
+        self.assertFalse(success)
+        self.assertEqual(steps_completed, 1)
+        self.assertIsNotNone(error)
+        self.assertIn("Error executing command", output)
+        self.assertIn("Unknown command type: unknown", output)
+        mock_print_error.assert_called_once()
