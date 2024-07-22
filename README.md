@@ -13,8 +13,6 @@ Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed
 - For existing projects, create a separate git branch or a sandbox environment. Monitor the generated commands. Git add or commit when you get results.
 - Your file content will be sent to the CLAUDE API LLM for response. Do not include sensitive files in the project.
 - Don't use hardcoded API_KEYS. Use .env and ensure it's part of .gitignore so the tool can skip reading it.
-- Please use version 0.8.0 or higher. You can check the version with drd --version.
-- If possible try in a docker instance.
 
 ### Quick preview:
 
@@ -31,6 +29,7 @@ You can also initialize Dravid in your existing project. See the Usage section f
 ## Features
 
 - AI-powered CLI for efficient coding and project management
+- Support for multiple AI providers: Claude (default), OpenAI, Azure OpenAI, Llama 3, Mixtral (through Anyscale, Groq, or NVIDIA), and local LLM models through Ollama
 - Image query handling capabilities
 - Robust file operations and metadata management
 - Integration with external APIs (Dravid API)
@@ -44,7 +43,7 @@ You can also initialize Dravid in your existing project. See the Usage section f
 
 - Python 3.7+
 - pip (Python package installer)
-- CLAUDE_API_KEY (environment variable should be set)
+- API key for your chosen AI provider (environment variable should be set)
 
 To install Dravid, run the following command:
 
@@ -52,7 +51,7 @@ To install Dravid, run the following command:
 pip install dravid
 ```
 
-To upgrade for latest fixes
+To upgrade for latest fixes:
 
 ```
 pip install --upgrade dravid
@@ -72,22 +71,43 @@ which will be referenced in the main query, you can use this to instruct on how 
 Also, any png or jpg files that will be generated and needs to be replaced will have placeholder prefix, so you
 know that it has to be replaced.
 
-### Basic Query
+## Turbo dev mode
 
-Execute a Dravid command:
+You can run the development server with automatic error fixing.
+
+This command will start your dev server or test server and then continually fix any errors
+and then restart, you can sitback and sip coffee :)
+You can give instructions into this mode, it will generate code, fix any errors, restart.
+You can also provide image for reference, or any number of files for references.
 
 ```
-drd "create a nextjs project"
+drd "rails server"
 ```
 
-The above command loads project context or project guidelines if they exist, along with any relevant file content in its context.
+```
+drd "npm run test:watch"
+```
+
+## The bootstrap mode
+
+- When you want to create a fresh project
+
+```
+drd --do "create a nextjs project"
+```
+
+- When you to quickly fix or change something in a project without starting a dev or test server.
+
+```
+drd --do "make the walls permeable in the snake_game file"
+```
 
 #### With larger text (heredoc)
 
 When you have larger string or if you want to copy paste a error stack with double quotes etc, please use this.
 
 ```
-drd <<EOF
+drd --do <<EOF
 Fix this error:
 ....
 EOF
@@ -114,244 +134,71 @@ drd --ask "create a MIT LICENSE file, just the file, don't respond with anything
 Use image references in your queries:
 
 ```
-drd "make the home image similar to the image" --image "~/Downloads/reference.png"
+drd --do "make the home image similar to the image" --image "~/Downloads/reference.png"
 ```
 
-### Self healing fix
+## AI Models and Providers
 
-You can run the development server with automatic error fixing.
+Dravid supports multiple AI providers and models to suit your needs. Here's an overview of the available options:
 
-This command will start your dev server (as in the drd.json) and then continually fix any errors
-and then restart, you can sitback and sip coffee :)
+### Default: Claude (Anthropic)
 
-```
-drd --hf
-```
+By default, Dravid uses Claude 3.5 Sonnet from Anthropic. Claude is known for its strong performance across a wide range of tasks, including coding, analysis, and creative writing.
 
-or
+To use Claude, set the following environment variable:
 
 ```
-drd --hot-fix
+CLAUDE_API_KEY=your_claude_api_key_here
 ```
 
-#### Test server monitoring and continous fix
+### OpenAI
 
-You can also pass custom cmd options to `--hf` then it will pick that command over the dev server command.
-This useful especially if you have test runners.
+Dravid also supports OpenAI's models. When using OpenAI, the default model is gpt-4o.
 
-If you have 100 test cases, and 10 of the file, you can set this command to identify errors and automatically fix
-
-```
-drd --hf --cmd "npm run test:watch"
-```
-
-or
+To use OpenAI, set the following environment variables:
 
 ```
-drd --hf --command "poetry run test:watch"
+DRAVID_LLM=openai
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-It would work with any languages or frameworks, make sure that the command is a continually running one not the usual
-test script which exits out after tests passes or fails.
-
-### Metadata Management
-
-To use Dravid cli in an existing project you would have to initialize metadata (drd.json)
-
-This script will ignore files in your .gitgnore and recursively read and give description for each of the file
+You can control the specific OpenAI model used by changing the `OPENAI_MODEL` environment variable.
+For example:
 
 ```
-drd --meta-init
+OPENAI_MODEL=gpt-4 # for standard GPT-4
+OPENAI_MODEL=gpt-3.5-turbo # for GPT-3.5 Turbo
 ```
 
-or
+## Other Providers
+
+Depending on your chosen AI provider, you'll need to set different environment variables:
+
+### Azure OpenAI
 
 ```
-drd --i
+DRAVID_LLM=azure
+AZURE_OPENAI_API_KEY=your_azure_api_key_here
+AZURE_OPENAI_API_VERSION=your_api_version_here
+AZURE_OPENAI_ENDPOINT=your_azure_endpoint_here
+AZURE_OPENAI_DEPLOYMENT_NAME=your_deployment_name_here
 ```
 
-Note: make sure to include as many things in .gitignore that are not relevant. This would make multiple LLM calls.
-
-When you have added some files or removed files on your own for some reason and you want Dravid to know about it,
-you have to run this:
+### Custom Provider compatible with OpenAI spec(e.g., Anyscale, Togeether, Groq, NVIDIA, or your own)
 
 ```
-drd --meta-add "modified the about page"
+DRAVID_LLM=custom
+DRAVID_LLM_API_KEY=your_custom_api_key_here
+DRAVID_LLM_ENDPOINT=your_custom_endpoint_here
+DRAVID_LLM_MODEL=your_preferred_model_here
 ```
 
-or
+### Ollama (for local LLM models)
 
 ```
-drd --a "added users api"
+DRAVID_LLM=ollama
+DRAVID_LLM_MODEL=your_preferred_local_model_here
 ```
-
-This would update the drd.json
-
-### File-specific Queries
-
-Ask for suggestions on specific files:
-
-```
-drd --ask "can you suggest how to refactor this file" --file "src/main.py"
-```
-
-For more detailed usage instructions and options, use the help command:
-
-```
-drd --help
-```
-
-## Use Cases
-
-### Next.js Project Development
-
-1. Create a simple Next.js app:
-
-   ```
-   drd "create a simple nextjs app"
-   ```
-
-2. Include shadcn components:
-
-   ```
-   drd "include shadcn components like button, input, select etc"
-   ```
-
-3. Modify home page based on a reference image:
-
-   ```
-   drd "make the home page similar to the image" --image ~/Downloads/reference.png
-   ```
-
-4. Create additional pages with consistent layout:
-
-   ```
-   drd "whatever links like Company, About, Services etc that you see in Nav link you can convert them into links and page on its own and with some sample content. All these new pages should have the same layout as the home page"
-   ```
-
-5. Auto-fix errors and start development server:
-   ```
-   drd --hf
-   ```
-
-### Working with Existing Projects
-
-Initialize Dravid in an existing project:
-
-```
-drd --i
-```
-
-This creates a drd.json based on the existing folder structure, allowing you to start using Dravid in that project.
-
-### Exploring New Languages (e.g., Elixir)
-
-1. Create a simple Elixir project (even if Elixir is not installed):
-
-   ```
-   drd "create a simple elixir project"
-   ```
-
-   Dravid will auto-fix any errors, including installing necessary dependencies.
-
-2. Handle specific errors:
-   ```
-   drd <<EOF
-   Your error trace in "file"
-   EOF
-   ```
-
-### Ruby on Rails Project Development
-
-1. Create a new Rails project:
-
-   ```
-   drd "create a new Ruby on Rails project with PostgreSQL database"
-   ```
-
-2. Generate a scaffold for a resource:
-
-   ```
-   drd "generate a scaffold for a Blog model with title and content fields"
-   ```
-
-3. Set up authentication:
-
-   ```
-   drd "add Devise gem for user authentication"
-   ```
-
-4. Create a custom controller and views:
-
-   ```
-   drd "create a controller for static pages with home, about, and contact actions, including corresponding views"
-   ```
-
-5. Implement a feature based on an image:
-
-   ```
-   drd "implement a comment section for blog posts similar to the image" --image ~/Downloads/comment_section.png
-   ```
-
-6. Run migrations and start the server:
-
-   ```
-   drd "run database migrations and start the Rails server"
-   ```
-
-7. Auto-fix any errors:
-   ```
-   drd --hf
-   ```
-
-### Python Project Development
-
-1. Set up a new Python project with virtual environment:
-
-   ```
-   drd "create a new Python project with poetry for dependency management"
-   ```
-
-2. Create a simple Flask web application:
-
-   ```
-   drd "create a basic Flask web application with a home route and a simple API endpoint"
-   ```
-
-3. Add database integration:
-
-   ```
-   drd "add SQLAlchemy ORM to the Flask app and create a User model"
-   ```
-
-4. Implement user authentication:
-
-   ```
-   drd "implement JWT-based authentication for the Flask API"
-   ```
-
-5. Create a data processing script:
-
-   ```
-   drd "create a Python script that processes CSV files using pandas and generates a summary report"
-   ```
-
-6. Add unit tests:
-
-   ```
-   drd "add pytest-based unit tests for the existing functions in the project"
-   ```
-
-7. Generate project documentation:
-
-   ```
-   drd "generate Sphinx documentation for the project, including docstrings for all functions and classes"
-   ```
-
-8. Auto-fix any errors or missing dependencies:
-   ```
-   drd --hf
-   ```
 
 ## Project Structure
 
