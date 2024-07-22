@@ -5,6 +5,7 @@ import glob
 import re
 from ...utils import print_info, print_error, print_debug
 from ...prompts.instructions import get_instruction_prompt
+from ...utils.file_utils import clean_path
 from ..query.main import execute_dravid_command
 
 
@@ -18,59 +19,137 @@ class InputHandler:
         self.thread.start()
 
     def _handle_input(self):
+        print_debug("Entered _handle_input method")
         while not self.monitor.should_stop.is_set():
+            print_debug("Waiting for user input")
             user_input = input("> ").strip()
+            print_debug(f"Received user input: {user_input}")
             if user_input.lower() == 'exit':
                 print_info("Exiting server monitor...")
                 self.monitor.stop()
                 break
             self._process_input(user_input)
+        print_debug("Exited _handle_input method")
 
     def _process_input(self, user_input):
+        print_debug(f"Processing input: {user_input}")
         if user_input.lower() == 'p':
             self._handle_vision_input()
             return
-
         if user_input:
             self.monitor.processing_input.set()
             try:
                 self._handle_general_input(user_input)
             finally:
                 self.monitor.processing_input.clear()
+        print_debug("Finished processing input")
+
+    def _handle_vision_input(self):
+        print_debug("Handling vision input")
+        print_info(
+            "Enter the image path and instructions (use Tab for autocomplete):")
+        user_input = self._get_input_with_autocomplete()
+        self.monitor.processing_input.set()
+        try:
+            self._handle_general_input(user_input)
+        finally:
+            self.monitor.processing_input.clear()
+        print_debug("Finished handling vision input")
+
+    def _handle_general_input(self, user_input):
+        print_debug(f"Handling general input: {user_input}")
+        instruction_prompt = get_instruction_prompt()
+        image_path, instructions, reference_files = self._parse_input(
+            user_input)
+
+        if image_path is None and not instructions and not reference_files:
+            print_error(
+                "Failed to parse input. Please check your input and try again.")
+            return
+
+        if image_path:
+            print_info(f"Processing image: {image_path}")
+            if not os.path.exists(image_path):
+                print_error("Image path not found. Please check and try again")
+                return
+
+        if reference_files:
+            print_info(f"Reference files: {', '.join(reference_files)}")
+        print_info(f"Instructions: {instructions}")
+
+        if not instructions and not image_path and not reference_files:
+            print_error(
+                "No valid input detected. Please provide instructions, file paths, or an image path.")
+            return
+
+        print_debug("Calling execute_dravid_command")
+        execute_dravid_command(
+            instructions, image_path,  instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
+        print_debug("Finished execute_dravid_command")
 
     def _handle_vision_input(self):
         print_info(
             "Enter the image path and instructions (use Tab for autocomplete):")
         user_input = self._get_input_with_autocomplete()
-
         self.monitor.processing_input.set()
         try:
             self._handle_general_input(user_input)
         finally:
             self.monitor.processing_input.clear()
 
-    def _handle_general_input(self, user_input):
-        # Regex to extract image path and instructions
-        image_pattern = r"([a-zA-Z0-9._/-]+(?:/|\\)?)+\.(jpg|jpeg|png|bmp|gif)"
-        match = re.search(image_pattern, user_input)
-        instruction_prompt = get_instruction_prompt()
+    def _parse_input(self, user_input):
+        print_debug(f"Parsing input: {user_input}")
 
-        if match:
-            image_path = match.group(0)
-            instructions = user_input.replace(image_path, "").strip()
-            image_path = os.path.expanduser(image_path)
+        # Regex pattern for file paths (including those with spaces and special characters)
+        file_pattern = r'(?:\'|\")?((?:[a-zA-Z]:)?(?:/|\\)?(?:[^/\\:*?"<>|\r\n]+(?:/|\\)?)+\.(?:jpg|jpeg|png|bmp|gif|[a-zA-Z0-9]+))(?:\'|\")?'
 
-            if not os.path.exists(image_path):
-                print_error(f"Image file not found: {image_path}")
-                return
+        print_debug(f"File pattern: {file_pattern}")
 
-            print_info(f"Processing image: {image_path}")
-            print_info(f"With instructions: {instructions}")
-            execute_dravid_command(
-                instructions, image_path, False, instruction_prompt, warn=False)
-        else:
-            execute_dravid_command(
-                user_input, None, False, instruction_prompt, warn=False)
+        try:
+            # Find all file path matches
+            file_matches = list(re.finditer(
+                file_pattern, user_input, re.IGNORECASE))
+            print_debug(f"File matches: {file_matches}")
+
+            # Extract all file paths
+            all_file_paths = [match.group(1) for match in file_matches]
+            print_debug(f"All file paths: {all_file_paths}")
+
+            # Separate image path and other file paths
+            image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif')
+            image_path = next(
+                (path for path in all_file_paths if path.lower().endswith(image_extensions)), None)
+            file_paths = [
+                path for path in all_file_paths if path != image_path]
+
+            print_debug(f"Extracted image path: {image_path}")
+            print_debug(f"Extracted file paths: {file_paths}")
+
+            # Remove all matched paths from the input to get the instructions
+            instructions = user_input
+            for match in file_matches:
+                instructions = instructions.replace(match.group(0), "")
+
+            # Clean up instructions
+            instructions = " ".join(instructions.split())
+            print_debug(f"Extracted instructions: {instructions}")
+
+            # Validate file paths
+            valid_file_paths = []
+            for path in file_paths:
+                cleaned_path = clean_path(path)
+                if cleaned_path and os.path.exists(cleaned_path):
+                    valid_file_paths.append(cleaned_path)
+                else:
+                    print_error(f"File not found: {cleaned_path}")
+
+            print_debug(f"Valid file paths: {valid_file_paths}")
+
+            return image_path, instructions, [path for path in valid_file_paths if path != image_path]
+
+        except Exception as e:
+            print_error(f"Error in _parse_input: {str(e)}")
+            return None, user_input, []
 
     def _get_input_with_autocomplete(self):
         current_input = ""
@@ -103,7 +182,6 @@ class InputHandler:
             path = os.path.join(path, '*')
         else:
             path = path + '*'
-
         completions = glob.glob(path)
         if len(completions) == 1 and os.path.isdir(completions[0]):
             return [completions[0] + os.path.sep]

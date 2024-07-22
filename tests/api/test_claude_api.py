@@ -78,11 +78,12 @@ class TestApiUtils(unittest.TestCase):
 
     @patch('drd.api.claude_api.get_api_key')
     @patch('drd.api.claude_api.make_api_call')
-    @patch('drd.api.claude_api.mimetypes.guess_type')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data=b'test image data')
-    def test_call_claude_vision_api_with_pagination(self, mock_open, mock_guess_type, mock_make_api_call, mock_get_api_key):
+    @patch('drd.api.claude_api.convert_to_base64')
+    def test_call_claude_vision_api_with_pagination(self, mock_convert_to_base64, mock_make_api_call, mock_get_api_key):
         mock_get_api_key.return_value = self.api_key
-        mock_guess_type.return_value = ('image/jpeg', None)
+        mock_convert_to_base64.return_value = (
+            'image/jpeg', 'base64encodedimagedata')
+
         mock_response = MagicMock()
         mock_response.json.return_value = {
             'content': [{'text': "<response>Test vision response</response>"}],
@@ -92,9 +93,13 @@ class TestApiUtils(unittest.TestCase):
 
         response = call_claude_vision_api_with_pagination(
             self.query, self.image_path)
+
         self.assertEqual(response, "<response>Test vision response</response>")
 
-        # Check if the function was called with the correct arguments
+        # Check if the convert_to_base64 function was called with the correct argument
+        mock_convert_to_base64.assert_called_once_with(self.image_path)
+
+        # Check if make_api_call was called with the correct arguments
         mock_make_api_call.assert_called_once()
         call_args = mock_make_api_call.call_args[0][0]
         self.assertEqual(call_args['messages'][0]
@@ -103,6 +108,8 @@ class TestApiUtils(unittest.TestCase):
                          ['content'][0]['source']['type'], 'base64')
         self.assertEqual(call_args['messages'][0]['content']
                          [0]['source']['media_type'], 'image/jpeg')
+        self.assertEqual(call_args['messages'][0]['content']
+                         [0]['source']['data'], 'base64encodedimagedata')
         self.assertEqual(call_args['messages'][0]
                          ['content'][1]['type'], 'text')
         self.assertEqual(call_args['messages'][0]

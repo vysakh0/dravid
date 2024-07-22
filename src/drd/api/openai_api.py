@@ -4,6 +4,7 @@ import base64
 from typing import Dict, Any, Optional, List, Generator
 from openai import OpenAI, AzureOpenAI
 from ..utils.parser import extract_and_parse_xml, parse_dravid_response
+from ..utils.file_utils import convert_to_base64
 import xml.etree.ElementTree as ET
 import click
 from .ollama_api import get_ollama_client, call_ollama_api_with_pagination, stream_ollama_response
@@ -98,9 +99,8 @@ def call_vision_api_with_pagination(query: str, image_path: str, include_context
 
     client = get_client()
     model = get_model()
-    with open(image_path, "rb") as image_file:
-        image_data = base64.b64encode(image_file.read()).decode('utf-8')
 
+    mime_type, image_data = convert_to_base64(image_path)
     full_response = ""
     messages = [
         {"role": "system", "content": instruction_prompt or ""},
@@ -109,7 +109,7 @@ def call_vision_api_with_pagination(query: str, image_path: str, include_context
             "content": [
                 {"type": "text", "text": query},
                 {"type": "image_url", "image_url": {
-                    "url": f"data:image/jpeg;base64,{image_data}"}}
+                    "url": f"data:image/{mime_type};base64,{image_data}"}}
             ]
         }
     ]

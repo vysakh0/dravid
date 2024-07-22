@@ -9,7 +9,7 @@ from .file_operations import get_files_to_modify
 from ...utils.parser import parse_dravid_response
 
 
-def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=None):
+def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=None, reference_files=None):
     print_header("Starting Dravid AI ...")
 
     if warn:
@@ -53,9 +53,22 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
             is_empty = is_directory_empty(executor.current_dir)
             print_info(
                 "No current project context found. Will create a new project in the current directory.", indent=2)
-            full_query = f"User query: {query}"
             full_query = f"Current directory is {'empty' if is_empty else 'not empty'}.\n\nUser query: {query}"
 
+        if reference_files:
+            print_info("📄 Reading reference file contents...", indent=2)
+            reference_contents = {}
+            for file in reference_files:
+                content = get_file_content(file)
+                if content:
+                    reference_contents[file] = content
+                    print_info(f"  - Read content of {file}", indent=4)
+
+            reference_context = "\n\n".join(
+                [f"Reference file {file}:\n{content}" for file, content in reference_contents.items()])
+            full_query += f"\n\nReference files:\n{reference_context}"
+
+        print_debug(f"full query: {full_query}")
         print_info("💡 Preparing to send query to LLM...", indent=2)
         if image_path:
             print_info(f"Processing image: {image_path}", indent=4)

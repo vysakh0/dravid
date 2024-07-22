@@ -33,7 +33,8 @@ class TestInputHandler(unittest.TestCase):
         self.mock_monitor.stop.assert_called_once()
         self.assertEqual(mock_input.call_count, 2)
         mock_execute_command.assert_called_once_with(
-            'test input', None, False, ANY, warn=False)
+            'test input', None, instruction_prompt=ANY, warn=False, reference_files=[]
+        )
 
     @patch('drd.cli.monitor.input_handler.execute_dravid_command')
     def test_process_input(self, mock_execute_command):

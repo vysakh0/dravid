@@ -1,10 +1,9 @@
 import requests
-import mimetypes
 import os
 import json
-import base64
 from typing import Dict, Any, Optional, List
 from ..utils.parser import extract_and_parse_xml, parse_dravid_response
+from ..utils.file_utils import convert_to_base64
 from typing import Dict, Any, Optional, List, Generator
 import xml.etree.ElementTree as ET
 import click
@@ -79,10 +78,9 @@ def call_claude_vision_api_with_pagination(query: str, image_path: str, include_
     api_key = get_api_key()
     headers = get_headers(api_key)
 
-    mime_type, _ = mimetypes.guess_type(image_path)
-    with open(image_path, "rb") as image_file:
-        image_data = base64.b64encode(image_file.read()).decode('utf-8')
+    mime_type, image_data = convert_to_base64(image_path)
 
+    print("image read...")
     full_response = ""
     data = {
         'model': MODEL,

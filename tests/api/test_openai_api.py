@@ -116,12 +116,16 @@ class TestOpenAIApiUtils(unittest.TestCase):
 
     @patch('drd.api.openai_api.get_client')
     @patch('drd.api.openai_api.get_model')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data=b'test image data')
+    @patch('drd.api.openai_api.convert_to_base64')
     @patch.dict(os.environ, {"DRAVID_LLM": "openai", "OPENAI_MODEL": DEFAULT_MODEL})
-    def test_call_vision_api_with_pagination(self, mock_open, mock_get_model, mock_get_client):
+    def test_call_vision_api_with_pagination(self, mock_convert_to_base64, mock_get_model, mock_get_client):
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
         mock_get_model.return_value = DEFAULT_MODEL
+
+        # Mock the convert_to_base64 function
+        mock_convert_to_base64.return_value = (
+            'jpeg', 'base64encodedimagedata')
 
         mock_response = MagicMock()
         mock_response.choices[0].message.content = "<response>Test vision response</response>"
@@ -130,6 +134,9 @@ class TestOpenAIApiUtils(unittest.TestCase):
 
         response = call_vision_api_with_pagination(self.query, self.image_path)
         self.assertEqual(response, "<response>Test vision response</response>")
+
+        # Check if convert_to_base64 was called with the correct argument
+        mock_convert_to_base64.assert_called_once_with(self.image_path)
 
         mock_client.chat.completions.create.assert_called_once()
         call_args = mock_client.chat.completions.create.call_args[1]
@@ -140,8 +147,10 @@ class TestOpenAIApiUtils(unittest.TestCase):
                          ['content'][0]['text'], self.query)
         self.assertEqual(call_args['messages'][1]
                          ['content'][1]['type'], 'image_url')
-        self.assertTrue(call_args['messages'][1]['content'][1]
-                        ['image_url']['url'].startswith('data:image/jpeg;base64,'))
+        self.assertEqual(
+            call_args['messages'][1]['content'][1]['image_url']['url'],
+            'data:image/jpeg;base64,base64encodedimagedata'
+        )
 
     @patch('drd.api.openai_api.get_client')
     @patch('drd.api.openai_api.get_model')

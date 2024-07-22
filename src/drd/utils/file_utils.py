@@ -1,8 +1,17 @@
 import os
+import base64
+import mimetypes
 from .utils import print_info
 
 
-def get_file_content(filename):
+def clean_path(path):
+    path = path.strip("'\"")
+    path = path.replace("\\ ", " ")
+    return os.path.normpath(path)
+
+
+def get_file_content(fname):
+    filename = clean_path(fname)
     if os.path.exists(filename):
         with open(filename, 'r') as f:
             lines = f.readlines()
@@ -24,3 +33,11 @@ def fetch_project_guidelines(project_dir):
 
 def is_directory_empty(path):
     return len(os.listdir(path)) == 0
+
+
+def convert_to_base64(img_path):
+    image_path = clean_path(img_path)
+    mime_type, _ = mimetypes.guess_type(image_path)
+    with open(image_path, "rb") as image_file:
+        image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        return mime_type, image_data

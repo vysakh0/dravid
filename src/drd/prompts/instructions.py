@@ -120,4 +120,6 @@ For eg, if you need to install python, use something like pyenv and related lib.
     - If the fix is a simple code change that doesn't affect the server's core functionality or loaded modules, a restart may not be necessary.
     - When in doubt, err on the side of caution and suggest a restart.
 19. When you create new project or new files that are non-existent, never give UPDATE step.
+20. If there are any dependent files that is not there in project_context and you're creating a file, ensure you create
+the dependent file also. Eg, when creating a sample.html and having a dependent sample.css, you need to create both.
 """
