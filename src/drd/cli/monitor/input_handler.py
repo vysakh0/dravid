@@ -2,7 +2,7 @@ import threading
 import click
 import os
 import glob
-import re
+from .input_parser import InputParser
 from ...utils import print_info, print_error, print_debug
 from ...prompts.instructions import get_instruction_prompt
 from ...utils.file_utils import clean_path
@@ -59,7 +59,8 @@ class InputHandler:
     def _handle_general_input(self, user_input):
         print_debug(f"Handling general input: {user_input}")
         instruction_prompt = get_instruction_prompt()
-        image_path, instructions, reference_files = self._parse_input(
+        input_parser = InputParser()
+        image_path, instructions, reference_files = input_parser.parse_input(
             user_input)
 
         if image_path is None and not instructions and not reference_files:
@@ -96,60 +97,6 @@ class InputHandler:
             self._handle_general_input(user_input)
         finally:
             self.monitor.processing_input.clear()
-
-    def _parse_input(self, user_input):
-        print_debug(f"Parsing input: {user_input}")
-
-        # Regex pattern for file paths (including those with spaces and special characters)
-        file_pattern = r'(?:\'|\")?((?:[a-zA-Z]:)?(?:/|\\)?(?:[^/\\:*?"<>|\r\n]+(?:/|\\)?)+\.(?:jpg|jpeg|png|bmp|gif|[a-zA-Z0-9]+))(?:\'|\")?'
-
-        print_debug(f"File pattern: {file_pattern}")
-
-        try:
-            # Find all file path matches
-            file_matches = list(re.finditer(
-                file_pattern, user_input, re.IGNORECASE))
-            print_debug(f"File matches: {file_matches}")
-
-            # Extract all file paths
-            all_file_paths = [match.group(1) for match in file_matches]
-            print_debug(f"All file paths: {all_file_paths}")
-
-            # Separate image path and other file paths
-            image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif')
-            image_path = next(
-                (path for path in all_file_paths if path.lower().endswith(image_extensions)), None)
-            file_paths = [
-                path for path in all_file_paths if path != image_path]
-
-            print_debug(f"Extracted image path: {image_path}")
-            print_debug(f"Extracted file paths: {file_paths}")
-
-            # Remove all matched paths from the input to get the instructions
-            instructions = user_input
-            for match in file_matches:
-                instructions = instructions.replace(match.group(0), "")
-
-            # Clean up instructions
-            instructions = " ".join(instructions.split())
-            print_debug(f"Extracted instructions: {instructions}")
-
-            # Validate file paths
-            valid_file_paths = []
-            for path in file_paths:
-                cleaned_path = clean_path(path)
-                if cleaned_path and os.path.exists(cleaned_path):
-                    valid_file_paths.append(cleaned_path)
-                else:
-                    print_error(f"File not found: {cleaned_path}")
-
-            print_debug(f"Valid file paths: {valid_file_paths}")
-
-            return image_path, instructions, [path for path in valid_file_paths if path != image_path]
-
-        except Exception as e:
-            print_error(f"Error in _parse_input: {str(e)}")
-            return None, user_input, []
 
     def _get_input_with_autocomplete(self):
         current_input = ""
