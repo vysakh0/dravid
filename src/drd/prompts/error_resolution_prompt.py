@@ -25,7 +25,7 @@ You have to identify the root cause, and your proposed solution and make it part
 and the actual code modifications or commands to run include it in the steps part.
 Your response should be in strictly XML format with no other extra messages. Use the following format:
 <response>
-<explanation>Explanation: root cause in bullet points, proposed solution in bullet points </explanation>
+<explanation>Explanation: analysis in a brief sentence, root cause in bullet points, proposed solution in bullet points </explanation>
 <requires_restart>true/false</requires_restart>
 <steps>
     <step>

@@ -36,9 +36,6 @@ class DevServerMonitor:
             print_error(f"Failed to start server process: {str(e)}")
             self.stop()
 
-    def stop(self):
-        self.graceful_shutdown()
-
     def request_restart(self):
         self.restart_requested.set()
 
@@ -84,13 +81,23 @@ class DevServerMonitor:
             self.stop()
             return None
 
+    def stop(self):
+        # Instead of directly calling graceful_shutdown, set a flag
+        self.should_stop.set()
+        # If we're not in the input handler thread, perform the shutdown
+        if threading.current_thread() != self.input_handler.thread:
+            self.graceful_shutdown()
+
     def graceful_shutdown(self):
         print_info("Initiating graceful shutdown...")
-        self.should_stop.set()
 
         # Stop input handler
         if self.input_handler.thread and self.input_handler.thread.is_alive():
-            self.input_handler.thread.join(timeout=5)
+            if threading.current_thread() != self.input_handler.thread:
+                self.input_handler.thread.join(timeout=5)
+            else:
+                print_info(
+                    "Skipping input handler thread join from within itself")
 
         # Stop output monitor
         if self.output_monitor.thread and self.output_monitor.thread.is_alive():
@@ -108,12 +115,12 @@ class DevServerMonitor:
 
         print_success("Shutdown complete.")
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
     def __enter__(self):
         self.start()
         return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.graceful_shutdown()
 
 
 def start_process(command, cwd):

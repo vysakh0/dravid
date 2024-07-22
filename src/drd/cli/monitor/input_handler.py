@@ -3,7 +3,7 @@ import click
 import os
 import glob
 from .input_parser import InputParser
-from ...utils import print_info, print_error, print_debug
+from ...utils import print_info, print_error
 from ...prompts.instructions import get_instruction_prompt
 from ...utils.file_utils import clean_path
 from ..query.main import execute_dravid_command
@@ -19,20 +19,15 @@ class InputHandler:
         self.thread.start()
 
     def _handle_input(self):
-        print_debug("Entered _handle_input method")
         while not self.monitor.should_stop.is_set():
-            print_debug("Waiting for user input")
             user_input = input("> ").strip()
-            print_debug(f"Received user input: {user_input}")
             if user_input.lower() == 'exit':
                 print_info("Exiting server monitor...")
                 self.monitor.stop()
                 break
             self._process_input(user_input)
-        print_debug("Exited _handle_input method")
 
     def _process_input(self, user_input):
-        print_debug(f"Processing input: {user_input}")
         if user_input.lower() == 'p':
             self._handle_vision_input()
             return
@@ -42,10 +37,8 @@ class InputHandler:
                 self._handle_general_input(user_input)
             finally:
                 self.monitor.processing_input.clear()
-        print_debug("Finished processing input")
 
     def _handle_vision_input(self):
-        print_debug("Handling vision input")
         print_info(
             "Enter the image path and instructions (use Tab for autocomplete):")
         user_input = self._get_input_with_autocomplete()
@@ -54,10 +47,8 @@ class InputHandler:
             self._handle_general_input(user_input)
         finally:
             self.monitor.processing_input.clear()
-        print_debug("Finished handling vision input")
 
     def _handle_general_input(self, user_input):
-        print_debug(f"Handling general input: {user_input}")
         instruction_prompt = get_instruction_prompt()
         input_parser = InputParser()
         image_path, instructions, reference_files = input_parser.parse_input(
@@ -83,10 +74,8 @@ class InputHandler:
                 "No valid input detected. Please provide instructions, file paths, or an image path.")
             return
 
-        print_debug("Calling execute_dravid_command")
         execute_dravid_command(
             instructions, image_path, debug=False, instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
-        print_debug("Finished execute_dravid_command")
 
     def _handle_vision_input(self):
         print_info(

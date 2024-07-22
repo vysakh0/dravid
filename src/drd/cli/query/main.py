@@ -68,7 +68,6 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
                 [f"Reference file {file}:\n{content}" for file, content in reference_contents.items()])
             full_query += f"\n\nReference files:\n{reference_context}"
 
-        print_debug(f"full query: {full_query}")
         print_info("💡 Preparing to send query to LLM...", indent=2)
         if image_path:
             print_info(f"Processing image: {image_path}", indent=4)
