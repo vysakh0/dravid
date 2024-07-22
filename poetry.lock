@@ -501,13 +501,13 @@ source = ["Cython (>=3.0.10)"]
 
 [[package]]
 name = "openai"
-version = "1.35.15"
+version = "1.37.0"
 description = "The official Python library for the openai API"
 optional = false
 python-versions = ">=3.7.1"
 files = [
-    {file = "openai-1.35.15-py3-none-any.whl", hash = "sha256:1b9a6ada4239b91f38f51c426c6ee2746a2069c92cbf25ed8694e5ec00ff4597"},
-    {file = "openai-1.35.15.tar.gz", hash = "sha256:307007e2036d57115612c1ecb50e9bc98fcc93537109a9f9efa1b4eedb2ea968"},
+    {file = "openai-1.37.0-py3-none-any.whl", hash = "sha256:a903245c0ecf622f2830024acdaa78683c70abb8e9d37a497b851670864c9f73"},
+    {file = "openai-1.37.0.tar.gz", hash = "sha256:dc8197fc40ab9d431777b6620d962cc49f4544ffc3011f03ce0a805e6eb54adb"},
 ]
 
 [package.dependencies]
