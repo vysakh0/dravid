@@ -5,37 +5,8 @@
 ![Coverage Status](https://codecov.io/gh/vysakh0/dravid/branch/main/graph/badge.svg)
 ![License](https://img.shields.io/github/license/vysakh0/dravid.svg)
 
-Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow user instructions until the job is done, even if it means fixing errors, including installation issues. It can generate code and fix errors autonomously until the intended result is achieved.
+Dravid (DRD) is an advanced, AI-powered CLI coding framework (in alpha) designed to follow user instructions until the job is done, even if it means fixing errors, including installation issues. It can also listen to a live dev server or a test server (in watch mode) or any processes with interactive pair programming. It can generate code and fix errors autonomously until the intended result is achieved.
 
-### Security and Sandbox (important note)
-
-- Always try in a new directory for a fresh project.
-- For existing projects, create a separate git branch or a sandbox environment. Monitor the generated commands. Git add or commit when you get results.
-- Your file content will be sent to the CLAUDE API LLM for response. Do not include sensitive files in the project.
-- Don't use hardcoded API_KEYS. Use .env and ensure it's part of .gitignore so the tool can skip reading it.
-
-### Quick preview:
-
-1.  As shown in the video, when initializing a project where system dependencies don't exist, Dravid will attempt to fix them one by one, even if those fixes result in their own errors
-
-https://github.com/user-attachments/assets/07784a9e-8de6-4161-9e83-8cad1fa04ae6
-
-2. If you have a dev server with import or reference errors, requiring dependency installation or fixes, Dravid will monitor your dev or test server and autofix. This is particularly useful for existing projects where you want to fix tests or refactor the entire project.
-
-https://github.com/user-attachments/assets/14350e4d-6cec-4922-997f-f34e9f716189
-
-You can also initialize Dravid in your existing project. See the Usage section for more details.
-
-## Features
-
-- AI-powered CLI for efficient coding and project management
-- Support for multiple AI providers: Claude (default), OpenAI, Azure OpenAI, Llama 3, Mixtral (through Anyscale, Groq, or NVIDIA), and local LLM models through Ollama
-- Image query handling capabilities
-- Robust file operations and metadata management
-- Integration with external APIs (Dravid API)
-- Built-in development server with file monitoring
-- Comprehensive error handling and reporting
-- Extensible architecture for easy feature additions
 
 ## Installation
 
@@ -43,7 +14,8 @@ You can also initialize Dravid in your existing project. See the Usage section f
 
 - Python 3.7+
 - pip (Python package installer)
-- API key for your chosen AI provider (environment variable should be set)
+- API key for your chosen AI provider (environment variable should be set). Please see the LLM providers section. Supports AI providers: Claude (default), OpenAI, Azure OpenAI, Llama 3, Mixtral (through Anyscale, Groq, or NVIDIA), and local LLM models through Ollama.
+
 
 To install Dravid, run the following command:
 
@@ -57,9 +29,6 @@ To upgrade for latest fixes:
 pip install --upgrade dravid
 ```
 
-### NOTE:
-
-Always create a fresh directory before trying to create a new project.
 
 ## Usage
 
@@ -137,6 +106,14 @@ Use image references in your queries:
 drd --do "make the home image similar to the image" --image "~/Downloads/reference.png"
 ```
 
+
+### Security and Sandbox (important note)
+
+- Always try in a new directory for a fresh project.
+- For existing projects, create a separate git branch or a sandbox environment. Monitor the generated commands. Git add or commit when you get results.
+- Your file content will be sent to the your chosen LLM for response. Do not include sensitive files in the project.
+- Don't use hardcoded API_KEYS. Use .env and ensure it's part of .gitignore so the tool can skip reading it.
+- 
 ## AI Models and Providers
 
 Dravid supports multiple AI providers and models to suit your needs. Here's an overview of the available options:
@@ -255,14 +232,6 @@ poetry run drd "add tests for utils/utils"
 poetry run drd --ask "who are you"
 ```
 
-### Video examples
-
-https://github.com/user-attachments/assets/2bcd2969-2746-4115-a879-18b8333a3053
-
-https://github.com/user-attachments/assets/15112577-0d45-44be-b564-74bee548ac66
-
-https://github.com/user-attachments/assets/25b82c1f-e357-405b-9b85-2488a2d2b771
-
 ## Testing
 
 After adding some functionalities, if you want to test how it works, I suggest creating a directory
@@ -283,9 +252,6 @@ poetry run pytest
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
-
-- Special thanks to the creators of the Claude AI model, which powers many of Dravid's capabilities
 
 ## Contact
 
