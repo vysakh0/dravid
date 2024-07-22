@@ -85,7 +85,7 @@ class InputHandler:
 
         print_debug("Calling execute_dravid_command")
         execute_dravid_command(
-            instructions, image_path,  instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
+            instructions, image_path, debug=False, instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
         print_debug("Finished execute_dravid_command")
 
     def _handle_vision_input(self):

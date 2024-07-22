@@ -39,6 +39,19 @@ class TestInputParser(unittest.TestCase):
         self.assertEqual(instructions, "This is a test with some text")
         self.assertEqual(files, [])
 
+    def test_image_path_with_spaces_beginning(self):
+        image_path = self.create_temp_file('test image.jpg')
+        escaped_path = self.escape_path(image_path)
+        user_input = f"{escaped_path} with some text"
+        print(f"User input: {user_input}")
+        image, instructions, files = self.parser.parse_input(user_input)
+        print(f"Parsed image: {image}")
+        print(f"Parsed instructions: {instructions}")
+        print(f"Parsed files: {files}")
+        self.assertEqual(image, image_path)
+        self.assertEqual(instructions, "with some text")
+        self.assertEqual(files, [])
+
     def test_simple_image_and_text(self):
         image_path = self.create_temp_file('testimage.jpg')
         escaped_path = self.escape_path(image_path)
