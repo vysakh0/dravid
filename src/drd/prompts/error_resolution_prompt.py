@@ -55,9 +55,10 @@ Your response should be in strictly XML format with no other extra messages. Use
           r line_number: content to replace the line with
           
           Example:
-          + 3: import new_module
+          + 3:import json
           - 10:
-          r 15: def updated_function():
+          r 15:   if a == 1
+          + 24:         break
         ]]>
     </content>
     </step>
@@ -75,7 +76,7 @@ Important guidelines:
 3. Strictly generate XML only, no other extra words.
 4 For file updates, provide ONLY the specific changes to be made, not the entire file content.
   - If you need to update a specific part of a file, first fetch the current content, if not dont suggest UPDATE 
-  - Provide precise line-by-line modifications per the given format.
+  - Provide precise line-by-line modifications per the given format including indentations (important)
   - Ensure that the changes are accurate, specifying the correct line numbers for additions, removals, 
 5. Try to avoid sudo approach as much but as a last resort.  Give OS & arch specific information whenever needed.
 6. If a file is created or updated, include a step to update the file metadata in the project metadata.

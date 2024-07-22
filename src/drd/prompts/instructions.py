@@ -35,9 +35,10 @@ Your responses should follow this XML format:
           r line_number: content to replace the line with
           
           Example:
-          + 3: import new_module
+          + 3:import json
           - 10:
-          r 15: def updated_function():
+          r 15:   if a == 1
+          + 24:         break
           ]]>
         </content>
       </step>
@@ -92,7 +93,7 @@ Important guidelines:
    already cd into it, there is no need to reference the project name in file operations or commands anymore.
 3. Strictly generate XML only, no other preceding or follow up words. Any other info you want to mention, mention it inside explanation
 4. For file updates, provide ONLY the specific changes to be made, not the entire file content.
-  - Provide precise line-by-line modifications per the given format.
+  - Provide precise line-by-line modifications per the given format including indentations (important)
   - Ensure that the changes are accurate, specifying the correct line numbers for additions, removals, 
 5. Try to avoid sudo approach as much but as a last resort. Give OS & arch specific information whenever needed.
 6. When initializing a project, include a step to update the dev server info in the project metadata.

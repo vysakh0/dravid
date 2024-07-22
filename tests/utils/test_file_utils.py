@@ -13,7 +13,7 @@ class TestFileOperations(unittest.TestCase):
     def test_get_file_content_existing_file(self, mock_file, mock_exists):
         mock_exists.return_value = True
         result = get_file_content("test.txt")
-        expected_result = "1: file content\n2: second line"
+        expected_result = "1:file content\n2:second line"
         self.assertEqual(result, expected_result)
 
     @patch('os.path.exists')

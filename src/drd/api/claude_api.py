@@ -80,7 +80,6 @@ def call_claude_vision_api_with_pagination(query: str, image_path: str, include_
 
     mime_type, image_data = convert_to_base64(image_path)
 
-    print("image read...")
     full_response = ""
     data = {
         'model': MODEL,

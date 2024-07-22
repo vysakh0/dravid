@@ -30,7 +30,6 @@ def execute_commands(commands, executor, metadata_manager, is_fix=False, debug=F
                 else:
                     raise ValueError(f"Unknown command type: {cmd['type']}")
 
-                print(cmd, "command")
                 if isinstance(output, str) and output.startswith("Skipping"):
                     print_info(f"Step {i}/{total_steps}: {output}")
                     all_outputs.append(f"Step {i}/{total_steps}: {output}")

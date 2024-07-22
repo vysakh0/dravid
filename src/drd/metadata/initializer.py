@@ -106,7 +106,6 @@ async def initialize_project_metadata(current_dir):
 
         print_success("Project metadata initialized successfully.")
         print_info("Generated metadata:")
-        print(json.dumps(metadata, indent=2))
 
     except Exception as e:
         print_error(f"Error initializing project metadata: {str(e)}")

@@ -16,7 +16,7 @@ def get_file_content(fname):
         with open(filename, 'r') as f:
             lines = f.readlines()
             numbered_lines = [
-                f"{i+1}: {line.rstrip()}" for i, line in enumerate(lines)]
+                f"{i+1}:{line.rstrip()}" for i, line in enumerate(lines)]
             return "\n".join(numbered_lines)
     return None
 
