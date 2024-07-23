@@ -11,7 +11,6 @@ class OutputMonitor:
         self.monitor = monitor
         self.thread = None
         self.last_output_time = None
-        self.retry_count = 0
         self.idle_detected = threading.Event()
 
     def start(self):
@@ -22,22 +21,23 @@ class OutputMonitor:
     def _monitor_output(self):
         error_buffer = []
         self.last_output_time = time.time()
-
         while not self.monitor.should_stop.is_set():
             if self.monitor.process.poll() is not None and not self.monitor.processing_input.is_set():
                 if not self.monitor.restart_requested.is_set():
                     print_info("Server process ended unexpectedly.")
                     if self.monitor.retry_count < self.monitor.MAX_RETRIES:
-                        print_info(
-                            f"Restarting... (Attempt {self.monitor.retry_count + 1}/{self.monitor.MAX_RETRIES})")
-                        self.monitor.perform_restart()
                         self.monitor.retry_count += 1
+                        print_info(
+                            f"Restarting... (Attempt {self.monitor.retry_count}/{self.monitor.MAX_RETRIES})")
+                        self.monitor.perform_restart()
+                        return  # Exit the method after attempting restart
                     else:
                         print_error(
                             f"Server failed to start after {self.monitor.MAX_RETRIES} attempts. Exiting.")
                         self.monitor.stop()
                         break
-                continue
+                else:
+                    break  # Exit the loop if restart is already requested
 
             ready, _, _ = select.select(
                 [self.monitor.process.stdout], [], [], 0.1)
@@ -59,6 +59,7 @@ class OutputMonitor:
 
             if self.monitor.restart_requested.is_set() and not self.monitor.processing_input.is_set():
                 self.monitor.perform_restart()
+                return
 
     def _check_for_errors(self, line, error_buffer):
         for error_pattern, handler in self.monitor.error_handlers.items():
