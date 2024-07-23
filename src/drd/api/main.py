@@ -13,7 +13,7 @@ def get_api_functions():
     llm_type = os.getenv('DRAVID_LLM', 'claude').lower()
     if llm_type == 'claude':
         return call_claude_api_with_pagination, call_claude_vision_api_with_pagination, stream_claude_response
-    elif llm_type in ['openai', 'azure', 'custom']:
+    elif llm_type in ['openai', 'azure', 'custom', 'ollama']:
         return call_api_with_pagination, call_vision_api_with_pagination, stream_response
     else:
         raise ValueError(f"Unsupported LLM type: {llm_type}")
