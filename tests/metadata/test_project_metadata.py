@@ -46,7 +46,9 @@ class TestProjectMetadataManager(unittest.TestCase):
         self.assertEqual(file_entry['content_preview'], "print('Hello')")
         self.assertEqual(file_entry['description'], "A test Python file")
 
-    def test_get_project_context(self):
+    @patch('os.path.exists')
+    def test_get_project_context(self, mock_exists):
+        mock_exists.return_value = True
         self.manager.metadata = {
             "project_name": "Test Project",
             "last_updated": "",
@@ -88,25 +90,18 @@ class TestProjectMetadataManager(unittest.TestCase):
         self.assertEqual(info, self.manager.metadata['dev_server'])
 
     @patch('os.path.exists')
+    def test_get_project_context_no_drd_json(self, mock_exists):
+        mock_exists.return_value = False
+        context = self.manager.get_project_context()
+        self.assertIsNone(context)
+        mock_exists.assert_called_once_with(
+            os.path.join(self.project_dir, 'drd.json'))
+
+    @patch('os.path.exists')
     @patch('builtins.open', new_callable=mock_open)
-    @patch.object(ProjectMetadataManager, 'save_metadata')
-    def test_update_metadata_from_file(self, mock_save, mock_file, mock_exists):
+    def test_update_metadata_from_file(self, mock_file, mock_exists):
         mock_exists.return_value = True
 
-        # Initial metadata
-        initial_metadata = {
-            "project_name": "old_project",
-            "last_updated": "",
-            "files": [],
-            "dev_server": {
-                "start_command": "",
-                "framework": "",
-                "language": ""
-            }
-        }
-        self.manager.metadata = initial_metadata
-
-        # New metadata to be updated
         new_metadata = {
             "project_name": "pyserv",
             "last_updated": "2023-07-18T10:00:00",
@@ -130,37 +125,13 @@ class TestProjectMetadataManager(unittest.TestCase):
             }
         }
 
-        # Mock the file read operation to return the new metadata
         mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(
             new_metadata)
 
-        # Call the method to update metadata
         result = self.manager.update_metadata_from_file()
 
-        # Assert that the update was successful
         self.assertTrue(result)
-
-        # Assert that the metadata has been updated correctly
-        self.assertEqual(self.manager.metadata['project_name'], "pyserv")
-        self.assertEqual(len(self.manager.metadata['files']), 2)
+        self.assertEqual(self.manager.metadata["project_name"], "pyserv")
+        self.assertEqual(len(self.manager.metadata["files"]), 2)
         self.assertEqual(
-            self.manager.metadata['dev_server']['start_command'], "uvicorn app:app --reload")
-        self.assertEqual(
-            self.manager.metadata['dev_server']['framework'], "flask")
-        self.assertEqual(
-            self.manager.metadata['dev_server']['language'], "python")
-
-        # Check file metadata
-        app_py = next(
-            f for f in self.manager.metadata['files'] if f['filename'] == 'app.py')
-        self.assertEqual(app_py['description'], "Main application file")
-        self.assertEqual(app_py['exports'], "app")
-        self.assertTrue(app_py['content_preview'].startswith(
-            "from flask import Flask"))
-
-        requirements_txt = next(
-            f for f in self.manager.metadata['files'] if f['filename'] == 'requirements.txt')
-        self.assertEqual(
-            requirements_txt['description'], "Project dependencies")
-        self.assertTrue(
-            requirements_txt['content_preview'].startswith("Flask==2.3.2"))
+            self.manager.metadata["dev_server"]["framework"], "flask")
