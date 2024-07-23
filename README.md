@@ -248,6 +248,19 @@ To run the test suite:
 poetry run pytest
 ```
 
+## Errors or Exception
+
+### Installation
+
+- Make sure you are installing with python 3.8 and above, please check your python version
+  and pip version if you have both python2 and python3 in your system.
+- If you get "SyntaxError: multiple exception types must be parenthesized" after installation
+  and when you do `drd --version` it means the pygments library (dependency of openai) needs upgrade
+
+```
+pip install --upgrade pygments
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
