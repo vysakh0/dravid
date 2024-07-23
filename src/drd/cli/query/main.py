@@ -30,9 +30,6 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
                 lambda: get_files_to_modify(query, project_context),
                 "Analyzing project files"
             )
-
-            print_info(
-                f"Found {len(files_to_modify)} potentially relevant files.", indent=4)
             if debug:
                 print_info("Possible files to be modified:", indent=4)
                 for file in files_to_modify:

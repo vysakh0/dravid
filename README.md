@@ -204,7 +204,7 @@ DRAVID_LLM_MODEL=your_preferred_local_model_here
 
 - `src/drd/`: Main source code directory
   - `cli/`: Command-line interface modules
-  - `api/`: API interaction and parsing modules
+  - `api/`: API interaction
   - `utils/`: Utility functions and helpers
   - `prompts/`: AI prompt templates
   - `metadata/`: Project metadata management
@@ -234,6 +234,8 @@ To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
 3. Set up environment variables:
    Create a `.env` file in the project root and add your API keys:
 
+   For eg: if you use CLAUDE, if you use other services, you can add those env.
+
    ```
    CLAUDE_API_KEY=your_claude_api_key_here
    ```
@@ -242,13 +244,13 @@ To install Dravid, you need Python 3.7+ and Poetry. Follow these steps:
    and has used Dravid to build Dravid.
 
 ```
-poetry run drd "refactor api_utils"
+poetry run drd --do "refactor api_utils"
 ```
 
 or
 
 ```
-poetry run drd "add tests for utils/utils"
+poetry run drd --do "add tests for utils/utils"
 ```
 
 ```
@@ -270,7 +272,7 @@ called `myapp` or `testapp` or `test-app` in the root of this project. These fol
 
 ```
 cd myapp
-poetry run drd "create a simple elixir project"
+poetry run drd --do "create a simple elixir project"
 ```
 
 To run the test suite:
