@@ -1,57 +1,57 @@
-import threading
 import click
-import os
 import glob
-from .input_parser import InputParser
+import os
 from ...utils import print_info, print_error
 from ...prompts.instructions import get_instruction_prompt
-from ...utils.file_utils import clean_path
+from .input_parser import InputParser
 from ..query.main import execute_dravid_command
 
 
 class InputHandler:
     def __init__(self, monitor):
         self.monitor = monitor
-        self.thread = None
 
-    def start(self):
-        self.thread = threading.Thread(target=self._handle_input, daemon=True)
-        self.thread.start()
+    def handle_input(self):
+        print_info("\nNo more tasks to auto-process. What can I do next?")
+        self._show_options()
+        user_input = input("> ")
+        self._process_input(user_input)
 
-    def _handle_input(self):
-        while not self.monitor.should_stop.is_set():
-            user_input = input("> ").strip()
-            if user_input.lower() == 'exit':
-                print_info("Exiting server monitor...")
-                self.monitor.stop()
-                break
-            self._process_input(user_input)
+    def _show_options(self):
+        print_info("\nAvailable actions:")
+        print_info("1. Give a coding instruction to perform")
+        print_info("2. Same but with autocomplete for files (type 'p')")
+        print_info("3. Exit monitoring mode (type 'exit')")
+        print_info("\nType your choice or command:")
 
     def _process_input(self, user_input):
-        if user_input.lower() == 'p':
-            self._handle_vision_input()
-            return
-        if user_input:
-            self.monitor.processing_input.set()
-            try:
+        self.monitor.processing_input.set()
+        try:
+            if user_input.lower() == 'exit':
+                confirm_exit = input(
+                    "Are you sure you want to exit? [y/N]: ").lower() == 'y'
+                if confirm_exit:
+                    print_info("Exiting server monitor...")
+                    self.monitor.stop()
+                else:
+                    print_info("Exit cancelled.")
+            elif user_input.lower() == 'p':
+                self._handle_vision_input()
+            elif user_input:
                 self._handle_general_input(user_input)
-            finally:
-                self.monitor.processing_input.clear()
+        finally:
+            self.monitor.processing_input.clear()
 
     def _handle_vision_input(self):
         print_info(
             "Enter the image path and instructions (use Tab for autocomplete):")
         user_input = self._get_input_with_autocomplete()
-        self.monitor.processing_input.set()
-        try:
-            self._handle_general_input(user_input)
-        finally:
-            self.monitor.processing_input.clear()
+        self._handle_general_input(user_input)
 
     def _handle_general_input(self, user_input):
         instruction_prompt = get_instruction_prompt()
-        input_parser = InputParser()
-        image_path, instructions, reference_files = input_parser.parse_input(
+        parser = InputParser()
+        image_path, instructions, reference_files = parser.parse_input(
             user_input)
 
         if image_path is None and not instructions and not reference_files:
@@ -74,18 +74,17 @@ class InputHandler:
                 "No valid input detected. Please provide instructions, file paths, or an image path.")
             return
 
-        execute_dravid_command(
-            instructions, image_path, debug=False, instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
-
-    def _handle_vision_input(self):
-        print_info(
-            "Enter the image path and instructions (use Tab for autocomplete):")
-        user_input = self._get_input_with_autocomplete()
-        self.monitor.processing_input.set()
         try:
-            self._handle_general_input(user_input)
-        finally:
-            self.monitor.processing_input.clear()
+            execute_dravid_command(
+                instructions,
+                image_path,
+                debug=False,
+                instruction_prompt=instruction_prompt,
+                warn=False,
+                reference_files=reference_files
+            )
+        except Exception as e:
+            print_error(f"Error executing Dravid command: {str(e)}")
 
     def _get_input_with_autocomplete(self):
         current_input = ""

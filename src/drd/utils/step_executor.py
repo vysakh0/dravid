@@ -1,11 +1,9 @@
 import subprocess
 import os
 import json
-import click
-from colorama import Fore, Style
 import time
-import re
 from .utils import print_error, print_success, print_info, print_warning, create_confirmation_box
+from .universal_input_lock import UniversalInputHandler
 from .diff import preview_file_changes
 from .apply_file_changes import apply_changes
 from ..metadata.common_utils import get_ignore_patterns, get_folder_structure
@@ -23,6 +21,7 @@ class Executor:
             'sudo', 'su', 'chown', 'chmod'
         ]
         self.env = os.environ.copy()
+        self.input_handler = UniversalInputHandler()
 
     def is_safe_path(self, path):
         full_path = os.path.abspath(path)
@@ -58,7 +57,7 @@ class Executor:
             confirmation_box = create_confirmation_box(
                 filename, f"File operation is being carried out outside of the project directory. {operation.lower()} this file")
             print(confirmation_box)
-            if not click.confirm(f"{Fore.YELLOW}Confirm {operation.lower()} :{Style.RESET_ALL}", default=False):
+            if not self.input_handler.get_user_input(f"Confirm {operation.lower()}", input_type="confirm"):
                 print_info(f"File {operation.lower()} cancelled by user.")
                 return "Skipping this step"
 
@@ -73,7 +72,7 @@ class Executor:
                 preview = preview_file_changes(
                     operation, filename, new_content=content)
                 print(preview)
-                if click.confirm(f"{Fore.YELLOW}Confirm creation {Style.RESET_ALL}", default=False):
+                if self.input_handler.get_user_input("Confirm creation", input_type="confirm"):
                     with open(full_path, 'w') as f:
                         f.write(content)
                     print_success(f"File created successfully: {filename}")
@@ -102,7 +101,7 @@ class Executor:
                         filename, f"{operation.lower()} this file")
                     print(confirmation_box)
 
-                    if click.confirm(f"{Fore.YELLOW}Confirm update {Style.RESET_ALL}", default=False):
+                    if self.input_handler.get_user_input("Confirm update", input_type="confirm"):
                         with open(full_path, 'w') as f:
                             f.write(updated_content)
                         print_success(f"File updated successfully: {filename}")
@@ -126,7 +125,7 @@ class Executor:
             confirmation_box = create_confirmation_box(
                 filename, f"{operation.lower()} this file")
             print(confirmation_box)
-            if click.confirm(f"{Fore.YELLOW}Confirm deletion {Style.RESET_ALL}", default=False):
+            if self.input_handler.get_user_input("Confirm deletion", input_type="confirm"):
                 try:
                     os.remove(full_path)
                     print_success(f"File deleted successfully: {filename}")
@@ -171,7 +170,7 @@ class Executor:
             command, "execute this command")
         print(confirmation_box)
 
-        if not click.confirm(f"{Fore.YELLOW}Confirm execution {Style.RESET_ALL}", default=False):
+        if not self.input_handler.get_user_input("Confirm execution", input_type="confirm"):
             print_info("Command execution cancelled by user.")
             return 'Skipping this step...'
 
