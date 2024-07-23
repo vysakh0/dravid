@@ -1,10 +1,10 @@
+import time
 import threading
 import subprocess
 from queue import Queue
 from .input_handler import InputHandler
 from .output_monitor import OutputMonitor
 from ...utils import print_info, print_success, print_error, print_header, print_prompt
-from ...utils.universal_input_lock import UniversalInputHandler
 from ...metadata.project_metadata import ProjectMetadataManager
 
 
@@ -26,7 +26,6 @@ class DevServerMonitor:
         self.output_monitor = OutputMonitor(self)
         self.retry_count = 0
         self.metadata_manager = ProjectMetadataManager(project_dir)
-        self.universal_input_handler = UniversalInputHandler()
 
     def start(self):
         self.should_stop.clear()
@@ -36,9 +35,21 @@ class DevServerMonitor:
         try:
             self.process = start_process(self.command, self.project_dir)
             self.output_monitor.start()
-            self.input_handler.start()
+            self._main_loop()
         except Exception as e:
             print_error(f"Failed to start server process: {str(e)}")
+            self.stop()
+
+    def _main_loop(self):
+        try:
+            while not self.should_stop.is_set():
+                if self.output_monitor.idle_detected.is_set():
+                    self.input_handler.handle_input()
+                    self.output_monitor.idle_detected.clear()
+                time.sleep(0.1)  # Small sleep to prevent busy-waiting
+        except KeyboardInterrupt:
+            print_info("Stopping server...")
+        finally:
             self.stop()
 
     def request_restart(self):
@@ -69,45 +80,12 @@ class DevServerMonitor:
                 self.request_restart()
 
     def stop(self):
-        # Instead of directly calling graceful_shutdown, set a flag
         self.should_stop.set()
-        # If we're not in the input handler thread, perform the shutdown
-        if threading.current_thread() != self.input_handler.thread:
-            self.graceful_shutdown()
-
-    def graceful_shutdown(self):
-        print_info("Initiating graceful shutdown...")
-
-        # Stop input handler
-        if self.input_handler.thread and self.input_handler.thread.is_alive():
-            if threading.current_thread() != self.input_handler.thread:
-                self.input_handler.thread.join(timeout=5)
-            else:
-                print_info(
-                    "Skipping input handler thread join from within itself")
-
-        # Stop output monitor
-        if self.output_monitor.thread and self.output_monitor.thread.is_alive():
-            self.output_monitor.thread.join(timeout=5)
-
-        # Terminate the process
         if self.process:
-            print_info("Terminating server process...")
             self.process.terminate()
-            try:
-                self.process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                print_prompt("Process did not terminate in time, forcing...")
-                self.process.kill()
-
-        print_success("Shutdown complete.")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def __enter__(self):
-        self.start()
-        return self
+            self.process.wait()
+        if self.output_monitor.thread:
+            self.output_monitor.thread.join()
 
 
 def start_process(command, cwd):
