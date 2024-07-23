@@ -17,6 +17,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
         print("\n")
 
     executor = Executor()
+
     metadata_manager = ProjectMetadataManager(executor.current_dir)
 
     try:

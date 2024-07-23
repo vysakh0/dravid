@@ -86,11 +86,12 @@ Important guidelines:
    - In such scenario no need to use 'cd' commands. All operations should be relative to the current directory.
    - Use relative paths for all file operations and commands.
 2. When there are files in current directory
-   - You have to initialise a project, you can create a new directory `npx create-docusaurus@latest new-drd-docs`, as soon
-   as you have such command, please also cd into the next step like `cd new-drd-docs`. So you have must generate the cd cmd 
-   subsequently.
+   - When you have to initialise a project, you can create a new directory `npx create-docusaurus@latest new-drd-docs`, as soon
+   as you create such a command, please also cd into the folder in the next step like `cd new-drd-docs`. 
    - Use relative paths for all other cmds and file operations. Do not do create file on new-drd-docs/test.md because you
    already cd into it, there is no need to reference the project name in file operations or commands anymore.
+2a) Whenever you have a have command that is related to project creation and it creates a project directory,
+   you must generate the cd cmd (important) like `cd project-name` subsequently. 
 3. Strictly generate XML only, no other preceding or follow up words. Any other info you want to mention, mention it inside explanation
 4. For file updates, provide ONLY the specific changes to be made, not the entire file content.
   - Provide precise line-by-line modifications per the given format including indentations (important)

@@ -1,11 +1,13 @@
 import threading
 import click
 import os
+import time
 import glob
 from .input_parser import InputParser
-from ...utils import print_info, print_error
+from ...utils import print_info, print_error, print_warning
 from ...prompts.instructions import get_instruction_prompt
 from ...utils.file_utils import clean_path
+from ...utils.universal_input_lock import UniversalInputHandler
 from ..query.main import execute_dravid_command
 
 
@@ -13,6 +15,7 @@ class InputHandler:
     def __init__(self, monitor):
         self.monitor = monitor
         self.thread = None
+        self.universal_input_handler = UniversalInputHandler()
 
     def start(self):
         self.thread = threading.Thread(target=self._handle_input, daemon=True)
@@ -20,18 +23,31 @@ class InputHandler:
 
     def _handle_input(self):
         while not self.monitor.should_stop.is_set():
-            user_input = input("> ").strip()
-            if user_input.lower() == 'exit':
-                print_info("Exiting server monitor...")
-                self.monitor.stop()
-                break
-            self._process_input(user_input)
+            if not self.universal_input_handler.is_error_resolution_in_progress():
+                try:
+                    user_input = self.universal_input_handler.get_user_input(
+                        "> ", input_type="choice")
+                    if user_input.lower() == 'exit':
+                        confirm_exit = self.universal_input_handler.get_user_input(
+                            "Are you sure you want to exit? [y/N]: ", input_type='confirm')
+                        if confirm_exit:
+                            print_info("Exiting server monitor...")
+                            self.monitor.stop()
+                            break
+                        else:
+                            print_info("Exit cancelled.")
+                    else:
+                        self._process_input(user_input)
+                except Exception as e:
+                    print_error(f"Error processing input: {str(e)}")
+            else:
+                # Wait a short time before checking again
+                time.sleep(0.4)
 
     def _process_input(self, user_input):
         if user_input.lower() == 'p':
             self._handle_vision_input()
-            return
-        if user_input:
+        elif user_input:
             self.monitor.processing_input.set()
             try:
                 self._handle_general_input(user_input)
@@ -74,18 +90,11 @@ class InputHandler:
                 "No valid input detected. Please provide instructions, file paths, or an image path.")
             return
 
-        execute_dravid_command(
-            instructions, image_path, debug=False, instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
-
-    def _handle_vision_input(self):
-        print_info(
-            "Enter the image path and instructions (use Tab for autocomplete):")
-        user_input = self._get_input_with_autocomplete()
-        self.monitor.processing_input.set()
         try:
-            self._handle_general_input(user_input)
-        finally:
-            self.monitor.processing_input.clear()
+            execute_dravid_command(
+                instructions, image_path, debug=False, instruction_prompt=instruction_prompt, warn=False, reference_files=reference_files)
+        except Exception as e:
+            print_error(f"Error executing Dravid command: {str(e)}")
 
     def _get_input_with_autocomplete(self):
         current_input = ""
@@ -111,6 +120,9 @@ class InputHandler:
                 if current_input:
                     current_input = current_input[:-1]
                     click.echo("\b \b", nl=False)
+            elif char == '\x03':  # Ctrl+C
+                print("\nInput cancelled.")
+                return ""
 
     def _autocomplete(self, text):
         path = os.path.expanduser(text)
@@ -122,3 +134,10 @@ class InputHandler:
         if len(completions) == 1 and os.path.isdir(completions[0]):
             return [completions[0] + os.path.sep]
         return completions
+
+    def stop(self):
+        if self.thread and self.thread.is_alive():
+            self.monitor.should_stop.set()
+            self.thread.join(timeout=5)
+            if self.thread.is_alive():
+                print_warning("InputHandler thread did not stop gracefully.")

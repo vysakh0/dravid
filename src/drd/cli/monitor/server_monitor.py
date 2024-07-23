@@ -4,6 +4,9 @@ from queue import Queue
 from .input_handler import InputHandler
 from .output_monitor import OutputMonitor
 from ...utils import print_info, print_success, print_error, print_header, print_prompt
+from ...utils.universal_input_lock import UniversalInputHandler
+from ...metadata.project_metadata import ProjectMetadataManager
+
 
 MAX_RETRIES = 3
 
@@ -22,6 +25,8 @@ class DevServerMonitor:
         self.input_handler = InputHandler(self)
         self.output_monitor = OutputMonitor(self)
         self.retry_count = 0
+        self.metadata_manager = ProjectMetadataManager(project_dir)
+        self.universal_input_handler = UniversalInputHandler()
 
     def start(self):
         self.should_stop.clear()
@@ -62,24 +67,6 @@ class DevServerMonitor:
                 print_info(
                     f"Retrying... (Attempt {self.retry_count + 1}/{MAX_RETRIES})")
                 self.request_restart()
-
-    def _start_process(self, command):
-        try:
-            return subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                universal_newlines=True,
-                shell=True,
-                cwd=self.project_dir
-            )
-        except Exception as e:
-            print_error(f"Failed to start server process: {str(e)}")
-            self.stop()
-            return None
 
     def stop(self):
         # Instead of directly calling graceful_shutdown, set a flag
