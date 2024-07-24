@@ -75,8 +75,6 @@ def handle_file_operation(cmd, executor, metadata_manager):
     elif operation_performed:
         print_success(
             f"Successfully performed {cmd['operation']} on file: {cmd['filename']}")
-        if cmd['operation'] in ['CREATE', 'UPDATE']:
-            update_file_metadata(cmd, metadata_manager, executor)
         return "Success"
     else:
         raise Exception(

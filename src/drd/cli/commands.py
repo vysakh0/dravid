@@ -12,7 +12,7 @@ from ..metadata.updater import update_metadata_with_dravid
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.13.8"  # Update this as you release new versions
+VERSION = "0.13.9"  # Update this as you release new versions
 
 
 def parse_multiline_input(input_string):
