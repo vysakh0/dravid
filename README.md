@@ -71,15 +71,15 @@ drd --do "create a nextjs project"
 drd --do "make the walls permeable in the snake_game file"
 ```
 
-#### With larger text (heredoc)
+#### With larger text (multi line string)
 
 When you have larger string or if you want to copy paste a error stack with double quotes etc, please use this.
 
 ```
-drd --do <<EOF
+drd --do """
 Fix this error:
 ....
-EOF
+"""
 ```
 
 ### Ask Questions or Generate Content

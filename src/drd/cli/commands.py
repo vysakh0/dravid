@@ -1,5 +1,6 @@
 import click
 import sys
+import ast
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -11,7 +12,18 @@ from ..metadata.updater import update_metadata_with_dravid
 from ..utils.utils import print_error
 from .ask_handler import handle_ask_command
 
-VERSION = "0.13.7"  # Update this as you release new versions
+VERSION = "0.13.8"  # Update this as you release new versions
+
+
+def parse_multiline_input(input_string):
+    try:
+        # Use ast.literal_eval to safely evaluate the string as a Python literal
+        parsed = ast.literal_eval(input_string)
+        if isinstance(parsed, str):
+            return parsed
+    except (SyntaxError, ValueError):
+        pass
+    return input_string  # Return the original string if parsing fails
 
 
 def handle_query_command(query, image, debug):
@@ -20,6 +32,8 @@ def handle_query_command(query, image, debug):
     if not query:
         click.echo("Please provide a query using the --do option.")
         return
+
+    query = parse_multiline_input(query)
     instruction_prompt = get_instruction_prompt()
     execute_dravid_command(query, image, debug, instruction_prompt, warn=True)
 
@@ -35,7 +49,7 @@ def dravid_cli_logic(command, do, image, debug, meta_add, meta_init, ask, file, 
         asyncio.run(initialize_project_metadata(os.getcwd()))
     elif ask or file:
         handle_ask_command(ask, file, debug)
-    elif do:
+    elif do is not None:
         handle_query_command(do, image, debug)
     elif command:
         run_dev_server_with_monitoring(command)
