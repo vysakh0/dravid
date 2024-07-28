@@ -12,9 +12,23 @@ from ..utils.utils import print_info, print_warning
 class ProjectMetadataManager:
     def __init__(self, project_dir):
         self.project_dir = os.path.abspath(project_dir)
-        self.metadata = {
+
+        self.metadata_file = os.path.join(self.project_dir, 'drd.json')
+        self.metadata = self.load_metadata()
+        self.ignore_patterns = self.get_ignore_patterns()
+        self.binary_extensions = {
+            '.pyc', '.pyo', '.so', '.dll', '.exe', '.bin'}
+        self.image_extensions = {'.jpg', '.jpeg',
+                                 '.png', '.gif', '.bmp', '.svg', '.ico'}
+
+    def load_metadata(self):
+        if os.path.exists(self.metadata_file):
+            with open(self.metadata_file, 'r') as f:
+                return json.load(f)
+
+        new_metadata = {
             "project_info": {
-                "name": os.path.basename(project_dir),
+                "name":  os.path.basename(self.project_dir),
                 "version": "1.0.0",
                 "description": "",
                 "last_updated": datetime.now().isoformat()
@@ -32,11 +46,11 @@ class ProjectMetadataManager:
                 "start_command": ""
             }
         }
-        self.ignore_patterns = self.get_ignore_patterns()
-        self.binary_extensions = {
-            '.pyc', '.pyo', '.so', '.dll', '.exe', '.bin'}
-        self.image_extensions = {'.jpg', '.jpeg',
-                                 '.png', '.gif', '.bmp', '.svg', '.ico'}
+        return new_metadata
+
+    def save_metadata(self):
+        with open(self.metadata_file, 'w') as f:
+            json.dump(self.metadata, f, indent=2)
 
     def get_ignore_patterns(self):
         patterns = [
@@ -195,3 +209,15 @@ class ProjectMetadataManager:
         self.metadata['project_info']['last_updated'] = datetime.now().isoformat()
 
         return self.metadata
+
+    def remove_file_metadata(self, filename):
+        self.metadata['project_info']['last_updated'] = datetime.now().isoformat()
+        self.metadata['key_files'] = [
+            f for f in self.metadata['key_files'] if f['path'] != filename]
+        self.save_metadata()
+
+    def get_file_metadata(self, filename):
+        return next((f for f in self.metadata['key_files'] if f['path'] == filename), None)
+
+    def get_project_context(self):
+        return json.dumps(self.metadata, indent=2)
