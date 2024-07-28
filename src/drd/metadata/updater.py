@@ -1,4 +1,4 @@
-import os
+import asyncio
 from ..api.main import call_dravid_api_with_pagination
 from ..utils.parser import extract_and_parse_xml
 from .project_metadata import ProjectMetadataManager
@@ -6,7 +6,8 @@ from ..utils import print_error, print_success, print_info, print_warning
 from .common_utils import get_ignore_patterns, get_folder_structure, find_file_with_dravid
 from ..prompts.metadata_update_prompts import get_files_to_update_prompt
 
-def update_metadata_with_dravid(meta_description, current_dir):
+
+async def update_metadata_with_dravid_async(meta_description, current_dir):
     print_info("Updating metadata based on the provided description...")
     metadata_manager = ProjectMetadataManager(current_dir)
     project_context = metadata_manager.get_project_context()
@@ -31,11 +32,14 @@ def update_metadata_with_dravid(meta_description, current_dir):
             print_info("No files identified for metadata update or removal.")
             return
 
-        print_info(f"Files identified for processing: {', '.join([file.find('path').text.strip() for file in files_to_process if file.find('path') is not None])}")
+        print_info(
+            f"Files identified for processing: {', '.join([file.find('path').text.strip() for file in files_to_process if file.find('path') is not None])}")
 
         for file in files_to_process:
-            path = file.find('path').text.strip() if file.find('path') is not None else ""
-            action = file.find('action').text.strip() if file.find('action') is not None else "update"
+            path = file.find('path').text.strip() if file.find(
+                'path') is not None else ""
+            action = file.find('action').text.strip() if file.find(
+                'action') is not None else "update"
 
             if not path:
                 print_warning("Skipping file with empty path")
@@ -46,43 +50,52 @@ def update_metadata_with_dravid(meta_description, current_dir):
                 print_success(f"Removed metadata for file: {path}")
                 continue
 
-            found_filename = find_file_with_dravid(path, project_context, folder_structure)
+            found_filename = find_file_with_dravid(
+                path, project_context, folder_structure)
             if not found_filename:
                 print_warning(f"Could not find file: {path}")
                 continue
 
             try:
-                with open(found_filename, 'r') as f:
-                    content = f.read()
+                # Analyze the file
+                file_info = await metadata_manager.analyze_file(found_filename)
 
-                metadata = file.find('metadata')
-                file_info = {
-                    "path": path,
-                    "type": metadata.find('type').text.strip() if metadata.find('type') is not None else "",
-                    "summary": metadata.find('description').text.strip() if metadata.find('description') is not None else "",
-                    "exports": metadata.find('exports').text.split(',') if metadata.find('exports') is not None and metadata.find('exports').text != 'None' else [],
-                    "imports": metadata.find('imports').text.split(',') if metadata.find('imports') is not None and metadata.find('imports').text != 'None' else []
-                }
+                if file_info:
+                    metadata_manager.update_file_metadata(
+                        file_info['path'],
+                        file_info['type'],
+                        file_info['summary'],
+                        file_info['exports'],
+                        file_info['imports']
+                    )
+                    print_success(
+                        f"Updated metadata for file: {found_filename}")
+                else:
+                    print_warning(f"Could not analyze file: {found_filename}")
 
-                metadata_manager.update_file_metadata(
-                    found_filename,
-                    file_info['type'],
-                    content,
-                    file_info['summary'],
-                    file_info['exports'],
-                    file_info['imports']
-                )
-
-                dependencies = metadata.find('external_dependencies')
-                if dependencies is not None:
-                    for dep in dependencies.findall('dependency'):
-                        metadata_manager.add_external_dependency(dep.text.strip())
-
-                print_success(f"Updated metadata for file: {found_filename}")
             except Exception as e:
                 print_error(f"Error processing {found_filename}: {str(e)}")
+
+        # After processing all files, update the environment info
+        all_languages = set(file['type'] for file in metadata_manager.metadata['key_files']
+                            if file['type'] not in ['binary', 'unknown'])
+        if all_languages:
+            primary_language = max(all_languages, key=lambda x: sum(
+                1 for file in metadata_manager.metadata['key_files'] if file['type'] == x))
+            other_languages = list(all_languages - {primary_language})
+            metadata_manager.update_environment_info(
+                primary_language=primary_language,
+                other_languages=other_languages,
+                primary_framework=metadata_manager.metadata['environment']['primary_framework'],
+                runtime_version=metadata_manager.metadata['environment']['runtime_version']
+            )
 
         print_success("Metadata update completed.")
     except Exception as e:
         print_error(f"Error parsing dravid's response: {str(e)}")
         print_error(f"Raw response: {files_response}")
+
+
+def update_metadata_with_dravid(meta_description, current_dir):
+    asyncio.run(update_metadata_with_dravid_async(
+        meta_description, current_dir))

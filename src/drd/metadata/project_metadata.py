@@ -221,3 +221,32 @@ class ProjectMetadataManager:
 
     def get_project_context(self):
         return json.dumps(self.metadata, indent=2)
+
+    def add_external_dependency(self, dependency):
+        if dependency not in self.metadata['external_dependencies']:
+            self.metadata['external_dependencies'].append(dependency)
+            self.save_metadata()
+
+    def update_environment_info(self, primary_language, other_languages, primary_framework, runtime_version):
+        self.metadata['environment'].update({
+            "primary_language": primary_language,
+            "other_languages": other_languages,
+            "primary_framework": primary_framework,
+            "runtime_version": runtime_version
+        })
+        self.save_metadata()
+
+    def update_file_metadata(self, filename, file_type, content, description=None, exports=None, imports=None):
+        self.metadata['project_info']['last_updated'] = datetime.now().isoformat()
+        file_entry = next(
+            (f for f in self.metadata['key_files'] if f['path'] == filename), None)
+        if file_entry is None:
+            file_entry = {'path': filename}
+            self.metadata['key_files'].append(file_entry)
+        file_entry.update({
+            'type': file_type,
+            'summary': description or file_entry.get('summary', ''),
+            'exports': exports or [],
+            'imports': imports or []
+        })
+        self.save_metadata()
