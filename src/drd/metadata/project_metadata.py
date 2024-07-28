@@ -68,7 +68,14 @@ class ProjectMetadataManager:
             if rel_path.startswith('..'):
                 return True
 
-            return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self.ignore_patterns)
+            for pattern in self.ignore_patterns:
+                if pattern.endswith('/'):
+                    # It's a directory pattern
+                    if rel_path.startswith(pattern) or rel_path.startswith(pattern[:-1]):
+                        return True
+                elif fnmatch.fnmatch(rel_path, pattern):
+                    return True
+            return False
         except Exception as e:
             print_warning(f"Error in should_ignore for path {path}: {str(e)}")
             return True

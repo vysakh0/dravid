@@ -1,4 +1,3 @@
-from src.drd.metadata.project_metadata import ProjectMetadataManager
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 import os
@@ -6,9 +5,8 @@ import sys
 import json
 from datetime import datetime
 
-# Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(
-    os.path.dirname(__file__), '..', '..', '..')))
+# Assuming the project structure, adjust the import path as necessary
+from src.drd.metadata.project_metadata import ProjectMetadataManager
 
 
 class TestProjectMetadataManager(unittest.TestCase):
@@ -17,121 +15,98 @@ class TestProjectMetadataManager(unittest.TestCase):
         self.project_dir = '/fake/project/dir'
         self.manager = ProjectMetadataManager(self.project_dir)
 
-    @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open, read_data='{"project_name": "Test Project"}')
-    def test_load_metadata(self, mock_file, mock_exists):
-        mock_exists.return_value = True
-        metadata = self.manager.load_metadata()
-        self.assertEqual(metadata["project_name"], "Test Project")
-        mock_file.assert_called_once_with(
-            os.path.join(self.project_dir, 'drd.json'), 'r')
+    @patch('os.walk')
+    def test_get_ignore_patterns(self, mock_walk):
+        mock_walk.return_value = [
+            ('/fake/project/dir', [], ['.gitignore']),
+            ('/fake/project/dir/subfolder', [], ['.gitignore'])
+        ]
+        mock_open_calls = [
+            mock_open(read_data="*.log\nnode_modules/\n").return_value,
+            mock_open(read_data="*.tmp\n").return_value
+        ]
+        with patch('builtins.open', side_effect=mock_open_calls):
+            patterns = self.manager.get_ignore_patterns()
 
-    @patch('json.dump')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_save_metadata(self, mock_file, mock_json_dump):
-        self.manager.save_metadata()
-        mock_file.assert_called_once_with(
-            os.path.join(self.project_dir, 'drd.json'), 'w')
-        mock_json_dump.assert_called_once()
+        self.assertIn('*.log', patterns)
+        self.assertIn('node_modules/', patterns)
+        self.assertIn('subfolder/*.tmp', patterns)
 
-    @patch.object(ProjectMetadataManager, 'save_metadata')
-    def test_update_file_metadata(self, mock_save):
-        self.manager.update_file_metadata(
-            "test.py", "python", "print('Hello')", "A test Python file")
-        mock_save.assert_called_once()
-        file_entry = next(
-            (f for f in self.manager.metadata['files'] if f['filename'] == "test.py"), None)
-        self.assertIsNotNone(file_entry)
-        self.assertEqual(file_entry['type'], "python")
-        self.assertEqual(file_entry['content_preview'], "print('Hello')")
-        self.assertEqual(file_entry['description'], "A test Python file")
+    def test_should_ignore(self):
+        self.manager.ignore_patterns = [
+            '*.log', 'node_modules/', 'subfolder/*.tmp']
+        self.assertTrue(self.manager.should_ignore(
+            '/fake/project/dir/test.log'))
+        self.assertTrue(self.manager.should_ignore(
+            '/fake/project/dir/node_modules/package.json'))
+        self.assertTrue(self.manager.should_ignore(
+            '/fake/project/dir/node_modules/subfolder/file.js'))
+        self.assertTrue(self.manager.should_ignore(
+            '/fake/project/dir/subfolder/test.tmp'))
+        self.assertFalse(self.manager.should_ignore(
+            '/fake/project/dir/src/main.py'))
+        self.assertFalse(self.manager.should_ignore(
+            '/fake/project/dir/package.json'))
 
-    @patch('os.path.exists')
-    def test_get_project_context(self, mock_exists):
-        mock_exists.return_value = True
-        self.manager.metadata = {
-            "project_name": "Test Project",
-            "last_updated": "",
-            "files": [
-                {"filename": "main.py", "type": "python",
-                    "description": "Main file"},
-                {"filename": "utils.py", "type": "python",
-                    "description": "Utility functions"}
-            ],
-            "dev_server": {
-                "start_command": "",
-                "framework": "",
-                "language": ""
+    @patch('os.walk')
+    def test_get_directory_structure(self, mock_walk):
+        mock_walk.return_value = [
+            ('/fake/project/dir', ['src'], ['README.md']),
+            ('/fake/project/dir/src', [], ['main.py', 'utils.py'])
+        ]
+        structure = self.manager.get_directory_structure(self.project_dir)
+        expected_structure = {
+            'files': ['README.md'],
+            'directories': ['src'],
+            'src': {
+                'files': ['main.py', 'utils.py']
             }
         }
-        context = self.manager.get_project_context()
-        self.assertIn("Test Project", context)
-        self.assertIn("main.py", context)
-        self.assertIn("utils.py", context)
+        self.assertEqual(structure, expected_structure)
 
-    @patch.object(ProjectMetadataManager, 'save_metadata')
-    def test_update_dev_server_info(self, mock_save):
-        self.manager.update_dev_server_info("npm start", "react", "javascript")
-        mock_save.assert_called_once()
-        self.assertEqual(
-            self.manager.metadata['dev_server']['start_command'], "npm start")
-        self.assertEqual(
-            self.manager.metadata['dev_server']['framework'], "react")
-        self.assertEqual(
-            self.manager.metadata['dev_server']['language'], "javascript")
+    def test_is_binary_file(self):
+        self.assertTrue(self.manager.is_binary_file('test.exe'))
+        self.assertTrue(self.manager.is_binary_file('image.png'))
+        self.assertFalse(self.manager.is_binary_file('script.py'))
+        self.assertFalse(self.manager.is_binary_file('config.json'))
 
-    def test_get_dev_server_info(self):
-        self.manager.metadata['dev_server'] = {
-            "start_command": "npm start",
-            "framework": "react",
-            "language": "javascript"
-        }
-        info = self.manager.get_dev_server_info()
-        self.assertEqual(info, self.manager.metadata['dev_server'])
+    @patch('src.drd.metadata.project_metadata.call_dravid_api_with_pagination')
+    @patch('builtins.open', new_callable=mock_open, read_data='print("Hello, World!")')
+    async def test_analyze_file(self, mock_file, mock_api_call):
+        mock_api_call.return_value = '''
+        <response>
+          <metadata>
+            <type>python</type>
+            <description>A simple Python script</description>
+            <exports>None</exports>
+            <imports>None</imports>
+          </metadata>
+        </response>
+        '''
+        file_info = await self.manager.analyze_file('/fake/project/dir/script.py')
+        self.assertEqual(file_info['path'], 'script.py')
+        self.assertEqual(file_info['type'], 'python')
+        self.assertEqual(file_info['summary'], 'A simple Python script')
 
-    @patch('os.path.exists')
-    def test_get_project_context_no_drd_json(self, mock_exists):
-        mock_exists.return_value = False
-        context = self.manager.get_project_context()
-        self.assertIsNone(context)
-        mock_exists.assert_called_once_with(
-            os.path.join(self.project_dir, 'drd.json'))
+    @patch('src.drd.metadata.project_metadata.ProjectMetadataManager.analyze_file')
+    @patch('os.walk')
+    async def test_build_metadata(self, mock_walk, mock_analyze_file):
+        mock_walk.return_value = [
+            ('/fake/project/dir', [], ['main.py', 'README.md'])
+        ]
+        mock_analyze_file.side_effect = [
+            {
+                'path': 'main.py',
+                'type': 'python',
+                'summary': 'Main Python script',
+                'exports': ['main_function'],
+                'imports': ['os']
+            },
+            None  # Simulating skipping README.md
+        ]
+        loader = MagicMock()
+        metadata = await self.manager.build_metadata(loader)
 
-    @patch('os.path.exists')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_update_metadata_from_file(self, mock_file, mock_exists):
-        mock_exists.return_value = True
-
-        new_metadata = {
-            "project_name": "pyserv",
-            "last_updated": "2023-07-18T10:00:00",
-            "files": [
-                {
-                    "filename": "app.py",
-                    "content": "from flask import Flask\n\napp = Flask(__name__)",
-                    "description": "Main application file",
-                    "exports": "app"
-                },
-                {
-                    "filename": "requirements.txt",
-                    "content": "Flask==2.3.2\nuvicorn==0.22.0",
-                    "description": "Project dependencies"
-                }
-            ],
-            "dev_server": {
-                "start_command": "uvicorn app:app --reload",
-                "framework": "flask",
-                "language": "python"
-            }
-        }
-
-        mock_file.return_value.__enter__.return_value.read.return_value = json.dumps(
-            new_metadata)
-
-        result = self.manager.update_metadata_from_file()
-
-        self.assertTrue(result)
-        self.assertEqual(self.manager.metadata["project_name"], "pyserv")
-        self.assertEqual(len(self.manager.metadata["files"]), 2)
-        self.assertEqual(
-            self.manager.metadata["dev_server"]["framework"], "flask")
+        self.assertEqual(metadata['environment']['primary_language'], 'python')
+        self.assertEqual(len(metadata['key_files']), 1)
+        self.assertEqual(metadata['key_files'][0]['path'], 'main.py')
