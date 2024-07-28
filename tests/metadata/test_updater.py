@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 import xml.etree.ElementTree as ET
+import asyncio
 
 from drd.metadata.updater import update_metadata_with_dravid
 
@@ -52,7 +53,7 @@ class TestMetadataUpdater(unittest.TestCase):
                     <action>update</action>
                     <metadata>
                         <type>python</type>
-                        <description>Main Python file</description>
+                        <summary>Main Python file</summary>
                         <exports>main_function</exports>
                         <imports>os</imports>
                         <external_dependencies>
@@ -69,7 +70,7 @@ class TestMetadataUpdater(unittest.TestCase):
                     <action>update</action>
                     <metadata>
                         <type>json</type>
-                        <description>Package configuration file</description>
+                        <summary>Package configuration file</summary>
                         <exports>None</exports>
                         <imports>None</imports>
                         <external_dependencies>
@@ -87,19 +88,30 @@ class TestMetadataUpdater(unittest.TestCase):
         mock_find_file.side_effect = [
             '/fake/project/dir/src/main.py', '/fake/project/dir/package.json']
 
-        # Mock file contents
-        mock_file_contents = {
-            '/fake/project/dir/src/main.py': "print('Hello, World!')",
-            '/fake/project/dir/package.json': '{"name": "test-project"}'
-        }
+        # Mock analyze_file method
+        async def mock_analyze_file(filename):
+            if filename == '/fake/project/dir/src/main.py':
+                return {
+                    'path': '/fake/project/dir/src/main.py',
+                    'type': 'python',
+                    'summary': "print('Hello, World!')",
+                    'exports': ['main_function'],
+                    'imports': ['os']
+                }
+            elif filename == '/fake/project/dir/package.json':
+                return {
+                    'path': '/fake/project/dir/package.json',
+                    'type': 'json',
+                    'summary': '{"name": "test-project"}',
+                    'exports': [],
+                    'imports': []
+                }
+            return None
 
-        def mock_open_file(filename, *args, **kwargs):
-            return mock_open(read_data=mock_file_contents.get(filename, ""))()
+        mock_metadata_manager.return_value.analyze_file = mock_analyze_file
 
-        with patch('builtins.open', mock_open_file):
-            # Call the function
-            update_metadata_with_dravid(
-                self.meta_description, self.current_dir)
+        # Call the function
+        update_metadata_with_dravid(self.meta_description, self.current_dir)
 
         # Assertions
         mock_metadata_manager.assert_called_once_with(self.current_dir)
@@ -110,11 +122,11 @@ class TestMetadataUpdater(unittest.TestCase):
 
         # Check if metadata was correctly updated and removed
         mock_metadata_manager.return_value.update_file_metadata.assert_any_call(
-            '/fake/project/dir/src/main.py', 'python', "print('Hello, World!')", 'Main Python file', [
+            '/fake/project/dir/src/main.py', 'python', "print('Hello, World!')", [
                 'main_function'], ['os']
         )
         mock_metadata_manager.return_value.update_file_metadata.assert_any_call(
-            '/fake/project/dir/package.json', 'json', '{"name": "test-project"}', 'Package configuration file', [
+            '/fake/project/dir/package.json', 'json', '{"name": "test-project"}', [
             ], []
         )
         mock_metadata_manager.return_value.remove_file_metadata.assert_called_once_with(

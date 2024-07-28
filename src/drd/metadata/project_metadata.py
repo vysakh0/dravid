@@ -158,7 +158,7 @@ class ProjectMetadataManager:
             file_info = {
                 "path": rel_path,
                 "type": metadata.find('type').text,
-                "summary": metadata.find('description').text,
+                "summary": metadata.find('summary').text,
                 "exports": metadata.find('exports').text.split(',') if metadata.find('exports').text != 'None' else [],
                 "imports": metadata.find('imports').text.split(',') if metadata.find('imports').text != 'None' else []
             }
@@ -250,3 +250,35 @@ class ProjectMetadataManager:
             'imports': imports or []
         })
         self.save_metadata()
+
+    def update_metadata_from_file(self):
+        if os.path.exists(self.metadata_file):
+            with open(self.metadata_file, 'r') as f:
+                content = f.read()
+            try:
+                new_metadata = json.loads(content)
+                # Update dev server info if present
+                if 'dev_server' in new_metadata:
+                    self.metadata['dev_server'] = new_metadata['dev_server']
+                # Update other metadata fields
+                for key, value in new_metadata.items():
+                    if key != 'files':  # We'll handle files separately
+                        self.metadata[key] = value
+                # Update file metadata
+                if 'files' in new_metadata:
+                    for file_entry in new_metadata['files']:
+                        filename = file_entry['filename']
+                        file_type = file_entry.get(
+                            'type', filename.split('.')[-1])
+                        file_content = file_entry.get('content', '')
+                        description = file_entry.get('description', '')
+                        exports = file_entry.get('exports', [])
+                        imports = file_entry.get('imports', [])
+                        self.update_file_metadata(
+                            filename, file_type, file_content, description, exports, imports)
+                self.save_metadata()
+                return True
+            except json.JSONDecodeError:
+                print(f"Error: Invalid JSON content in {self.metadata_file}")
+                return False
+        return False

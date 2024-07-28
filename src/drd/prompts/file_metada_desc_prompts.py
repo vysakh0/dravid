@@ -11,23 +11,32 @@ You're the project context maintainer. Your role is to keep relevant meta info a
 so it can be used by an AI coding assistant in future for reference.
 
 Based on the file content, project context, and the current folder structure, 
-please generate appropriate metadata for this file. 
+please generate appropriate metadata for this file
 
-If this file appears to be a dependency management file (like package.json, requirements.txt, Cargo.toml, etc.),
-provide a list of external dependencies.
+Guidelines:
+1. 'path' should be the full path of the file within the project.
+2. 'type' should be the programming language or file type (e.g., "typescript", "python", "json").
+3. 'summary' should be a concise description of the file's main purpose.
+4. 'exports' should list the exported items with their types (fun: for functions, class: for classes, var: for variables etc).
+5. 'imports' should list imports from other project files, including the path and imported item.
+6. 'external_dependencies' should list external dependencies for dependency management files if the current file appears to
+be deps management file (package.json, requirements.txt, Cargo.toml etc).
+7. If there are no exports, imports, or external dependencies, use an empty array [].
+8. Ensure all fields are present in the JSON object.
+9. If there are no exports, use <exports>None</exports> instead of an empty tag.
+10. If there are no imports, use <imports>None</imports> instead of an empty tag.
+11. If there are no external dependencies, omit the <external_dependencies> tag entirely.
+12. Ensure that all other tags (type, description, file_category, exports, imports) are always present and non-empty.
 
-If it's a code file, provide a summary, list of exports (functions, classes, or variables available for importing),
-and a list of imports from other project files.
 
 Respond with an XML structure containing the metadata:
 
 <response>
   <metadata>
     <type>file_type</type>
-    <description>Description based on the file's contents, project context, and folder structure</description>
-    <file_category>code_file or dependency_file</file_category>
+    <summary>summary based on the file's contents, project context, and folder structure</summary>
     <exports>fun:functionName,class:ClassName,var:variableName</exports>
-    <imports>path/to/file:importedName</imports>
+    <imports>path/to/file</imports>
     <external_dependencies>
       <dependency>
         <dependency>name1@version1</dependency>
@@ -36,9 +45,31 @@ Respond with an XML structure containing the metadata:
   </metadata>
 </response>
 
+examples:
+<response>
+  <metadata>
+    <path>src/components/Layout.tsx</path>
+    <type>typescript</type>
+    <summary>Main layout component</summary>
+    <exports>fun:Layout</exports>
+    <imports>src/components/Footer</imports>
+  </metadata>
+</response>
+
+<response>
+  <metadata>
+    <path>package.json</path>
+    <type>json</type>
+    <summary>Node.js project configuration and dependencies</summary>
+    <exports>None</exports>
+    <imports>None</imports>
+    <external_dependencies>
+      <dependency>react@18.2.0</dependency>
+      <dependency>next@13.4.1</dependency>
+      <dependency>typescript@5.0.4</dependency>
+    </external_dependencies>
+  </metadata>
+</response>
+
 Respond strictly only with the XML response as it will be used for parsing, no other extra words. 
-If there are no exports, use <exports>None</exports> instead of an empty tag.
-If there are no imports, use <imports>None</imports> instead of an empty tag.
-If there are no external dependencies, omit the <external_dependencies> tag entirely.
-Ensure that all other tags (type, description, file_category, exports, imports) are always present and non-empty.
 """

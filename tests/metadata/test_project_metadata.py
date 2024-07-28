@@ -77,7 +77,7 @@ class TestProjectMetadataManager(unittest.TestCase):
         <response>
           <metadata>
             <type>python</type>
-            <description>A simple Python script</description>
+            <summary>A simple Python script</summary>
             <exports>None</exports>
             <imports>None</imports>
           </metadata>

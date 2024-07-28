@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 from unittest.mock import patch, MagicMock, call, mock_open
 import xml.etree.ElementTree as ET
@@ -12,6 +13,7 @@ from drd.cli.query.dynamic_command_handler import (
 )
 
 
+# Change back to unittest.TestCase
 class TestDynamicCommandHandler(unittest.TestCase):
 
     def setUp(self):
@@ -78,19 +80,25 @@ class TestDynamicCommandHandler(unittest.TestCase):
         # cmd, self.metadata_manager, self.executor)
 
     @patch('drd.cli.query.dynamic_command_handler.generate_file_description')
-    def test_update_file_metadata(self, mock_generate_description):
+    async def test_update_file_metadata(self, mock_generate_description):
         cmd = {'filename': 'test.txt', 'content': 'Test content'}
-        mock_generate_description.return_value = (
-            'python', 'Test file', ['test_function'])
+        mock_file_info = {
+            'path': 'test.txt',
+            'type': 'python',
+            'summary': 'Test file',
+            'exports': ['test_function'],
+            'imports': [],
+            'xml_response': '<response><file_info></file_info></response>'
+        }
+        self.metadata_manager.analyze_file.return_value = mock_file_info
 
-        update_file_metadata(cmd, self.metadata_manager, self.executor)
+        await update_file_metadata(cmd, self.metadata_manager, self.executor)
 
-        self.metadata_manager.get_project_context.assert_called_once()
-        self.executor.get_folder_structure.assert_called_once()
-        mock_generate_description.assert_called_once_with(
-            'test.txt', 'Test content', self.metadata_manager.get_project_context(), self.executor.get_folder_structure())
+        self.metadata_manager.analyze_file.assert_called_once_with('test.txt')
         self.metadata_manager.update_file_metadata.assert_called_once_with(
-            'test.txt', 'python', 'Test content', 'Test file', ['test_function'])
+            'test.txt', 'python', 'Test content', 'Test file', [
+                'test_function'], []
+        )
 
     @patch('drd.cli.query.dynamic_command_handler.print_error')
     @patch('drd.cli.query.dynamic_command_handler.print_info')

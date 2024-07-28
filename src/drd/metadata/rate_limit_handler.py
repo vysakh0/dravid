@@ -48,24 +48,26 @@ async def process_single_file(filename, content, project_context, folder_structu
         async with rate_limiter.semaphore:
             await rate_limiter.acquire()
             response = await to_thread(call_dravid_api_with_pagination, metadata_query, include_context=True)
-
         root = extract_and_parse_xml(response)
         type_elem = root.find('.//type')
-        desc_elem = root.find('.//description')
+        summary_elem = root.find('.//summary')
         exports_elem = root.find('.//exports')
-
+        imports_elem = root.find('.//imports')  # Added imports_elem
         file_type = type_elem.text.strip(
         ) if type_elem is not None and type_elem.text else "unknown"
-        description = desc_elem.text.strip(
-        ) if desc_elem is not None and desc_elem.text else "No description available"
+        summary = summary_elem.text.strip(
+        ) if summary_elem is not None and summary_elem.text else "No summary available"
         exports = exports_elem.text.strip(
         ) if exports_elem is not None and exports_elem.text else ""
-
+        imports = imports_elem.text.strip(
+        ) if imports_elem is not None and imports_elem.text else ""  # Added imports
         print_success(f"Processed: {filename}")
-        return filename, file_type, description, exports
+        # Added imports to return tuple
+        return filename, file_type, summary, exports, imports
     except Exception as e:
         print_error(f"Error processing {filename}: {e}")
-        return filename, "unknown", f"Error: {e}", ""
+        # Added empty string for imports in error case
+        return filename, "unknown", f"Error: {e}", "", ""
 
 
 async def process_files(files, project_context, folder_structure):

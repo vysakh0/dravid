@@ -51,7 +51,6 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
 
         full_query = construct_full_query(
             query, executor, project_context, files_info, reference_files)
-        print(full_query, "full query")
 
         print_info("💡 Preparing to send query to LLM...", indent=2)
         if image_path:
@@ -80,9 +79,7 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
         success, step_completed, error_message, all_outputs = execute_commands(
             commands, executor, metadata_manager, debug=debug)
 
-        print("no scucess", success)
         if not success:
-            print("called")
             print_error(
                 f"Failed to execute command at step {step_completed}.")
             print_error(f"Error message: {error_message}")
@@ -111,7 +108,6 @@ def execute_dravid_command(query, image_path, debug, instruction_prompt, warn=No
 
 def construct_full_query(query, executor, project_context, files_info=None, reference_files=None):
     is_empty = is_directory_empty(executor.current_dir)
-
     if is_empty:
         print_info(
             "Current directory is empty. Will create a new project.", indent=2)
@@ -123,41 +119,32 @@ def construct_full_query(query, executor, project_context, files_info=None, refe
     else:
         print_info(
             "Constructing query with project context and file information.", indent=2)
-
         project_guidelines = fetch_project_guidelines(executor.current_dir)
-
         full_query = f"{project_context}\n\n"
         full_query += f"Project Guidelines:\n{project_guidelines}\n\n"
-
-        if files_info:
-            if files_info['file_contents_to_load']:
+        if files_info and isinstance(files_info, dict):
+            if 'file_contents_to_load' in files_info:
                 file_contents = {}
                 for file in files_info['file_contents_to_load']:
                     content = get_file_content(file)
                     if content:
                         file_contents[file] = content
                         print_info(f"  - Read content of {file}", indent=4)
-
                 file_context = "\n".join(
                     [f"Current content of {file}:\n{content}" for file, content in file_contents.items()])
                 full_query += f"Current file contents:\n{file_context}\n\n"
-
-            if files_info['dependencies']:
+            if 'dependencies' in files_info:
                 dependency_context = "\n".join(
                     [f"Dependency {dep['file']} exports: {', '.join(dep['imports'])}" for dep in files_info['dependencies']])
                 full_query += f"Dependencies:\n{dependency_context}\n\n"
-
-            if files_info['new_files']:
+            if 'new_files' in files_info:
                 new_files_context = "\n".join(
                     [f"New file to create: {new_file['file']}" for new_file in files_info['new_files']])
                 full_query += f"New files to create:\n{new_files_context}\n\n"
-
-            if files_info['main_file']:
+            if 'main_file' in files_info:
                 full_query += f"Main file to modify: {files_info['main_file']}\n\n"
-
         full_query += "Current directory is not empty.\n\n"
         full_query += f"User query: {query}"
-
     if reference_files:
         print_info("📄 Reading reference file contents...", indent=2)
         reference_contents = {}
@@ -166,9 +153,7 @@ def construct_full_query(query, executor, project_context, files_info=None, refe
             if content:
                 reference_contents[file] = content
                 print_info(f"  - Read content of {file}", indent=4)
-
         reference_context = "\n\n".join(
             [f"Reference file {file}:\n{content}" for file, content in reference_contents.items()])
         full_query += f"\n\nReference files:\n{reference_context}"
-
     return full_query
