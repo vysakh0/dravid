@@ -3,7 +3,6 @@ import os
 import json
 import time
 from .utils import print_error, print_success, print_info, print_warning, create_confirmation_box
-from .universal_input_lock import UniversalInputHandler
 from .diff import preview_file_changes
 from .apply_file_changes import apply_changes
 from ..metadata.common_utils import get_ignore_patterns, get_folder_structure
@@ -21,7 +20,6 @@ class Executor:
             'sudo', 'su', 'chown', 'chmod'
         ]
         self.env = os.environ.copy()
-        self.input_handler = UniversalInputHandler()
 
     def is_safe_path(self, path):
         full_path = os.path.abspath(path)
