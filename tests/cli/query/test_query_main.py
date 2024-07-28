@@ -22,15 +22,22 @@ class TestExecuteDravidCommand(unittest.TestCase):
     @patch('drd.cli.query.main.print_debug')
     @patch('drd.cli.query.main.print_error')
     @patch('drd.cli.query.main.get_files_to_modify')
+    @patch('drd.cli.query.main.is_directory_empty')
     @patch('drd.cli.query.main.run_with_loader')
-    def test_execute_dravid_command_debug_mode(self, mock_run_with_loader, mock_get_files, mock_print_error,
+    def test_execute_dravid_command_debug_mode(self, mock_run_with_loader, mock_is_directory_empty, mock_get_files, mock_print_error,
                                                mock_print_debug, mock_execute_commands, mock_stream_api,
                                                mock_metadata_manager, mock_executor):
         self.debug = True
         mock_executor.return_value = self.executor
+        mock_is_directory_empty.return_value = False
         mock_metadata_manager.return_value = self.metadata_manager
         self.metadata_manager.get_project_context.return_value = "Test project context"
-        mock_get_files.return_value = ["file1.py", "file2.py"]
+        mock_get_files.return_value = {
+            'main_file': 'file1.py',
+            'dependencies': [],
+            'new_files': [],
+            'file_contents_to_load': ['file1.py', 'file2.py']
+        }
 
         mock_stream_api.return_value = """
         <response>
@@ -67,14 +74,21 @@ class TestExecuteDravidCommand(unittest.TestCase):
     @patch('drd.cli.query.main.print_error')
     @patch('drd.cli.query.main.print_info')
     @patch('drd.cli.query.main.get_files_to_modify')
+    @patch('drd.cli.query.main.is_directory_empty')
     @patch('drd.cli.query.main.run_with_loader')
-    def test_execute_dravid_command_with_error(self, mock_run_with_loader, mock_get_files, mock_print_info,
+    def test_execute_dravid_command_with_error(self, mock_run_with_loader, mock_is_directory_empty, mock_get_files, mock_print_info,
                                                mock_print_error, mock_handle_error, mock_execute_commands,
                                                mock_stream_api, mock_metadata_manager, mock_executor):
         mock_executor.return_value = self.executor
+        mock_is_directory_empty.return_value = False
         mock_metadata_manager.return_value = self.metadata_manager
         self.metadata_manager.get_project_context.return_value = "Test project context"
-        mock_get_files.return_value = ["file1.py", "file2.py"]
+        mock_get_files.return_value = {
+            'main_file': 'file1.py',
+            'dependencies': [],
+            'new_files': [],
+            'file_contents_to_load': ['file1.py', 'file2.py']
+        }
         mock_stream_api.return_value = """
         <response>
             <explanation>Test explanation</explanation>
@@ -107,13 +121,15 @@ class TestExecuteDravidCommand(unittest.TestCase):
     @patch('drd.cli.query.main.print_info')
     @patch('drd.cli.query.main.print_warning')
     @patch('drd.cli.query.main.run_with_loader')
+    @patch('drd.cli.query.main.is_directory_empty')
     @patch('drd.cli.query.main.get_files_to_modify')  # Add this line
-    def test_execute_dravid_command_with_image(self, mock_get_files, mock_run_with_loader,
+    def test_execute_dravid_command_with_image(self, mock_get_files, mock_is_directory_empty, mock_run_with_loader,
                                                mock_print_warning, mock_print_info,
                                                mock_execute_commands, mock_call_vision_api,
                                                mock_metadata_manager, mock_executor):
         self.image_path = "test_image.jpg"
         mock_executor.return_value = self.executor
+        mock_is_directory_empty.return_value = False
         mock_metadata_manager.return_value = self.metadata_manager
         self.metadata_manager.get_project_context.return_value = "Test project context"
         mock_call_vision_api.return_value = [
@@ -121,8 +137,12 @@ class TestExecuteDravidCommand(unittest.TestCase):
         mock_execute_commands.return_value = (
             True, 1, None, "Image command executed successfully")
         mock_run_with_loader.side_effect = lambda f, *args, **kwargs: f()
-        mock_get_files.return_value = []  # Add this line
-
+        mock_get_files.return_value = {
+            'main_file': None,
+            'dependencies': [],
+            'new_files': [],
+            'file_contents_to_load': []
+        }
         execute_dravid_command(self.query, self.image_path,
                                self.debug, self.instruction_prompt)
 
