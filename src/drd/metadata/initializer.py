@@ -37,13 +37,22 @@ async def initialize_project_metadata(project_dir):
             builder.metadata['project_info']['description'] = project_info.find('description').text.strip(
             ) if project_info.find('description') is not None else builder.metadata['project_info']['description']
             builder.metadata['environment']['primary_language'] = project_info.find(
-                './/primary_language').text.strip() if project_info.find('.//primary_language') is not None else ""
+                'primary_language').text.strip() if project_info.find('primary_language') is not None else ""
             builder.metadata['environment']['primary_framework'] = project_info.find(
-                './/primary_framework').text.strip() if project_info.find('.//primary_framework') is not None else ""
-            dev_server = project_info.find('.//dev_server')
+                'primary_framework').text.strip() if project_info.find('primary_framework') is not None else ""
+            dev_server = project_info.find('dev_server')
             if dev_server is not None and dev_server.find('start_command') is not None:
                 builder.metadata['dev_server']['start_command'] = dev_server.find(
                     'start_command').text.strip()
+
+            # Process inferred directory structure
+            dir_structure = project_info.find('directory_structure')
+            if dir_structure is not None:
+                for dir_elem in dir_structure.findall('directory'):
+                    dir_name = dir_elem.find('name').text.strip()
+                    dir_desc = dir_elem.find('description').text.strip()
+                    builder.metadata['directory_structure'][dir_name] = dir_desc
+
     except Exception as e:
         print_warning(f"Error fetching project information: {str(e)}")
         print_warning("Continuing with default values.")

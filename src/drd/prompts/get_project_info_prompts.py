@@ -10,6 +10,7 @@ Based on this structure, please provide the following information:
 3. Primary framework used (if any)
 4. Recommended dev server start command (if applicable)
 5. A brief description of the project
+6. Inferred high-level directory structure with brief descriptions for main directories
 
 Respond with an XML structure of this pattern:
 
@@ -22,8 +23,16 @@ Respond with an XML structure of this pattern:
       <start_command>start_command_here</start_command>
     </dev_server>
     <description>brief_description_here</description>
+    <directory_structure>
+      <directory>
+        <name>directory_name_here</name>
+        <description>brief_description_of_directory_contents</description>
+      </directory>
+      <!-- Repeat for each main directory -->
+    </directory_structure>
   </project_info>
 </response>
 
 Ensure all tags are present, even if you're unsure about some information (use 'unknown' in those cases).
+For the directory structure, focus on main directories and provide brief descriptions of their likely contents based on common project structures.
 """

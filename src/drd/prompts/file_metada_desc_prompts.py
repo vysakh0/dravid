@@ -30,10 +30,8 @@ Respond with an XML structure containing the metadata:
     <imports>path/to/file:importedName</imports>
     <external_dependencies>
       <dependency>
-        <name>dependency_name</name>
-        <version>version_number</version>
-        <type>npm or pip or cargo, etc.</type>
-      </dependency>
+        <dependency>name1@version1</dependency>
+        <dependency>name2@version2</dependency>
     </external_dependencies>
   </metadata>
 </response>

@@ -111,99 +111,55 @@ class ProjectMetadataManager:
         rel_path = os.path.relpath(file_path, self.project_dir)
 
         if self.is_binary_file(file_path):
-            file_info = {
+            return {
                 "path": rel_path,
                 "type": "binary",
                 "summary": "Binary or non-text file",
                 "exports": [],
                 "imports": []
             }
-        else:
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
 
-                if file_path.endswith('.md'):
-                    return None  # Skip markdown files
+        if file_path.endswith('.md'):
+            return None  # Skip markdown files
 
-                prompt = get_file_metadata_prompt(rel_path, content, json.dumps(
-                    self.metadata), json.dumps(self.metadata['directory_structure']))
-                response = call_dravid_api_with_pagination(
-                    prompt, include_context=True)
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
 
-                root = ET.fromstring(response)
-                metadata = root.find('metadata')
+            prompt = get_file_metadata_prompt(rel_path, content, json.dumps(
+                self.metadata), json.dumps(self.metadata['directory_structure']))
+            response = call_dravid_api_with_pagination(
+                prompt, include_context=True)
 
-                file_info = {
-                    "path": rel_path,
-                    "type": metadata.find('type').text,
-                    "summary": metadata.find('description').text,
-                    "exports": metadata.find('exports').text.split(',') if metadata.find('exports').text != 'None' else [],
-                    "imports": metadata.find('imports').text.split(',') if metadata.find('imports').text != 'None' else []
-                }
+            root = ET.fromstring(response)
+            metadata = root.find('metadata')
 
-                dependencies = metadata.find('external_dependencies')
-                if dependencies is not None:
-                    for dep in dependencies.findall('dependency'):
-                        self.metadata['external_dependencies'].append({
-                            "name": dep.find('name').text,
-                            "version": dep.find('version').text,
-                            "type": dep.find('type').text
-                        })
+            file_info = {
+                "path": rel_path,
+                "type": metadata.find('type').text,
+                "summary": metadata.find('description').text,
+                "exports": metadata.find('exports').text.split(',') if metadata.find('exports').text != 'None' else [],
+                "imports": metadata.find('imports').text.split(',') if metadata.find('imports').text != 'None' else []
+            }
 
-                if rel_path == 'package.json':
-                    self.analyze_package_json(content)
+            dependencies = metadata.find('external_dependencies')
+            if dependencies is not None:
+                for dep in dependencies.findall('dependency'):
+                    self.metadata['external_dependencies'].append(dep.text)
 
-            except Exception as e:
-                print_warning(f"Error analyzing file {file_path}: {str(e)}")
-                file_info = {
-                    "path": rel_path,
-                    "type": "unknown",
-                    "summary": "Error occurred during analysis",
-                    "exports": [],
-                    "imports": []
-                }
+        except Exception as e:
+            print_warning(f"Error analyzing file {file_path}: {str(e)}")
+            file_info = {
+                "path": rel_path,
+                "type": "unknown",
+                "summary": "Error occurred during analysis",
+                "exports": [],
+                "imports": []
+            }
 
         return file_info
 
-    def analyze_package_json(self, content):
-        try:
-            package_data = json.loads(content)
-            self.metadata['project_info']['name'] = package_data.get(
-                'name', self.metadata['project_info']['name'])
-            self.metadata['project_info']['version'] = package_data.get(
-                'version', self.metadata['project_info']['version'])
-            self.metadata['project_info']['description'] = package_data.get(
-                'description', self.metadata['project_info']['description'])
-
-            dependencies = package_data.get('dependencies', {})
-            dev_dependencies = package_data.get('devDependencies', {})
-
-            for name, version in {**dependencies, **dev_dependencies}.items():
-                self.metadata['external_dependencies'].append({
-                    "name": name,
-                    "version": version,
-                    "type": "npm"
-                })
-
-            if 'react' in dependencies:
-                self.metadata['environment']['primary_framework'] = 'React'
-            if 'next' in dependencies:
-                self.metadata['environment']['primary_framework'] = 'Next.js'
-
-            scripts = package_data.get('scripts', {})
-            if 'dev' in scripts:
-                self.metadata['dev_server']['start_command'] = f"npm run {scripts['dev']}"
-            elif 'start' in scripts:
-                self.metadata['dev_server']['start_command'] = f"npm run {scripts['start']}"
-
-        except json.JSONDecodeError:
-            print_warning("Error parsing package.json")
-
     async def build_metadata(self, loader):
-        self.metadata['directory_structure'] = self.get_directory_structure(
-            self.project_dir)
-
         total_files = sum([len(files) for root, _, files in os.walk(
             self.project_dir) if not self.should_ignore(root)])
         processed_files = 0
